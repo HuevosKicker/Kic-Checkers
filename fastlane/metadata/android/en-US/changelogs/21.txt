@@ -1,0 +1,2 @@
+New game: Block Drop, falling blocks in two short modes: a 40-line sprint against the clock and a 100-line marathon. Hold, three next pieces, a landing guide, swipe controls and a daily sprint.
+Fix: in Hokm, when you are hakem, the trump choice now sits above your five cards instead of in a window that blurred them and could be closed by mistake, leaving the hand stuck.
