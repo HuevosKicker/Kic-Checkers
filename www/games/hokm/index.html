@@ -11,7 +11,7 @@
   :root { --hk-gold: #D4A72C; --ch-pface: var(--c-surface); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ch-pface: var(--c-surface-3); } }
   :root[data-theme="dark"] { --ch-pface: var(--c-surface-3); }
-  .hk-wrap { --cw: clamp(40px, 12vw, 60px); width: 100%; max-width: 560px; display: flex; flex-direction: column; align-items: center; gap: var(--s-2); }
+  .hk-wrap { --cw: clamp(40px, 12vw, 60px); margin-block: auto; width: 100%; max-width: 560px; display: flex; flex-direction: column; align-items: center; gap: var(--s-2); }
   .hk-top { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; align-items: center; }
   /* scoreboard: us · trump · them */
   .hk-score { width: 100%; display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--s-2); align-items: stretch; }
@@ -58,8 +58,13 @@
   .hk-card--no { filter: brightness(.82) saturate(.6); }
   .hk-card--cur { outline: 2px dashed var(--game); outline-offset: 2px; }
   .hk-status { min-height: 1.6em; font-weight: 700; color: var(--c-text-dim); text-align: center; }
-  .hk-suits { direction: ltr; display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-2); margin-top: var(--s-3); }
-  .hk-suit { min-height: 64px; border: 2px solid var(--c-line); border-radius: var(--r-md); background: var(--ch-pface); color: var(--c-text); font-size: 34px; cursor: pointer; }
+  /* The trump picker sits on the page, not in a modal: a modal's blurred backdrop hid the
+     five cards it asks about, and tapping the backdrop closed it with no way back (#186) */
+  .hk-pick { width: 100%; max-width: 360px; display: flex; flex-direction: column; align-items: center; gap: var(--s-2); }
+  .hk-pick[hidden] { display: none; }
+  .hk-pick__sub { margin: 0; text-align: center; color: var(--c-text-dim); font-size: var(--fs-sm); }
+  .hk-suits { direction: ltr; width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-2); }
+  .hk-suit { min-height: 56px; border: 2px solid var(--c-line); border-radius: var(--r-md); background: var(--ch-pface); color: var(--c-text); font-size: 34px; cursor: pointer; }
   .hk-suit--red { color: var(--c-bad); }
   .hk-hand-sub { font-weight: 800; font-size: var(--fs-lg); text-align: center; direction: ltr; }
 </style>
@@ -287,6 +292,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
     name: { fa: 'حکم', en: 'Hokm', zh: '霍克姆', de: 'Hokm' },
     accent: '#9C3D54',
     mood: 'menu',
+    // The trump picker makes the page taller; centred with overflow hidden, a 800px-high
+    // desktop window cut off the level buttons at the top (#186)
+    scroll: true,
     strings: {
       fa: {
         you: 'تو', partner: 'یار', right: 'راست', left: 'چپ', us: 'ما', them: 'حریف',
@@ -360,7 +368,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
   var table = el('div', { class: 'hk-table' }, [seatTop, seatLeft, trickBox, seatRight]);
   var handRow = el('div', { class: 'hk-hand', role: 'group', 'aria-label': C.t('hand') });
   var status = el('div', { class: 'hk-status', 'aria-live': 'polite' });
-  var wrap = el('div', { class: 'hk-wrap' }, [top, board, table, handRow, status]);
+  var pickBox = el('div', { class: 'hk-pick', role: 'group', 'aria-label': C.t('chooseTrump'), hidden: '' });
+  var wrap = el('div', { class: 'hk-wrap' }, [top, board, table, pickBox, handRow, status]);
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
   ctx.button({ icon: 'refresh', label: C.t('newMatch'), onClick: askNew });
   ctx.main.appendChild(wrap);
@@ -432,15 +441,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
     step();
   }
 
-  function askTrump() {
-    paint();
+  function askTrump() { paint(); }
+  function paintPick() {
+    pickBox.innerHTML = '';
+    var on = S.phase === 'trump' && S.hakem === 0;
+    if (!on) { pickBox.setAttribute('hidden', ''); return; }
+    pickBox.removeAttribute('hidden');
+    pickBox.appendChild(el('p', { class: 'hk-pick__sub', text: C.t('chooseSub') }));
     var row = el('div', { class: 'hk-suits' });
-    var h = C.ui.modal({ title: C.t('chooseTrump'), body: [el('p', { class: 'ch-dim', text: C.t('chooseSub') }), row] });
     [0, 1, 3, 2].forEach(function (s) {
       var b = el('button', { class: 'hk-suit' + (s === 1 || s === 2 ? ' hk-suit--red' : ''), type: 'button', 'aria-label': C.t('trump') + ' ' + G[s], text: G[s] });
-      b.addEventListener('click', function () { h.close(); pickTrump(s); });
+      b.addEventListener('click', function () { pickTrump(s); });
       row.appendChild(b);
     });
+    pickBox.appendChild(row);
   }
   function pickTrump(s) {
     if (!S || S.phase !== 'trump' || S.hakem !== 0) return;
@@ -563,6 +577,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
       trickBox.appendChild(b);
     });
 
+    paintPick();
     handRow.innerHTML = '';
     var mine = S.hands[0], legal = S.phase === 'play' && S.turn === 0 && !holdTrick ? E.legal(S, 0) : [];
     // seven cards to a row, as wide as the row allows, never below the 44px touch target
