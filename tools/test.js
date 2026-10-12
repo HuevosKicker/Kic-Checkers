@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2472;
+const MIN_CHECKS = 2475;
 
 function ok(cond, msg) {
   checks++;
@@ -4054,6 +4054,14 @@ function testHokm() {
   ok(E.chooseTrump(S, 2) && S.hands.every((h) => h.length === 13) && S.phase === 'play' && S.turn === S.hakem, 'after trump everyone holds thirteen and the hakem leads');
   ok(new Set([].concat(...S.hands)).size === 52, 'the deal uses all fifty-two cards once');
   ok(!E.chooseTrump(S, 1), 'trump cannot be chosen twice');
+  // #186: the trump picker sat in a modal whose blurred backdrop hid the five cards it
+  // asks about, and a tap on the backdrop closed it with no way to reopen it
+  const hkSrc = fs.readFileSync(hokmFile, 'utf8');
+  const askAt = hkSrc.indexOf('function askTrump');
+  ok(askAt > 0, 'hokm has askTrump');
+  const askBody = hkSrc.slice(askAt, hkSrc.indexOf('function pickTrump', askAt));
+  ok(askBody.length > 0 && !/C\.ui\.(modal|confirm)\(/.test(askBody), 'the trump picker is not a modal over the cards');
+  ok(/function paint\(\)[\s\S]*?paintPick\(\)/.test(hkSrc) && /S\.phase === 'trump' && S\.hakem === 0/.test(hkSrc.slice(hkSrc.indexOf('function paintPick'))), 'the picker is painted with the table whenever you are hakem and trump is open');
 
   // trick winner: trump beats everything, otherwise the highest of the suit led
   const T = { trick: [], trump: 0 };
