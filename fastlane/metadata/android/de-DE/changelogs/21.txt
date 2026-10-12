@@ -1,0 +1,2 @@
+Neues Spiel: Blocksturz, fallende Blöcke in zwei kurzen Modi: ein Sprint über 40 Reihen auf Zeit und ein Marathon über 100 Reihen. Halten, drei nächste Teile, Landehilfe, Wischsteuerung und ein täglicher Sprint.
+Behoben: Bei Hokm liegt die Trumpfwahl als Hakem jetzt über deinen fünf Karten statt in einem Fenster, das sie verschwommen zeigte und versehentlich geschlossen die Runde blockierte.
