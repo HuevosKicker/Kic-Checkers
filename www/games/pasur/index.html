@@ -37,6 +37,11 @@
   .ps-card--sel { transform: translateY(-6px); box-shadow: 0 0 0 3px var(--game), var(--sh-2); }
   .ps-card--cur { outline: 2px dashed var(--game); outline-offset: 2px; }
   .ps-card--last { box-shadow: 0 0 0 3px var(--ps-rival); }
+  /* #194: the rival's card used to vanish with its capture before anyone saw it.
+     It now lands on the table first, so it gets a short entrance. */
+  .ps-card--in { animation: ps-in 320ms var(--ease) both; }
+  @keyframes ps-in { from { opacity: 0; transform: translateY(-28px) scale(.9); } }
+  @media (prefers-reduced-motion: reduce) { .ps-card--in { animation: none; } }
   .ps-card--dim { opacity: .45; }
   /* Shuffle before each deal: two halves riffle back together, under a second */
   .ps-wrap { position: relative; }
@@ -447,6 +452,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
   var prefs = ctx.store.get('prefs', { level: 'medium', games: 0 });
 
   var S = null, aiTimer = null, note = '', pick = null, cur = -1, lastRival = null;
+  // reveal: the rival's capture shown on the table before it is taken (#194).
+  // fresh: the rival card that should play its entrance on the next paint only.
+  var reveal = null, fresh = -1;
   var GLYPH = C.cards.GLYPH;
 
   var top = el('div', { class: 'ps-top' });
@@ -565,17 +573,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
     // the cards stay hidden while the deck is being shuffled
     [rivalHand, tableRow, handRow].forEach(function (r) { r.classList.toggle('ps-hidden', dealing); });
     rivalHand.innerHTML = '';
-    S.hands[1].forEach(function () { rivalHand.appendChild(C.cards.back()); });
+    for (var h = S.hands[1].length - (reveal ? 1 : 0); h > 0; h--) rivalHand.appendChild(C.cards.back());
 
     var optCards = {};
     if (pick) pick.opts.forEach(function (o) { o.forEach(function (c) { optCards[c] = 1; }); });
     tableRow.innerHTML = '';
-    S.table.forEach(function (c, i) {
+    (reveal ? S.table.concat([reveal.card]) : S.table).forEach(function (c, i) {
       var cls = '';
       if (pick) {
         cls = optCards[c] ? (pick.sel.indexOf(c) >= 0 ? 'ps-card--sel' : 'ps-card--opt') : 'ps-card--dim';
         if (cur === i) cls += ' ps-card--cur';
-      } else if (lastRival && lastRival.indexOf(c) >= 0) cls = 'ps-card--last';
+      } else if (reveal && (c === reveal.card || reveal.take.indexOf(c) >= 0)) cls = 'ps-card--last';
+      else if (lastRival && lastRival.indexOf(c) >= 0) cls = 'ps-card--last';
+      if (c === fresh) cls += ' ps-card--in';
       var b = cardEl(c, cls);
       b.disabled = !pick || !optCards[c];
       b.addEventListener('click', function () { toggleTable(c); });
@@ -602,6 +612,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
     var msg = note;
     if (!msg && !S.done) msg = busy() ? C.t('thinking') : C.t('yourTurn');
     status.textContent = msg;
+    fresh = -1;
   }
 
   /* ---------------------------------------------------------- حرکت */
@@ -648,7 +659,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
     var info = E.play(S, card, set);
     if (!info) { C.feedback('bad'); return; }
     if (byHuman) { C.haptic('tap'); lastRival = null; }
-    else lastRival = info.take.length ? [] : [card];
+    else {
+      lastRival = info.take.length ? [] : [card];
+      if (!info.take.length) fresh = card;
+    }
     if (info.take.length) C.audio.sfx(info.sur ? 'chain' : 'pop'); else C.audio.sfx('place');
     note = '';
     if (!byHuman) note = info.take.length ? C.t('rivalTook', { c: cardLabel(card), n: C.num(info.take.length) }) : C.t('rivalPut', { c: cardLabel(card) });
@@ -673,10 +687,27 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
       if (!busy()) return;
       var rnd = S.daily ? C.daily('pasur', S.daily + '|' + S.log.length).rng : Math.random;
       var m = E.aiMove(S, S.level, rnd);
-      if (m) doMove(m.card, m.set, false);
+      if (!m) return;
+      var opts = E.options(S.table, m.card);
+      var take = opts.length ? (m.set && m.set.length ? m.set : opts[0]) : null;
+      if (!take) { doMove(m.card, m.set, false); return; }
+      // Show the capture for a moment before the cards leave the table
+      reveal = { card: m.card, take: take };
+      fresh = m.card;
+      note = C.t('rivalTook', { c: cardLabel(m.card), n: C.num(take.length) });
+      lastRival = null;
+      paint();
+      aiTimer = setTimeout(function () {
+        aiTimer = null;
+        reveal = null;
+        if (busy()) doMove(m.card, m.set, false);
+      }, 1100);
     }, 650);
   }
-  function stopAi() { if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; } }
+  function stopAi() {
+    if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
+    if (reveal) { reveal = null; note = ''; }
+  }
 
   function undo() {
     if (!S || S.done) return;
