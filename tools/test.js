@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2493;
+const MIN_CHECKS = 2498;
 
 function ok(cond, msg) {
   checks++;
@@ -4274,6 +4274,22 @@ function testMenuPins() {
   ok(!missing.length, 'pin and recent strings exist in all four languages' + (missing.length ? ' (' + missing.join(', ') + ')' : ''));
 }
 
+/* ------------------------------------------------ Pasur: played cards on easy (#200) */
+// Owner decision 2026-10-14: beginners get a list of the cards already taken, but only
+// on the easy level; on medium and hard, remembering them is part of the game.
+function testPasurGone() {
+  head('Pasur played-cards panel');
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/pasur/index.html'), 'utf8');
+  const at = src.indexOf('function paintGone()');
+  ok(at > 0, 'pasur has paintGone');
+  const body = src.slice(at, src.indexOf('\n  }\n', at));
+  ok(/if \(S\.level !== 'easy'\) \{ goneBox\.setAttribute\('hidden', ''\); return; \}/.test(body), 'the panel is hidden unless the level is easy');
+  ok(/S\.caps\[0\]\.concat\(S\.caps\[1\]\)/.test(body), 'the panel marks exactly the cards in both capture piles');
+  ok(/paintGone\(\);/.test(src.slice(src.indexOf('function paint()'), at)), 'the panel is repainted with the table');
+  const missing = ['gone', 'goneSub'].filter((k) => (src.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < 4);
+  ok(!missing.length, 'panel strings exist in all four languages' + (missing.length ? ' (' + missing.join(', ') + ')' : ''));
+}
+
 /* ------------------------------------------------ Privacy policy page */
 // Play requires a public privacy policy URL (#161). The page says nothing is
 // collected and the Android app has no internet permission; these checks keep
@@ -4737,6 +4753,7 @@ testPepkExport();
 testPrivacyPage();
 testReadme();
 testMenuPins();
+testPasurGone();
 testStoreMetadata();
 testAndroidShare();
 testNonogramPictures();
