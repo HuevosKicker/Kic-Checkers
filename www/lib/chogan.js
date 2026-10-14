@@ -189,7 +189,8 @@
     sfx: true,
     music: true,
     haptics: true,
-    cardBack: 'carpet'   // carpet | termeh, shared by every card game (#181)
+    cardBack: 'carpet',  // carpet | termeh, shared by every card game (#181)
+    pinned: []           // game ids pinned to the top of the menu, in pin order (#193)
   };
 
   function randomId() {
@@ -1141,6 +1142,30 @@
   };
   Chogan.stats = statsApi;
 
+  /* ==================================== recently played and pinned (#193) */
+  // Stats only change when a round ends, so a game left half-played never looked
+  // played. Recent is written when a game page opens; pins live in the settings.
+  var RECENT_MAX = 6;
+  Chogan.recent = {
+    list: function () { var r = appStore.get('recent', []); return Array.isArray(r) ? r : []; },
+    touch: function (id) {
+      var r = Chogan.recent.list().filter(function (x) { return x !== id; });
+      r.unshift(id);
+      appStore.set('recent', r.slice(0, RECENT_MAX));
+    }
+  };
+  Chogan.pins = {
+    list: function () { var p = state.settings.pinned; return Array.isArray(p) ? p : []; },
+    has: function (id) { return Chogan.pins.list().indexOf(id) >= 0; },
+    toggle: function (id) {
+      var p = Chogan.pins.list().slice(), at = p.indexOf(id);
+      if (at >= 0) p.splice(at, 1); else p.push(id);
+      state.settings.pinned = p;
+      appStore.set('settings', state.settings);
+      return at < 0;
+    }
+  };
+
   /* ==================================================== اشتراک‌گذاری */
 
   Chogan.share = function (text) {
@@ -1439,6 +1464,7 @@
     check: 'M5 12.5l4.5 4.5L19 7',
     gear: 'M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z M19.4 13.5a7.6 7.6 0 0 0 0-3l1.8-1.3-1.9-3.3-2.1.8a7.6 7.6 0 0 0-2.6-1.5L14.3 3h-4.6l-.3 2.2a7.6 7.6 0 0 0-2.6 1.5l-2.1-.8-1.9 3.3 1.8 1.3a7.6 7.6 0 0 0 0 3l-1.8 1.3 1.9 3.3 2.1-.8a7.6 7.6 0 0 0 2.6 1.5l.3 2.2h4.6l.3-2.2a7.6 7.6 0 0 0 2.6-1.5l2.1.8 1.9-3.3z',
     star: 'M12 3.5l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 10l6.1-.9z',
+    pin: 'M9 3.5h6M10 3.5l-.7 5.2L6.5 12v1.6h11V12l-2.8-3.3L14 3.5M12 13.6V20.5',
     flame: 'M12 21c3.6 0 6-2.4 6-5.6 0-3.9-3.4-5.6-4.2-9.4-1.8 1.3-2.4 3-2.1 5-1-.4-1.7-1.4-2-2.7C8 10 6 12 6 15.4 6 18.6 8.4 21 12 21z',
     coin: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v10M14.8 9.3c-.6-.8-1.6-1.3-2.8-1.3-1.7 0-2.8.9-2.8 2.2 0 2.8 5.6 1.4 5.6 4.2 0 1.3-1.1 2.2-2.8 2.2-1.2 0-2.2-.5-2.8-1.3',
     gem: 'M6 3h12l3 6-9 12L3 9zM3 9h18M9 3l-3 6 6 12 6-12-3-6',
@@ -2232,6 +2258,7 @@
 
   Chogan.game = function (cfg) {
     var store = Chogan.storage(cfg.id);
+    Chogan.recent.touch(cfg.id);
     if (cfg.strings) Chogan.strings(cfg.strings);
 
     // عنوان تب هم اسم بازی و اسم اپ را نشان می‌دهد؛ در HTML فارسی نوشته شده
