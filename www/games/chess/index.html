@@ -1547,12 +1547,36 @@ function ChessBotFactory() {
     while (t && t !== boardEl && !t.hasAttribute('data-v')) t = t.parentElement;
     return t && t.hasAttribute('data-v') ? sqAt(+t.getAttribute('data-v')) : -1;
   }
+  // #191: the promotion picker opens inside pointerdown/pointerup, and on Android the
+  // click that ends the same touch then landed on the picker's fresh backdrop and
+  // closed it at once, so a pawn on the last rank could never move. Swallow that one
+  // click; a click that comes from a later touch is let through.
+  function eatTapClick(afterUp) {
+    function eat(e) { e.stopPropagation(); e.preventDefault(); off(); }
+    function soon() { setTimeout(off, 300); }
+    function off() {
+      document.removeEventListener('click', eat, true);
+      document.removeEventListener('pointerup', soon, true);
+      document.removeEventListener('pointercancel', soon, true);
+    }
+    document.addEventListener('click', eat, true);
+    if (afterUp) soon();
+    else {
+      document.addEventListener('pointerup', soon, true);
+      document.addEventListener('pointercancel', soon, true);
+    }
+  }
+  function tapFromPointer(i, afterUp) {
+    var had = !!document.querySelector('.cs-promo');
+    tapSquare(i);
+    if (!had && document.querySelector('.cs-promo')) eatTapClick(afterUp);
+  }
   boardEl.addEventListener('pointerdown', function (e) {
     var i = squareFromPoint(e.clientX, e.clientY);
     if (i < 0) return;
     cur = -1;
     var before = sel;
-    tapSquare(i);
+    tapFromPointer(i, false);
     dragFrom = sel >= 0 && sel === i && before !== i ? i : -1;
   });
   boardEl.addEventListener('pointerup', function (e) {
@@ -1560,7 +1584,7 @@ function ChessBotFactory() {
     var i = squareFromPoint(e.clientX, e.clientY);
     var from = dragFrom;
     dragFrom = -1;
-    if (i >= 0 && i !== from && sel === from) tapSquare(i);
+    if (i >= 0 && i !== from && sel === from) tapFromPointer(i, true);
   });
 
   window.addEventListener('keydown', function (e) {
