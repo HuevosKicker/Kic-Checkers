@@ -1,0 +1,2 @@
+Schach: Die Bauernumwandlung funktioniert auf Android wieder; die Figurenwahl schließt sich nicht mehr mit demselben Tippen, das sie öffnet. Das Brett bleibt außerdem ruhig, wenn die Zugliste wächst.
+Pasur: Du siehst jetzt die Karte deines Gegners, und die Karten, die er nimmt, werden kurz hervorgehoben, bevor sie vom Tisch gehen.
