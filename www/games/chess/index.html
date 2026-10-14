@@ -46,9 +46,11 @@
   .cs-pz-dot--bad { background: var(--c-bad); }
   .cs-status { min-height: 1.6em; font-weight: 800; color: var(--c-text); text-align: center; }
   .cs-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; }
-  .cs-moves { direction: ltr; font-size: var(--fs-sm); color: var(--c-text-dim); text-align: left; max-height: 4.4em; overflow-y: auto;
+  /* #192: the page is centred vertically, so a move list that appeared and grew line by
+     line pushed the board up after every few moves. Its box keeps one fixed height. */
+  .cs-moves { direction: ltr; font-size: var(--fs-sm); color: var(--c-text-dim); text-align: left; height: 4.4em; overflow-y: auto;
     padding: 6px 10px; background: var(--c-surface-2); border-radius: var(--r-md); font-variant-numeric: tabular-nums; }
-  .cs-moves:empty { display: none; }
+  .cs-moves:empty { visibility: hidden; }
   .cs-promo { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-2); }
   .cs-promo button { aspect-ratio: 1; border: 0; border-radius: var(--r-md); background: var(--cs-light); cursor: pointer; padding: 6px; }
   .cs-promo svg { width: 100%; height: 100%; }
