@@ -11,7 +11,7 @@
   :root { --ps-face: var(--c-surface); --ps-rival: #8C6BB1; --ch-pface: var(--ps-face); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ps-face: var(--c-surface-3); } }
   :root[data-theme="dark"] { --ps-face: var(--c-surface-3); }
-  .ps-wrap { width: 100%; max-width: 560px; display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
+  .ps-wrap { margin-block: auto; width: 100%; max-width: 560px; display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
   .ps-top { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; align-items: center; }
   .ps-player {
     width: 100%; display: flex; align-items: center; gap: var(--s-2);
@@ -54,6 +54,16 @@
   @keyframes ps-riffle-r { 0% { transform: translate(0, 0); } 35% { transform: translate(44px, 4px) rotate(8deg); } 70%, 100% { transform: translate(0, var(--dy, 0)); } }
   .ps-hand .ch-pcard { --pw: calc(var(--cw) * 1.15); }
   .ps-status { min-height: 1.6em; font-weight: 700; color: var(--c-text-dim); text-align: center; }
+  .ps-gone { direction: ltr; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 3px; padding: 8px 10px;
+    border: 1px solid var(--c-line); border-radius: var(--r-md); background: var(--c-surface); font-variant-numeric: tabular-nums; }
+  .ps-gone[hidden] { display: none; }
+  .ps-gone__head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: var(--fs-xs, 12px); color: var(--c-text-dim); margin-bottom: 2px; }
+  .ps-gone__head b { color: var(--c-text); }
+  .ps-gone__row { display: grid; grid-template-columns: 18px repeat(13, minmax(0, 1fr)); align-items: center; font-size: 12px; font-weight: 800; }
+  .ps-gone__row--red { color: var(--c-bad); }
+  .ps-gone__suit { font-size: 14px; }
+  .ps-gone__c { text-align: center; }
+  .ps-gone__c--out { opacity: .25; text-decoration: line-through; font-weight: 500; }
   .ps-pick { display: flex; gap: var(--s-2); align-items: center; justify-content: center; flex-wrap: wrap; }
 </style>
 </head>
@@ -387,10 +397,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
     name: { fa: 'پاسور', en: 'Pasur', zh: '帕苏尔', de: 'Pasur' },
     accent: '#4A7C59',
     mood: 'menu',
+    // The easy level's played-cards panel makes the page taller; centred with overflow
+    // hidden, a 800px-high desktop window cut off the level buttons (#200)
+    scroll: true,
     strings: {
       fa: {
         you: 'تو', rival: 'حریف', thinking: 'فکر می‌کند…', yourTurn: 'نوبت توست، یک کارت بازی کن',
-        deck: 'دسته', taken: 'کارت', clubs: 'گشنیز', surs: 'سور', sur: 'سور!',
+        deck: 'دسته', taken: 'کارت', clubs: 'گشنیز', surs: 'سور', sur: 'سور!', gone: 'کارت‌های رفته', goneSub: 'کم‌رنگ‌ها برداشته شده‌اند',
         newDeal: 'دست تازه', undoMove: 'برگرداندن حرکت', pickTake: 'کارت‌هایی را که برمی‌داری انتخاب کن',
         cancelPick: 'لغو', rivalTook: 'حریف {c} زد و {n} کارت برداشت', rivalPut: 'حریف {c} را روی میز گذاشت',
         lastSweep: 'کارت‌های مانده‌ی میز به آخرین برنده رسید', draw: 'مساوی', dailyPs: 'پاسور روزانه', vsHard: 'مقابل حریف سخت',
@@ -404,7 +417,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
       },
       en: {
         you: 'You', rival: 'Rival', thinking: 'Thinking…', yourTurn: 'Your turn, play a card',
-        deck: 'Deck', taken: 'Cards', clubs: 'Clubs', surs: 'Surs', sur: 'Sur!',
+        deck: 'Deck', taken: 'Cards', clubs: 'Clubs', surs: 'Surs', sur: 'Sur!', gone: 'Cards played', goneSub: 'Faded cards have been taken',
         newDeal: 'New deal', undoMove: 'Undo move', pickTake: 'Pick the table cards you take',
         cancelPick: 'Cancel', rivalTook: 'Rival played {c} and took {n} cards', rivalPut: 'Rival put {c} on the table',
         lastSweep: 'The cards left on the table went to the last capture', draw: 'Draw', dailyPs: 'Daily pasur', vsHard: 'against the hard AI',
@@ -418,7 +431,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
       },
       zh: {
         you: '你', rival: '对手', thinking: '思考中…', yourTurn: '轮到你了，出一张牌',
-        deck: '牌堆', taken: '牌', clubs: '梅花', surs: '清台', sur: '清台！',
+        deck: '牌堆', taken: '牌', clubs: '梅花', surs: '清台', sur: '清台！', gone: '已出的牌', goneSub: '变淡的牌已被收走',
         newDeal: '新一局', undoMove: '撤销一步', pickTake: '选出你要拿走的桌面牌',
         cancelPick: '取消', rivalTook: '对手打出 {c}，拿走 {n} 张', rivalPut: '对手把 {c} 放在桌上',
         lastSweep: '桌上剩下的牌归最后一次拿牌的人', draw: '平局', dailyPs: '每日帕苏尔', vsHard: '对战困难电脑',
@@ -432,7 +445,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
       },
       de: {
         you: 'Du', rival: 'Gegner', thinking: 'Denkt nach…', yourTurn: 'Du bist dran, spiel eine Karte',
-        deck: 'Stapel', taken: 'Karten', clubs: 'Kreuz', surs: 'Surs', sur: 'Sur!',
+        deck: 'Stapel', taken: 'Karten', clubs: 'Kreuz', surs: 'Surs', sur: 'Sur!', gone: 'Gespielte Karten', goneSub: 'Blasse Karten sind schon genommen',
         newDeal: 'Neues Spiel', undoMove: 'Zug zurück', pickTake: 'Wähl die Karten, die du nimmst',
         cancelPick: 'Abbrechen', rivalTook: 'Gegner spielt {c} und nimmt {n} Karten', rivalPut: 'Gegner legt {c} auf den Tisch',
         lastSweep: 'Die übrigen Tischkarten gehen an den, der zuletzt genommen hat', draw: 'Unentschieden', dailyPs: 'Tägliches Pasur', vsHard: 'gegen die starke KI',
@@ -465,7 +478,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
   var handRow = el('div', { class: 'ps-row ps-hand', role: 'group', 'aria-label': C.t('hand') });
   var youRow = el('div', { class: 'ps-player' });
   var status = el('div', { class: 'ps-status', 'aria-live': 'polite' });
-  var wrap = el('div', { class: 'ps-wrap' }, [top, rivalRow, rivalHand, tableRow, pickBar, handRow, youRow, status]);
+  // Easy level only: which cards have already been taken, so a beginner need not
+  // remember them. On medium and hard, memory stays part of the game (#200)
+  var goneBox = el('div', { class: 'ps-gone', role: 'group', 'aria-label': C.t('gone'), hidden: '' });
+  var wrap = el('div', { class: 'ps-wrap' }, [top, rivalRow, rivalHand, tableRow, pickBar, handRow, youRow, status, goneBox]);
 
   ctx.stat('deck', C.t('deck'));
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
@@ -612,7 +628,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
     var msg = note;
     if (!msg && !S.done) msg = busy() ? C.t('thinking') : C.t('yourTurn');
     status.textContent = msg;
+    paintGone();
     fresh = -1;
+  }
+
+  function paintGone() {
+    goneBox.innerHTML = '';
+    if (S.level !== 'easy') { goneBox.setAttribute('hidden', ''); return; }
+    goneBox.removeAttribute('hidden');
+    var gone = {};
+    S.caps[0].concat(S.caps[1]).forEach(function (c) { gone[c] = 1; });
+    goneBox.appendChild(el('div', { class: 'ps-gone__head' }, [el('b', { text: C.t('gone') }), el('span', { text: C.t('goneSub') })]));
+    [0, 1, 3, 2].forEach(function (su) {
+      var row = el('div', { class: 'ps-gone__row' + (su === 1 || su === 2 ? ' ps-gone__row--red' : '') }, [el('span', { class: 'ps-gone__suit', text: GLYPH[su] })]);
+      for (var r = 0; r < 13; r++) {
+        var c = (r << 2) | su;
+        row.appendChild(el('span', { class: 'ps-gone__c' + (gone[c] ? ' ps-gone__c--out' : ''), text: E.RANKS[r],
+          'aria-label': cardLabel(c) + (gone[c] ? ' ✓' : '') }));
+      }
+      goneBox.appendChild(row);
+    });
   }
 
   /* ---------------------------------------------------------- حرکت */
