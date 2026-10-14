@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2479;
+const MIN_CHECKS = 2493;
 
 function ok(cond, msg) {
   checks++;
@@ -4255,6 +4255,25 @@ function testReadme() {
   ok(!missFa.length, 'every game has a row in the Persian table' + (missFa.length ? ' (missing: ' + missFa.join(', ') + ')' : ''));
 }
 
+/* ------------------------------------------------ Menu: pinned and recent (#193) */
+// The home page gained a pinned section and a recently played row. Recent is written
+// when a game page opens (stats only change when a round ends), pins in the settings.
+function testMenuPins() {
+  head('Menu pins and recent');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const home = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
+  ok(/Chogan\.recent = \{/.test(core) && /Chogan\.pins = \{/.test(core), 'the core has Chogan.recent and Chogan.pins');
+  const gameAt = core.indexOf('Chogan.game = function (cfg)');
+  ok(gameAt > 0 && /Chogan\.recent\.touch\(cfg\.id\)/.test(core.slice(gameAt, gameAt + 400)), 'opening a game page records it as recent');
+  ok(/pinned: \[\]/.test(core), 'pinned is a default setting');
+  ok(/C\.pins\.toggle\(g\.id\)/.test(home) && /e\.stopPropagation\(\)/.test(home), 'every menu card has a pin toggle that does not open the game');
+  ok(/ch-section--pinned/.test(home) && /C\.recent\.list\(\)/.test(home), 'the home page shows pinned games and recent games');
+  const keys = ['pinned', 'recent', 'pin', 'unpin'];
+  const missing = [];
+  for (const k of keys) { const n = (home.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length; if (n < 4) missing.push(k + ' ' + n); }
+  ok(!missing.length, 'pin and recent strings exist in all four languages' + (missing.length ? ' (' + missing.join(', ') + ')' : ''));
+}
+
 /* ------------------------------------------------ Privacy policy page */
 // Play requires a public privacy policy URL (#161). The page says nothing is
 // collected and the Android app has no internet permission; these checks keep
@@ -4479,7 +4498,8 @@ function testHomeGrid() {
   const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
   const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
   ok(/var asList = C\.state\.settings\.gameView === 'list';/.test(menu), 'یک‌ستونه فقط با انتخاب صریح gameView === list');
-  ok(/class: 'ch-games' \+ \(asList \? '' : ' ch-games--grid'\)/.test(menu), 'فهرست بازی‌ها در حالت پیش‌فرض کلاس ch-games--grid دارد');
+  // #193 moved the class into gridCls, shared by the pinned and the all-games grid
+  ok(/var gridCls = 'ch-games' \+ \(asList \? '' : ' ch-games--grid'\);/.test(menu) && /class: gridCls/.test(menu), 'the game list gets ch-games--grid by default');
   ok(/C\.store\.set\('settings', C\.state\.settings\)/.test(menu.slice(menu.indexOf('var asList'))), 'انتخاب نما در تنظیمات ذخیره می‌شود');
   // قاعده‌ی دو ستون باید بیرون از media query باشد تا روی گوشی هم اعمال شود
   const topLevel = css.replace(/@media[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '');
@@ -4716,6 +4736,7 @@ testEnglishCi();
 testPepkExport();
 testPrivacyPage();
 testReadme();
+testMenuPins();
 testStoreMetadata();
 testAndroidShare();
 testNonogramPictures();

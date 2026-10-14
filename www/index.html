@@ -33,7 +33,7 @@
       statsTitle: 'آمار تو', perGame: 'به تفکیک بازی',
       dangerZone: 'پاک کردن داده', wipeAll: 'پاک کردن همه‌چیز',
       wipeAllAsk: 'همه‌ی داده‌های اپ پاک شود؟ سکه‌ها، دستاوردها، لیگ و پیشرفت همه‌ی بازی‌ها.',
-      installed: 'نصب‌شده روی دستگاه', playedTimes: '{n} بار بازی کردی',
+      installed: 'نصب‌شده روی دستگاه', playedTimes: '{n} بار بازی کردی', pinned: 'سنجاق‌شده', recent: 'اخیراً بازی کردی', pin: 'سنجاق کن', unpin: 'برداشتن سنجاق',
       noneYet: 'هنوز چیزی نیست', dailyOf: 'چالش‌های {d}',
       noGames: 'هنوز بازی‌ای اضافه نشده', noGamesSub: 'به‌زودی', loadFailed: 'فهرست بازی‌ها بار نشد',
       loadFailedSub: 'اتصال را چک کن و صفحه را دوباره باز کن',
@@ -56,7 +56,7 @@
       statsTitle: 'Your stats', perGame: 'Per game',
       dangerZone: 'Erase data', wipeAll: 'Erase everything',
       wipeAllAsk: 'Erase all app data? Coins, awards, league and every game.',
-      installed: 'Installed on device', playedTimes: 'played {n} times',
+      installed: 'Installed on device', playedTimes: 'played {n} times', pinned: 'Pinned', recent: 'Recently played', pin: 'Pin', unpin: 'Unpin',
       noneYet: 'Nothing yet', dailyOf: 'Challenges of {d}',
       noGames: 'No games yet', noGamesSub: 'Coming soon', loadFailed: 'Could not load the game list',
       loadFailedSub: 'Check your connection and reopen the page',
@@ -79,7 +79,7 @@
       statsTitle: '你的数据', perGame: '按游戏',
       dangerZone: '清除数据', wipeAll: '清除全部',
       wipeAllAsk: '清除应用的全部数据？金币、成就、联赛和所有游戏进度。',
-      installed: '已安装到设备', playedTimes: '玩过 {n} 次',
+      installed: '已安装到设备', playedTimes: '玩过 {n} 次', pinned: '已置顶', recent: '最近玩过', pin: '置顶', unpin: '取消置顶',
       noneYet: '还没有内容', dailyOf: '{d} 的挑战',
       noGames: '还没有游戏', noGamesSub: '敬请期待', loadFailed: '游戏列表加载失败',
       loadFailedSub: '检查网络后重新打开页面',
@@ -102,7 +102,7 @@
       statsTitle: 'Deine Statistik', perGame: 'Pro Spiel',
       dangerZone: 'Daten löschen', wipeAll: 'Alles löschen',
       wipeAllAsk: 'Alle App-Daten löschen? Münzen, Erfolge, Liga und jedes Spiel.',
-      installed: 'Auf dem Gerät installiert', playedTimes: '{n}-mal gespielt',
+      installed: 'Auf dem Gerät installiert', playedTimes: '{n}-mal gespielt', pinned: 'Angeheftet', recent: 'Zuletzt gespielt', pin: 'Anheften', unpin: 'Lösen',
       noneYet: 'Noch nichts', dailyOf: 'Rätsel vom {d}',
       noGames: 'Noch keine Spiele', noGamesSub: 'Kommt bald', loadFailed: 'Spieleliste konnte nicht geladen werden',
       loadFailedSub: 'Prüf deine Verbindung und öffne die Seite neu',
@@ -285,19 +285,29 @@
         render();
       } }, [C.icon(asList ? 'grid' : 'list', 20)]);
     var sec = el('div', { class: 'ch-section' }, [sectionHead(C.t('allGames'), viewBtn)]);
-    var grid = el('div', { class: 'ch-games' + (asList ? '' : ' ch-games--grid') });
-    GAMES.forEach(function (g, i) {
+    // A pin on every card; pinned games get their own section above everything
+    // else, and the last few games opened get a compact row (#193)
+    function gameCard(g, i) {
       var badges = el('div', { class: 'ch-game__meta' });
       if (C.hasResume(g.id)) badges.appendChild(el('span', { class: 'ch-badge ch-badge--good', text: C.t('continueBadge') }));
       if (isNew(g)) badges.appendChild(el('span', { class: 'ch-badge ch-badge--accent', text: C.t('newBadge') }));
       var bl = asList && bestLine(g);
       if (bl) badges.appendChild(el('span', { class: 'ch-badge', text: bl }));
-
-      var card = el('div', {
+      var on = C.pins.has(g.id);
+      var pinBtn = el('button', { class: 'ch-game__pin' + (on ? ' ch-game__pin--on' : ''), type: 'button',
+        'aria-pressed': on ? 'true' : 'false', 'aria-label': C.t(on ? 'unpin' : 'pin') + ' — ' + gname(g), title: C.t(on ? 'unpin' : 'pin'),
+        onclick: function (e) {
+          e.stopPropagation();
+          C.pins.toggle(g.id);
+          C.feedback('select');
+          render();
+        } }, [C.icon('pin', 18)]);
+      return el('div', {
         class: 'ch-card ch-game ch-tap ch-enter',
         style: { '--game': g.color, '--game-soft': g.soft, 'animation-delay': (60 + i * 55) + 'ms' },
         onclick: function () { goGame(g); }
       }, [
+        pinBtn,
         el('div', { class: 'ch-game__icon' }, [el('img', { src: g.icon, alt: '', width: 62, height: 62 })]),
         el('div', { class: 'ch-game__body' }, [
           el('div', { class: 'ch-game__name', text: gname(g) }),
@@ -305,8 +315,34 @@
           badges
         ])
       ]);
-      grid.appendChild(card);
-    });
+    }
+    var byId = {};
+    GAMES.forEach(function (g) { byId[g.id] = g; });
+    var gridCls = 'ch-games' + (asList ? '' : ' ch-games--grid');
+
+    var pinnedGames = C.pins.list().map(function (id) { return byId[id]; }).filter(Boolean);
+    if (pinnedGames.length) {
+      var pgrid = el('div', { class: gridCls });
+      pinnedGames.forEach(function (g, i) { pgrid.appendChild(gameCard(g, i)); });
+      page.appendChild(el('div', { class: 'ch-section ch-section--pinned' }, [sectionHead(C.t('pinned')), pgrid]));
+    }
+
+    var recentGames = C.recent.list().map(function (id) { return byId[id]; })
+      .filter(function (g) { return g && !C.pins.has(g.id); }).slice(0, 3);
+    if (recentGames.length) {
+      var row = el('div', { class: 'ch-recent' });
+      recentGames.forEach(function (g) {
+        row.appendChild(el('button', { class: 'ch-recent__item ch-tap', type: 'button', style: { '--game': g.color, '--game-soft': g.soft },
+          onclick: function () { goGame(g); } }, [
+          el('img', { src: g.icon, alt: '', width: 32, height: 32 }),
+          el('span', { class: 'ch-recent__name', text: gname(g) })
+        ]));
+      });
+      page.appendChild(el('div', { class: 'ch-section ch-section--recent' }, [sectionHead(C.t('recent')), row]));
+    }
+
+    var grid = el('div', { class: gridCls });
+    GAMES.forEach(function (g, i) { grid.appendChild(gameCard(g, i)); });
     sec.appendChild(grid);
     page.appendChild(sec);
 
