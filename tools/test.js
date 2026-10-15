@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2505;
+const MIN_CHECKS = 2528;
 
 function ok(cond, msg) {
   checks++;
@@ -4749,6 +4749,64 @@ function testMenu() {
   ok(fsAvail('browser', { api: false }) === false, 'مرورگر بی Fullscreen API: دکمه نیست');
 }
 
+function testKeyboardNav() {
+  head('Keyboard: menu cards and the way back (#206)');
+  // The menu's game cards were divs with only a click handler, so a keyboard
+  // could not reach them, and a game had no key back to the menu.
+  const menu = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
+  const cardLine = (menu.match(/class: 'ch-card ch-game [^\n]*/) || [''])[0];
+  ok(cardLine.length > 0, 'game card class line found in the menu');
+  ok(/tabindex: '0'/.test(cardLine) && /ch-kbnav/.test(cardLine), 'game cards take keyboard focus and join arrow navigation');
+
+  const at = menu.indexOf('function kbStep(from, key) {');
+  ok(at > 0, 'kbStep found in the menu');
+  let depth = 0, end = at;
+  for (let i = menu.indexOf('{', at); at > 0 && i < menu.length; i++) {
+    if (menu[i] === '{') depth++;
+    else if (menu[i] === '}' && --depth === 0) { end = i + 1; break; }
+  }
+  // A two-column grid of 100x80 cards, plus a wide hero above it
+  const box = (name, left, top, w, h) => ({ name, getBoundingClientRect: () => ({ left, top, width: w, height: h }) });
+  const hero = box('hero', 0, 0, 210, 60);
+  const a = box('a', 0, 100, 100, 80), b = box('b', 110, 100, 100, 80);
+  const c = box('c', 0, 190, 100, 80), d = box('d', 110, 190, 100, 80);
+  const all = [hero, a, b, c, d];
+  const app = { querySelectorAll: () => all };
+  let kbStep = () => undefined;
+  try { if (at > 0) kbStep = vm.runInNewContext('(function (app) { ' + menu.slice(at, end) + ' return kbStep; })', {})(app); }
+  catch (e) { ok(false, 'kbStep did not run: ' + e.message); }
+  const name = (n) => (n ? n.name : 'none');
+  ok(name(kbStep(a, 'ArrowRight')) === 'b', 'right from the first card is its row neighbour');
+  ok(name(kbStep(b, 'ArrowLeft')) === 'a', 'left goes back along the row');
+  ok(name(kbStep(a, 'ArrowDown')) === 'c', 'down stays in the same column');
+  ok(name(kbStep(d, 'ArrowUp')) === 'b', 'up stays in the same column');
+  ok(name(kbStep(a, 'ArrowUp')) === 'hero', 'up from the top row reaches the daily card');
+  ok(name(kbStep(c, 'ArrowDown')) === 'none', 'down from the last row stays put');
+
+  // Escape and Backspace leave a game only if no game listener used the key
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const backAt = core.indexOf("if (e.key !== 'Escape' && e.key !== 'Backspace') return;");
+  ok(backAt >= 0, 'the game bar listens for Escape and Backspace');
+  const back = backAt >= 0 ? core.slice(backAt) : '';
+  ok(/if \(!e\.defaultPrevented && !document\.querySelector\('\.ch-scrim'\)\) backBtn\.click\(\);/.test(back.slice(0, 900)),
+    'it goes back only when the key was not consumed and no dialog is open');
+  // Every game that gives Escape or Backspace a meaning must consume it, or the
+  // same press would also leave the game
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  ok(games.length > 0, 'games.json lists games');
+  let uses = 0;
+  games.forEach((g) => {
+    const html = fs.readFileSync(path.join(ROOT, 'www/games', g.id, 'index.html'), 'utf8');
+    const re = /k === '(Escape|Backspace)'/g;
+    let m;
+    while ((m = re.exec(html))) {
+      uses++;
+      ok(/preventDefault\(\)/.test(html.slice(m.index, m.index + 220)), g.id + ': its ' + m[1] + ' handler consumes the key');
+    }
+  });
+  ok(uses >= 9, 'found the games that handle Escape or Backspace (' + uses + ')');
+}
+
 testFiles();
 testSudoku();
 testMines();
@@ -4796,6 +4854,7 @@ testDailyResume();
 testUndoKey();
 testShortcuts();
 testMenu();
+testKeyboardNav();
 
 testSw().then(testVerifyDeploy).then(testPlayApi).then(function () {
   head('کامل بودن اجرا');

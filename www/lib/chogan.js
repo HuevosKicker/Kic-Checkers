@@ -2283,6 +2283,20 @@
     // بازگشت در راست‌چین رو به راست است، مثل پیکان‌های منو (#107)
     var backBtn = el('button', { class: 'ch-iconbtn ch-iconbtn--plain', type: 'button', 'aria-label': Chogan.t('back') }, [Chogan.icon(Chogan.isRtl() ? 'forward' : 'back', 22)]);
     backBtn.addEventListener('click', function () { Chogan.feedback('tap'); ctx.save(); Chogan.back(); });
+    // Keyboard players had no way back to the menu but Tab to this button (#206).
+    // Escape and Backspace also undo a selection or erase a cell in some games,
+    // so the check waits until every game listener has run and leaves the key
+    // alone if one of them consumed it. An open dialog takes Escape for itself.
+    global.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' && e.key !== 'Backspace') return;
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.repeat) return;
+      var tg = e.target, tag = tg && tg.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (tg && tg.isContentEditable)) return;
+      if (document.querySelector('.ch-scrim')) return;
+      setTimeout(function () {
+        if (!e.defaultPrevented && !document.querySelector('.ch-scrim')) backBtn.click();
+      }, 0);
+    });
 
     var bar = el('header', { class: 'ch-gamebar' }, [backBtn, title]);
     // در نوار بازی هم هست چون ناوبری بین منو و بازی تمام‌صفحه را می‌بندد

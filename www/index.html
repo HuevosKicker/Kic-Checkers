@@ -260,7 +260,7 @@
     var feat = DG[idx];
     var done = C.stats.dailyDone(feat.id, today);
     var hero = el('div', {
-      class: 'ch-card ch-tap ch-enter',
+      class: 'ch-card ch-tap ch-enter ch-kbnav', tabindex: '0', role: 'link', 'aria-label': C.t('todayChallenge') + ' — ' + gname(feat),
       style: { background: feat.color, 'background-image': 'linear-gradient(135deg, ' + C.alpha(feat.color, 1) + ' 0%, ' + lighten(feat.color, .38) + ' 100%)', color: '#fff', 'margin-bottom': 'var(--s-5)' },
       onclick: function () { goGame(feat, today); }
     }, [
@@ -307,7 +307,7 @@
           render();
         } }, [C.icon('pin', 18)]);
       return el('div', {
-        class: 'ch-card ch-game ch-tap ch-enter',
+        class: 'ch-card ch-game ch-tap ch-enter ch-kbnav', tabindex: '0', role: 'link', 'aria-label': gname(g),
         style: { '--game': g.color, '--game-soft': g.soft, 'animation-delay': (60 + i * 55) + 'ms' },
         onclick: function () { goGame(g); }
       }, [
@@ -336,7 +336,7 @@
     if (recentGames.length) {
       var row = el('div', { class: 'ch-recent' });
       recentGames.forEach(function (g) {
-        row.appendChild(el('button', { class: 'ch-recent__item ch-tap', type: 'button', style: { '--game': g.color, '--game-soft': g.soft },
+        row.appendChild(el('button', { class: 'ch-recent__item ch-tap ch-kbnav', type: 'button', style: { '--game': g.color, '--game-soft': g.soft },
           onclick: function () { goGame(g); } }, [
           el('img', { src: g.icon, alt: '', width: 32, height: 32 }),
           el('span', { class: 'ch-recent__name', text: gname(g) })
@@ -1087,6 +1087,49 @@
     C.ui.refreshCoins();
     window.scrollTo(0, 0);
   }
+
+  // The game cards were plain divs, so a keyboard could not reach them at all,
+  // not even with Tab (#206). They take focus now; Enter or Space opens one and
+  // the arrow keys move to the nearest card on screen in that direction, which
+  // works the same for the grid, the list, the recent row and right-to-left.
+  function kbStep(from, key) {
+    var dir = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[key];
+    var a = from.getBoundingClientRect();
+    var ax = a.left + a.width / 2, ay = a.top + a.height / 2;
+    var best = null, bestScore = Infinity;
+    Array.prototype.forEach.call(app.querySelectorAll('.ch-kbnav'), function (n) {
+      if (n === from) return;
+      var b = n.getBoundingClientRect();
+      var dx = b.left + b.width / 2 - ax, dy = b.top + b.height / 2 - ay;
+      var along = dx * dir[0] + dy * dir[1];
+      if (along < 2) return;
+      var score = along + 2 * Math.abs(dx * dir[1] + dy * dir[0]);
+      if (score < bestScore) { bestScore = score; best = n; }
+    });
+    return best;
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey || document.querySelector('.ch-scrim')) return;
+    var cur = document.activeElement;
+    var onItem = cur && cur.classList && cur.classList.contains('ch-kbnav') && app.contains(cur);
+    if ((e.key === 'Enter' || e.key === ' ') && onItem && cur.tagName !== 'BUTTON') {
+      e.preventDefault();
+      cur.click();
+      return;
+    }
+    if (!/^Arrow(Left|Right|Up|Down)$/.test(e.key)) return;
+    if (!onItem) {
+      // Nothing chosen yet: the first arrow press lands on the first card
+      if (cur && cur !== document.body) return;
+      var first = app.querySelector('.ch-kbnav');
+      if (first) { e.preventDefault(); first.focus(); }
+      return;
+    }
+    var next = kbStep(cur, e.key);
+    e.preventDefault();
+    if (next) { next.focus(); next.scrollIntoView({ block: 'nearest' }); }
+  });
 
   /* --------------------------------------------------------- شروع */
 

@@ -1177,7 +1177,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
     var k = e.key;
     if (C.undoKey(e)) { undo(); e.preventDefault(); return; }
     if (k === ' ') { endTurn(); e.preventDefault(); return; }
-    if (k === 'Escape') { sel = null; kf = -1; refresh(); return; }
+    // An unconsumed Escape goes back to the menu (#206), so only consume it when it undid a selection
+    if (k === 'Escape') { if (sel !== null) e.preventDefault(); sel = null; kf = -1; refresh(); return; }
     var cands = candidates();
     if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'ArrowDown' || k === 'ArrowRight') {
       if (!cands.length) return;
