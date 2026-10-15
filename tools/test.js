@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2528;
+const MIN_CHECKS = 2531;
 
 function ok(cond, msg) {
   checks++;
@@ -4807,6 +4807,17 @@ function testKeyboardNav() {
   ok(uses >= 9, 'found the games that handle Escape or Backspace (' + uses + ')');
 }
 
+function testMenuSelect() {
+  head('Menu text is not selectable (#208)');
+  // In the installed app, Ctrl+A or a drag painted the menu titles and the
+  // bottom bar selection-blue
+  const menu = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
+  ok(/<body class="ch-menu">/.test(menu), 'the menu page body carries ch-menu');
+  ok(/\nbody\.ch-menu \{[^}]*\buser-select: none;/.test(css), 'body.ch-menu turns text selection off');
+  ok(/body\.ch-menu input, body\.ch-menu textarea[^{]*\{[^}]*\buser-select: text;/.test(css), 'fields inside the menu stay selectable');
+}
+
 testFiles();
 testSudoku();
 testMines();
@@ -4855,6 +4866,7 @@ testUndoKey();
 testShortcuts();
 testMenu();
 testKeyboardNav();
+testMenuSelect();
 
 testSw().then(testVerifyDeploy).then(testPlayApi).then(function () {
   head('کامل بودن اجرا');
