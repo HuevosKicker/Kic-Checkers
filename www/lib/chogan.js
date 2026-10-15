@@ -2024,7 +2024,11 @@
     scrim.appendChild(box);
     document.body.appendChild(scrim);
     // ضربدر اولین دکمه‌ی جعبه است ولی تمرکز باید روی خود کنش‌ها بنشیند
-    var focusable = box.querySelector('.ch-modal__actions button') || box.querySelector('button, [tabindex], input');
+    // focusPrimary: the game-over dialog focused Share, so Enter shared instead
+    // of playing again (#210). It is opt-in because a confirm's primary button
+    // is often "start over", and Enter must not wipe a game by default.
+    var focusable = (o.focusPrimary && box.querySelector('.ch-modal__actions .ch-btn--primary')) ||
+      box.querySelector('.ch-modal__actions button') || box.querySelector('button, [tabindex], input');
     if (focusable) setTimeout(function () { focusable.focus(); }, 40);
     return { close: close, box: box };
   };
@@ -2451,6 +2455,7 @@
             title: o.title || (o.won ? Chogan.t('won') : Chogan.t('finished')),
             body: body,
             actions: actions,
+            focusPrimary: true,
             dismissable: false,
             closeButton: true,
             onClose: function (via) { if (via !== 'action') showResultBtn(); }
