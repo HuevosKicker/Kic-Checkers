@@ -2024,7 +2024,11 @@
     scrim.appendChild(box);
     document.body.appendChild(scrim);
     // ضربدر اولین دکمه‌ی جعبه است ولی تمرکز باید روی خود کنش‌ها بنشیند
-    var focusable = box.querySelector('.ch-modal__actions button') || box.querySelector('button, [tabindex], input');
+    // Among the actions, the primary one wins: the game-over dialog put focus
+    // on Share, so Enter shared instead of playing again (#210). A danger
+    // confirm has no primary button and keeps focus on Cancel.
+    var focusable = box.querySelector('.ch-modal__actions .ch-btn--primary') ||
+      box.querySelector('.ch-modal__actions button') || box.querySelector('button, [tabindex], input');
     if (focusable) setTimeout(function () { focusable.focus(); }, 40);
     return { close: close, box: box };
   };

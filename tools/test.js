@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2531;
+const MIN_CHECKS = 2535;
 
 function ok(cond, msg) {
   checks++;
@@ -4818,6 +4818,20 @@ function testMenuSelect() {
   ok(/body\.ch-menu input, body\.ch-menu textarea[^{]*\{[^}]*\buser-select: text;/.test(css), 'fields inside the menu stay selectable');
 }
 
+function testModalFocus() {
+  head('Dialogs focus their primary action (#210)');
+  // The game-over dialog focused Share, its first button, so Enter shared
+  // instead of playing again
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const line = (core.match(/var focusable = [^;]*;/) || [''])[0];
+  ok(line.length > 0, 'the dialog focus line was found');
+  ok(line.indexOf("'.ch-modal__actions .ch-btn--primary'") >= 0 &&
+    line.indexOf("'.ch-modal__actions .ch-btn--primary'") < line.indexOf("'.ch-modal__actions button'"),
+    'the primary action is tried before the first action');
+  ok(/label: Chogan\.t\('again'\), kind: 'primary'/.test(core), 'Again is the primary action of the game-over dialog');
+  ok(/kind: o\.danger \? 'danger' : 'primary'/.test(core), 'a danger confirm has no primary button, so focus stays on Cancel');
+}
+
 testFiles();
 testSudoku();
 testMines();
@@ -4867,6 +4881,7 @@ testShortcuts();
 testMenu();
 testKeyboardNav();
 testMenuSelect();
+testModalFocus();
 
 testSw().then(testVerifyDeploy).then(testPlayApi).then(function () {
   head('کامل بودن اجرا');
