@@ -4,7 +4,10 @@
 
 Chogan is a small collection of finishable games in a single app. Free, open source, no ads, no in-app purchases, no analytics or trackers, and fully offline.
 
-**[Play on the web](https://choganhq.github.io/chogan/)** · Android builds on the [Releases page](https://github.com/choganhq/chogan/releases)
+Ways to play:
+- **Web:** [choganhq.github.io/chogan](https://choganhq.github.io/chogan/), installable as an app from the browser.
+- **Android:** [F-Droid](https://f-droid.org/packages/io.github.choganhq.chogan/), or the APK on the [Releases page](https://github.com/choganhq/chogan/releases).
+- **Telegram:** [@chogangamebot](https://t.me/chogangamebot) opens the web version inside Telegram.
 
 ### The games
 
@@ -86,7 +89,10 @@ MIT, see [LICENSE](LICENSE). The Vazirmatn font is under the OFL; its licence te
 
 مجموعه‌بازی چوگان: چند بازی کوچک و تمام‌شدنی در یک اپ. رایگان، متن‌باز، بدون تبلیغ، بدون خرید درون‌برنامه‌ای، بدون تحلیل‌گر و ردیاب، و کاملاً آفلاین.
 
-**[بازی روی وب](https://choganhq.github.io/chogan/)** · نسخه‌ی اندروید از بخش [Releases](https://github.com/choganhq/chogan/releases)
+راه‌های بازی:
+- **وب:** [choganhq.github.io/chogan](https://choganhq.github.io/chogan/)، که از مرورگر مثل یک اپ نصب می‌شود.
+- **اندروید:** از [اف‌دروید](https://f-droid.org/packages/io.github.choganhq.chogan/)، یا فایل APK از بخش [Releases](https://github.com/choganhq/chogan/releases).
+- **تلگرام:** [@chogangamebot](https://t.me/chogangamebot) نسخه‌ی وب را داخل تلگرام باز می‌کند.
 
 ### بازی‌ها
 

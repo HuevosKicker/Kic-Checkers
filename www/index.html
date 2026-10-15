@@ -26,6 +26,7 @@
   C.strings({
     fa: {
       slogan: 'بازی‌های کوچک، تمام‌شدنی، بدون مزاحمت',
+      waysToPlay: 'راه‌های بازی', playWeb: 'وب', playAndroid: 'اندروید', playTelegram: 'تلگرام',
       allGames: 'بازی‌ها', viewGrid: 'نمایش دو ستونه', privacy: 'حریم خصوصی', privacyNone: 'هیچ داده‌ای جمع نمی‌شود', viewList: 'نمایش یک ستونه', pickDay: 'یک روز را انتخاب کن',
       seasonTable: 'جدول فصل', myTier: 'رده‌ی تو',
       toNext: 'تا صعود', keepAbove: 'کف ماندن در رده',
@@ -49,6 +50,7 @@
     },
     en: {
       slogan: 'Small games you can actually finish',
+      waysToPlay: 'Ways to play', playWeb: 'Web', playAndroid: 'Android', playTelegram: 'Telegram',
       allGames: 'Games', viewGrid: 'Two-column view', privacy: 'Privacy', privacyNone: 'No data collected', viewList: 'One-column view', pickDay: 'Pick a day',
       seasonTable: 'Season table', myTier: 'Your tier',
       toNext: 'to promotion', keepAbove: 'stay above',
@@ -72,6 +74,7 @@
     },
     zh: {
       slogan: '小而能玩完的游戏，不打扰你',
+      waysToPlay: '游玩方式', playWeb: '网页', playAndroid: '安卓', playTelegram: 'Telegram',
       allGames: '游戏', viewGrid: '双列显示', privacy: '隐私', privacyNone: '不收集任何数据', viewList: '单列显示', pickDay: '选择一天',
       seasonTable: '赛季榜', myTier: '你的段位',
       toNext: '距晋级', keepAbove: '保级线',
@@ -95,6 +98,7 @@
     },
     de: {
       slogan: 'Kleine Spiele, die du wirklich zu Ende spielst',
+      waysToPlay: 'Spielen auf', playWeb: 'Web', playAndroid: 'Android', playTelegram: 'Telegram',
       allGames: 'Spiele', viewGrid: 'Zwei Spalten', privacy: 'Datenschutz', privacyNone: 'Keine Daten erfasst', viewList: 'Eine Spalte', pickDay: 'Tag wählen',
       seasonTable: 'Saisontabelle', myTier: 'Deine Stufe',
       toNext: 'bis zum Aufstieg', keepAbove: 'zum Halten',
@@ -721,6 +725,18 @@
       el('div', { class: 'ch-item' }, [
         el('div', { class: 'ch-item__label', text: C.t('version') }),
         el('span', { class: 'ch-badge', text: C.num(C.version) })
+      ]),
+      // The same game runs on the web, as the Android app and as a Telegram Mini App
+      // (@chogangamebot opens the web build; no Telegram script is loaded here) (#203)
+      el('div', { class: 'ch-item' }, [
+        el('div', { class: 'ch-item__label', text: C.t('waysToPlay') }),
+        el('div', { class: 'ch-row ch-wrap' }, [
+          ['playWeb', 'https://choganhq.github.io/chogan/'],
+          ['playAndroid', 'https://f-droid.org/packages/io.github.choganhq.chogan/'],
+          ['playTelegram', 'https://t.me/chogangamebot']
+        ].map(function (w) {
+          return el('a', { href: w[1], target: '_blank', rel: 'noopener', text: C.t(w[0]) });
+        }))
       ]),
       el('div', { class: 'ch-item' }, [
         el('div', { class: 'ch-item__label', text: C.t('source') }),

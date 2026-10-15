@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2498;
+const MIN_CHECKS = 2505;
 
 function ok(cond, msg) {
   checks++;
@@ -4274,6 +4274,31 @@ function testMenuPins() {
   ok(!missing.length, 'pin and recent strings exist in all four languages' + (missing.length ? ' (' + missing.join(', ') + ')' : ''));
 }
 
+/* ------------------------------------------------ Ways to play (#203) */
+// The app runs on the web, on Android and as a Telegram Mini App (@chogangamebot).
+// Before #203 neither the app nor the README said so; F-Droid and Telegram were missing.
+function testWaysToPlay() {
+  head('Ways to play');
+  const home = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
+  const md = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  const urls = ['https://choganhq.github.io/chogan/', 'https://f-droid.org/packages/io.github.choganhq.chogan/', 'https://t.me/chogangamebot'];
+  const at = home.indexOf("C.t('waysToPlay')");
+  ok(at > 0, 'the About card has a ways-to-play row');
+  const row = home.slice(at, at + 600);
+  const miss = urls.filter((u) => row.indexOf("'" + u + "'") < 0);
+  ok(!miss.length, 'the row links the web, F-Droid and Telegram' + (miss.length ? ' (missing: ' + miss.join(', ') + ')' : ''));
+  const keys = ['waysToPlay', 'playWeb', 'playAndroid', 'playTelegram'];
+  const short = keys.filter((k) => (home.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < 4);
+  ok(!short.length, 'ways-to-play strings exist in all four languages' + (short.length ? ' (' + short.join(', ') + ')' : ''));
+  ok(!/telegram-web-app\.js/.test(home), 'no Telegram script is loaded (owner decision 2026-10-15)');
+  const fa = md.indexOf('## فارسی');
+  ok(fa > 0, 'README has a Persian section');
+  for (const [name, sec] of [['English', md.slice(0, fa)], ['Persian', md.slice(fa)]]) {
+    const m = urls.filter((u) => sec.indexOf('(' + u + ')') < 0);
+    ok(!m.length, 'the ' + name + ' README section links every way to play' + (m.length ? ' (missing: ' + m.join(', ') + ')' : ''));
+  }
+}
+
 /* ------------------------------------------------ Pasur: played cards on easy (#200) */
 // Owner decision 2026-10-14: beginners get a list of the cards already taken, but only
 // on the easy level; on medium and hard, remembering them is part of the game.
@@ -4753,6 +4778,7 @@ testPepkExport();
 testPrivacyPage();
 testReadme();
 testMenuPins();
+testWaysToPlay();
 testPasurGone();
 testStoreMetadata();
 testAndroidShare();
