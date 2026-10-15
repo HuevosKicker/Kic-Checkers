@@ -181,6 +181,12 @@ body.ch-noscroll {
   -webkit-user-select: none;
 }
 
+/* In the installed app a drag or Ctrl+A painted the menu's titles and the
+   bottom bar selection-blue, which no native app does (#208). Fields stay
+   selectable so a name can still be edited and pasted. */
+body.ch-menu { -webkit-user-select: none; user-select: none; }
+body.ch-menu input, body.ch-menu textarea, body.ch-menu [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
+
 h1, h2, h3 { margin: 0; font-weight: 800; line-height: 1.35; letter-spacing: -.01em; }
 h1 { font-size: var(--fs-2xl); }
 h2 { font-size: var(--fs-xl); }
