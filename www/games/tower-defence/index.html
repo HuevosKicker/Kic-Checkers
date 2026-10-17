@@ -64,7 +64,9 @@
   @keyframes td-flash { 0%, 100% { color: inherit; transform: none; } 25%, 60% { color: var(--c-bad); transform: scale(1.18); } }
   .td-stars { display: flex; gap: 2px; }
   .td-mapbtn { display: inline-flex; align-items: center; gap: 6px; }
-  .td-mapitem { width: 100%; border: 0; background: none; font: inherit; color: inherit; text-align: start; cursor: pointer; border-radius: var(--r-md); }
+  /* Own inline padding (#251): with the core's --s-1 the label sat against the selected row's border */
+  .td-mapitem { width: 100%; border: 0; background: none; font: inherit; color: inherit; text-align: start; cursor: pointer; border-radius: var(--r-md); padding-inline: var(--s-3); }
+  .td-thumb { width: 30px; height: 45px; flex: 0 0 auto; border-radius: 6px; background: var(--td-grass); box-shadow: inset 0 0 0 1px var(--c-line); display: block; }
   .td-mapitem--on { background: var(--c-surface-2); box-shadow: inset 0 0 0 2px var(--game); }
 </style>
 </head>
@@ -854,6 +856,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
     return sr;
   }
 
+  // A small drawing of each map's path (#251): from the names alone the player picked
+  // blind, and switching mid-game restarts the run. Built from pathFor(), so it is the
+  // map that will actually be played.
+  function mapThumb(path) {
+    var pts = path.map(function (p) { return (p.c + 0.5) + ',' + (p.r + 0.5); }).join(' ');
+    var end = path[path.length - 1];
+    var span = document.createElement('span');
+    span.innerHTML = '<svg class="td-thumb" viewBox="0 0 ' + E.GW + ' ' + E.GH + '" aria-hidden="true">' +
+      '<polyline points="' + pts + '" fill="none" stroke="var(--td-path)" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<rect x="' + (end.c + 0.1) + '" y="' + (end.r + 0.1) + '" width="0.8" height="0.8" rx="0.15" fill="var(--game)"/></svg>';
+    return span.firstChild;
+  }
   function pickMap() {
     C.feedback('tap');
     var dlg = null;
@@ -861,7 +875,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
       return el('button', {
         class: 'ch-item ch-tap td-mapitem' + (m.id === mapId ? ' td-mapitem--on' : ''), type: 'button',
         onclick: function () { if (dlg) dlg.close(); if (m.id !== mapId) askSwitch(m.id); }
-      }, [el('div', { class: 'ch-item__label', text: m[C.state.settings.lang] || m.en }), starRow(starsBook[m.id] || 0)]);
+      }, [mapThumb(pathFor(m.id)), el('div', { class: 'ch-item__label', text: m[C.state.settings.lang] || m.en }), starRow(starsBook[m.id] || 0)]);
     }));
     dlg = C.ui.modal({ title: C.t('pickMap'), body: [list], actions: [{ label: C.t('close') }] });
   }
