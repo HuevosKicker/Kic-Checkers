@@ -5,6 +5,7 @@
 #   tools/telegram-post.sh --history     every release, oldest first
 #   tools/telegram-post.sh --delete <message-id>
 #   tools/telegram-post.sh --set-photo   channel photo = www/icon-512.png
+#   tools/telegram-post.sh --bot-photo   the bot's photo = tools/telegram-bot-photo.jpg
 #
 # Everything about a release is read from git at its tag (version, changelog,
 # date, games added since the previous release), so it runs from any checkout
@@ -142,6 +143,12 @@ case "${1:-}" in
     [ "$DRY" = "1" ] && { echo "Would set the channel photo to www/icon-512.png"; exit 0; }
     check "the channel photo (the bot needs the 'Change channel info' right)" "$(api setChatPhoto --form-string "chat_id=$CHANNEL" -F "photo=@www/icon-512.png")"
     echo "Channel photo set" ;;
+  --bot-photo)
+    # The bot's own picture: a static JPG only, so the icon is kept as a JPG with
+    # its corners filled, since Telegram crops profile photos to a circle (#269)
+    [ "$DRY" = "1" ] && { echo "Would set the bot photo to tools/telegram-bot-photo.jpg"; exit 0; }
+    check "the bot photo" "$(api setMyProfilePhoto --form-string 'photo={"type":"static","photo":"attach://pic"}' -F "pic=@tools/telegram-bot-photo.jpg;type=image/jpeg")"
+    echo "Bot photo set" ;;
   v*) post "$1" ;;
-  *) echo "Usage: tools/telegram-post.sh <tag> | --history | --delete <id> | --set-photo" >&2; exit 2 ;;
+  *) echo "Usage: tools/telegram-post.sh <tag> | --history | --delete <id> | --set-photo | --bot-photo" >&2; exit 2 ;;
 esac

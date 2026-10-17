@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3098;
+const MIN_CHECKS = 3099;
 
 function ok(cond, msg) {
   checks++;
@@ -5822,9 +5822,11 @@ function testTelegramPost() {
   ok(/^\d+$/.test(port), 'a local stand-in for Telegram is listening (' + port + ')');
   if (port) {
     const live = { DRY_RUN: '0', TELEGRAM_BOT_TOKEN: 'T', TELEGRAM_API: 'http://127.0.0.1:' + port };
-    const ph = run(['--set-photo'], live), msg = run(['v0.5.2'], live);
+    const ph = run(['--set-photo'], live), msg = run(['v0.5.2'], live), bp = run(['--bot-photo'], live);
     const got = fs.existsSync(reqLog) ? fs.readFileSync(reqLog, 'latin1') : '';
     ok(ph.status === 0 && /\/botT\/setChatPhoto/.test(got) && /name="chat_id"\r\n\r\n@chogan_games\r\n/.test(got) && /filename="icon-512\.png"/.test(got), 'the channel photo request carries @chogan_games as text and the icon as a file (' + ph.status + ' ' + (ph.stderr || '').trim() + ')');
+    // setMyProfilePhoto takes a static JPG named in a JSON field (#269)
+    ok(bp.status === 0 && /\/botT\/setMyProfilePhoto/.test(got) && /name="photo"\r\n\r\n\{"type":"static","photo":"attach:\/\/pic"\}\r\n/.test(got) && /name="pic"; filename="telegram-bot-photo\.jpg"\r\nContent-Type: image\/jpeg/.test(got), 'the bot photo request sends the icon as a static JPG (' + bp.status + ' ' + (bp.stderr || '').trim() + ')');
     ok(msg.status === 0 && /\/botT\/sendMessage/.test(got) && /chat_id=%40chogan_games/.test(got) && /parse_mode=HTML/.test(got) && /reply_markup=/.test(got), 'the release post reaches Telegram with the channel, HTML and the buttons');
   }
   srv.kill();
@@ -5840,7 +5842,7 @@ function testTelegramPost() {
   ok(job.length > 20 && /needs: apk/.test(job) && /!endsWith\(github\.ref_name, '-test'\)/.test(job), 'release.yml posts after the APK is published, never for -test tags');
   ok(/fetch-depth: 0/.test(job) && /TELEGRAM_BOT_TOKEN: \$\{\{ secrets\.TELEGRAM_BOT_TOKEN \}\}/.test(job) && /tools\/telegram-post\.sh "\$GITHUB_REF_NAME"/.test(job), 'the announce job has the tags, the secret and the tag name');
   const man = fs.readFileSync(path.join(ROOT, '.github/workflows/telegram.yml'), 'utf8');
-  ok(/options: \[release, history, delete, photo\]/.test(man) && /dry_run:[\s\S]*?default: true/.test(man), 'the manual workflow offers release, history, delete and photo, dry run by default');
+  ok(/options: \[release, history, delete, photo, bot-photo\]/.test(man) && /dry_run:[\s\S]*?default: true/.test(man), 'the manual workflow offers release, history, delete and photo, dry run by default');
 }
 
 function testModalFocus() {
