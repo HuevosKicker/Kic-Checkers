@@ -2558,6 +2558,14 @@
     if (o.accent) Chogan.setAccent(o.accent, o.accentSoft);
     document.addEventListener('pointerdown', unlockAudioOnce, { passive: true });
     document.addEventListener('keydown', unlockAudioOnce);
+    // The browser's right-click menu (back, reload, save as, inspect) broke the feel
+    // of the installed app and of games played with a mouse (#228). Text fields keep
+    // theirs so pasting still works, and links keep theirs.
+    document.addEventListener('contextmenu', function (e) {
+      var t = e.target, tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable) || (t && t.closest && t.closest('a[href]'))) return;
+      e.preventDefault();
+    });
     if (global.matchMedia) {
       var mq = global.matchMedia('(prefers-color-scheme: dark)');
       var onch = function () { if (state.settings.theme === 'auto') Chogan.applyTheme(); };

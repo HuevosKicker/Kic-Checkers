@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2806;
+const MIN_CHECKS = 2809;
 
 function ok(cond, msg) {
   checks++;
@@ -3858,6 +3858,19 @@ function testWayOutLook() {
   ok(!!wo && 1.05 / (lum(wo.color) + 0.05) >= 4.5, 'white text on the accent keeps 4.5:1 (' + (wo ? (1.05 / (lum(wo.color) + 0.05)).toFixed(2) : '-') + ')');
 }
 
+// #228: the browser's context menu showed on right-click in the app and in games
+function testContextMenu() {
+  head('Browser context menu');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const at = core.indexOf('Chogan.boot = function');
+  const boot = core.slice(at, core.indexOf('\n  };\n', at));
+  ok(at > 0 && /document\.addEventListener\('contextmenu', function \(e\) \{/.test(boot), 'boot turns off the context menu on every page');
+  ok(/tag === 'INPUT' \|\| tag === 'TEXTAREA' \|\| \(t && t\.isContentEditable\)/.test(boot) && /closest\('a\[href\]'\)/.test(boot), 'text fields and links keep their menu');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const noBoot = games.filter((g) => !/C\.boot\(|Chogan\.boot\(/.test(fs.readFileSync(path.join(ROOT, 'www', g.path), 'utf8'))).map((g) => g.id);
+  ok(games.length > 0 && !noBoot.length, 'every game page calls boot' + (noBoot.length ? ' (not: ' + noBoot.join(', ') + ')' : ''));
+}
+
 /* ------------------------------------------------------------- پاسور */
 function testPasur() {
   head('پاسور');
@@ -5512,6 +5525,7 @@ testBlockDrop();
 testWayOut();
 testWayOutPromises();
 testWayOutLook();
+testContextMenu();
 testTd();
 testVersionStamp();
 testDeployGate();
