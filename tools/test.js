@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2876;
+const MIN_CHECKS = 2877;
 
 function ok(cond, msg) {
   checks++;
@@ -3847,6 +3847,7 @@ function testWayOutLook() {
   // the head must be clearly wider than the 13-unit body and wider than it is long
   const tri = page.match(/var tri = 'M' \+ \(hx \+ dx \* (\d+)\)[^\n]*\(hx - dx \* (\d+) \+ px \* (\d+)\)/);
   ok(!!tri && 2 * +tri[3] >= 2 * 13 && 2 * +tri[3] > +tri[1] + +tri[2], 'the head is wide and flat (' + (tri ? 'width ' + 2 * tri[3] + ', length ' + (+tri[1] + +tri[2]) : 'not found') + ')');
+  ok(/\.wo-arrow--struck \.wo-body \{ stroke: var\(--c-bad\); \}/.test(page), 'an arrow already struck stays red along its whole body');
   ok(['struck', 'bad', 'chain'].every((k) => new RegExp('\\.wo-arrow--' + k + ' \\.wo-head path \\{ fill: ([^;]+); stroke: \\1; \\}').test(page)), 'coloured heads change fill and stroke together');
   const heads = icon.match(/<path d="M[^"]*z"[^>]*>/g) || [];
   ok(heads.length === 3 && heads.every((h) => /stroke-linejoin="round"/.test(h)), 'the icon\'s three heads have round corners');
