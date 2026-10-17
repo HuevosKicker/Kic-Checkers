@@ -1,4 +1,4 @@
-Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Zweiundzwanzig Spiele sind dabei, und neue kommen als Updates derselben App dazu.
+Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Dreiundzwanzig Spiele sind dabei, und neue kommen als Updates derselben App dazu.
 
 Die Spiele:
 
@@ -24,6 +24,7 @@ Die Spiele:
 * Blocksturz — fallende Steine: 40-Reihen-Sprint oder 100-Reihen-Marathon
 * Gomoku — fünf in einer Reihe auf 9, 13 oder 15 Linien, gegen die KI in drei Stufen oder zu zweit
 * Go — Go auf 9×9 mit automatischer Zählung, gegen die KI in drei Stufen oder zu zweit
+* Ausweg — schick jeden Pfeil in einer passenden Reihenfolge vom Brett, drei Herzen pro Level, Level ohne Ende
 
 Rund um die Spiele:
 
