@@ -21,6 +21,7 @@
   }
   canvas { border-radius: var(--r-md); box-shadow: var(--sh-2); touch-action: manipulation; display: block; }
   .td-bottom { width: 100%; max-width: 520px; display: flex; align-items: center; gap: var(--s-2); }
+  .td-auto--on { background: var(--game); color: #fff; }
   .td-preview {
     flex: 1; display: flex; align-items: center; gap: 6px; background: var(--c-surface);
     border-radius: var(--r-md); padding: 6px 10px; box-shadow: var(--sh-1); min-height: 48px;
@@ -523,7 +524,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
     strings: {
       fa: {
         wave: 'موج', lives: 'جان', money: 'سکه‌ی نقشه',
-        startWave: 'شروع موج', nextWave: 'موج بعدی', speed: 'سرعت',
+        startWave: 'شروع موج', nextWave: 'موج بعدی', speed: 'سرعت', auto: 'خودکار', nextIn: 'موج بعد: {n}',
         archer: 'کمان', cannon: 'توپ', frost: 'یخ', tesla: 'برق',
         archerD: 'شلیک تند به یک هدف', cannonD: 'انفجار ناحیه‌ای', frostD: 'کند کردن دشمن‌ها', teslaD: 'زنجیره‌ی برق به چند هدف',
         upgrade: 'ارتقا', sell: 'فروش', level: 'سطح', range: 'برد', dps: 'آسیب',
@@ -538,7 +539,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
       },
       en: {
         wave: 'Wave', lives: 'Lives', money: 'Gold',
-        startWave: 'Start wave', nextWave: 'Next wave', speed: 'Speed',
+        startWave: 'Start wave', nextWave: 'Next wave', speed: 'Speed', auto: 'Auto', nextIn: 'Next wave: {n}',
         archer: 'Archer', cannon: 'Cannon', frost: 'Frost', tesla: 'Tesla',
         archerD: 'Fast single target', cannonD: 'Splash damage', frostD: 'Slows enemies', teslaD: 'Chains between targets',
         upgrade: 'Upgrade', sell: 'Sell', level: 'Level', range: 'Range', dps: 'Damage',
@@ -553,7 +554,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
       },
       zh: {
         wave: '波次', lives: '生命', money: '地图金币',
-        startWave: '开始波次', nextWave: '下一波', speed: '速度',
+        startWave: '开始波次', nextWave: '下一波', speed: '速度', auto: '自动', nextIn: '{n} 秒后下一波',
         archer: '弓箭', cannon: '火炮', frost: '冰霜', tesla: '电塔',
         archerD: '单体快速射击', cannonD: '范围溅射伤害', frostD: '减速敌人', teslaD: '在多个目标间连锁',
         upgrade: '升级', sell: '出售', level: '等级', range: '射程', dps: '伤害',
@@ -568,7 +569,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
       },
       de: {
         wave: 'Welle', lives: 'Leben', money: 'Gold',
-        startWave: 'Welle starten', nextWave: 'Nächste Welle', speed: 'Tempo',
+        startWave: 'Welle starten', nextWave: 'Nächste Welle', speed: 'Tempo', auto: 'Auto', nextIn: 'Nächste Welle: {n}',
         archer: 'Bogen', cannon: 'Kanone', frost: 'Frost', tesla: 'Tesla',
         archerD: 'Schnell, ein Ziel', cannonD: 'Flächenschaden', frostD: 'Bremst Gegner', teslaD: 'Springt zwischen Zielen',
         upgrade: 'Ausbauen', sell: 'Verkaufen', level: 'Level', range: 'Reichweite', dps: 'Schaden',
@@ -619,7 +620,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
   var preview = el('div', { class: 'td-preview' });
   var startBtn = el('button', { class: 'ch-btn ch-btn--primary', type: 'button', text: C.t('startWave') });
   var speedBtn = el('button', { class: 'ch-btn ch-btn--soft ch-btn--sm', type: 'button', text: '×' + C.num(1) });
-  var bottom = el('div', { class: 'td-bottom' }, [preview, speedBtn, startBtn]);
+  // Auto waves (#245): after a wave ends the next starts by itself after a short countdown
+  var autoBtn = el('button', { class: 'ch-btn ch-btn--soft ch-btn--sm td-auto', type: 'button', text: C.t('auto') });
+  var AUTO_MS = 3000, autoAt = 0, wasActive = false;
+  var bottom = el('div', { class: 'td-bottom' }, [preview, autoBtn, speedBtn, startBtn]);
   var dock = el('div', { class: 'td-dock' });
   var note = el('div', { class: 'td-note', 'aria-live': 'polite' });
   var wrap = el('div', { class: 'td-wrap' }, [top, cbox, dock, note, bottom]);
@@ -709,13 +713,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
     });
   }
 
+  function launchWave() {
+    autoAt = 0;
+    E.startWave(S, Math.random);
+    updateHud();
+    save();
+  }
   startBtn.addEventListener('click', function () {
     if (!S || S.over) return;
     if (S.waveActive) return;
     C.feedback('select');
-    E.startWave(S, Math.random);
+    launchWave();
+  });
+  autoBtn.addEventListener('click', function () {
+    prefs.auto = !prefs.auto;
+    ctx.store.set('prefs', prefs);
+    // switched on between waves: the countdown starts now; the first wave stays manual
+    autoAt = prefs.auto && S && !S.over && !S.waveActive && S.wave > 0 ? performance.now() + AUTO_MS : 0;
+    C.feedback('select');
     updateHud();
-    save();
   });
   speedBtn.addEventListener('click', function () {
     prefs.speed = prefs.speed === 1 ? 2 : 1;
@@ -780,6 +796,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
 
   function newGame(id, date) {
     closePanel();
+    autoAt = 0; wasActive = false;
     mapId = id;
     var path = pathFor(id, date);
     S = E.createGame({ path: path, money: 200, lives: 20, lastWave: 20 });
@@ -862,6 +879,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
     refreshDock();
     startBtn.disabled = S.waveActive || S.over;
     startBtn.textContent = S.waveActive ? C.t('wave') + ' ' + C.num(S.wave) : C.t('startWave');
+    autoBtn.setAttribute('aria-pressed', prefs.auto ? 'true' : 'false');
+    autoBtn.classList.toggle('td-auto--on', !!prefs.auto);
     speedBtn.textContent = '×' + C.num(prefs.speed);
     drawPreview();
   }
@@ -1097,10 +1116,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
       }
       if (mult > 1) S.effects = shots;
       hudTick();
+      wasActive = true;
     } else if (S && S.effects.length) {
       // افکت‌ها فقط داخل step پاک می‌شوند و step فقط وقتی موج فعال است اجرا
       // می‌شود. بدون این، آخرین شلیک‌های موج تا ابد روی تخته می‌ماندند.
       S.effects.length = 0;
+    }
+    // a wave just ended: with Auto on, count down to the next one on the start button
+    if (S && wasActive && !S.waveActive) {
+      wasActive = false;
+      if (prefs.auto && !S.over) autoAt = now + AUTO_MS;
+    }
+    if (S && autoAt && !S.waveActive && !S.over) {
+      if (!prefs.auto) autoAt = 0;
+      else if (now >= autoAt) launchWave();
+      else startBtn.textContent = C.t('nextIn', { n: C.num(Math.ceil((autoAt - now) / 1000)) });
     }
     draw();
   }

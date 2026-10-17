@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2877;
+const MIN_CHECKS = 2882;
 
 function ok(cond, msg) {
   checks++;
@@ -4015,6 +4015,18 @@ function testModalButtons() {
   ok(/\.ch-modal__actions \.ch-btn \{[^}]*white-space: nowrap;/.test(css) && !/\.ch-modal__actions \.ch-btn \{ flex: 1; \}/.test(css), 'a dialog button keeps its label on one line instead of a fixed equal width');
 }
 
+// #245: a tester wanted waves to start by themselves
+function testTdAutoWaves() {
+  head('Tower defence auto waves');
+  const page = fs.readFileSync(path.join(ROOT, 'www/games/tower-defence/index.html'), 'utf8');
+  ok(/var autoBtn = el\('button'/.test(page) && /prefs\.auto = !prefs\.auto;/.test(page) && !/auto: true/.test(page), 'an Auto toggle exists, off unless chosen, and is remembered');
+  ok(/if \(prefs\.auto && !S\.over\) autoAt = now \+ AUTO_MS;/.test(page) && /else if \(now >= autoAt\) launchWave\(\);/.test(page), 'with Auto on, a finished wave counts down to the next one');
+  ok(/S\.wave > 0 \? performance\.now\(\) \+ AUTO_MS : 0;/.test(page), 'the first wave always waits for the player');
+  ok(/autoAt = 0; wasActive = false;/.test(page), 'a new game clears a pending countdown');
+  const miss = ['auto', 'nextIn'].filter((k) => (page.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < 4);
+  ok(!miss.length, 'auto-wave strings in all four languages' + (miss.length ? ' (' + miss.join(', ') + ')' : ''));
+}
+
 /* ------------------------------------------------------------- پاسور */
 function testPasur() {
   head('پاسور');
@@ -5677,6 +5689,7 @@ testBlackjack();
 testAwardToasts();
 testPasurLead();
 testModalButtons();
+testTdAutoWaves();
 testTd();
 testVersionStamp();
 testDeployGate();
