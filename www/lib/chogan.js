@@ -948,10 +948,13 @@
       var d = achApi.def(id);
       if (!d) return false;
       mutate('achievements', function (a) { a[id] = Date.now(); return a; });
+      // Awards come at the end of a game, often several at once next to the result
+      // window, so they stay long enough to read (#234)
       Chogan.ui.toast({
         icon: d.icon,
         title: Chogan.achText(d).title,
-        sub: Chogan.achText(d).sub
+        sub: Chogan.achText(d).sub,
+        ms: 7000
       });
       audioApi.sfx('coin');
       Chogan.haptic('success');
@@ -1977,7 +1980,17 @@
       setTimeout(function () { if (node.parentNode) node.parentNode.removeChild(node); }, 260);
     };
     host.appendChild(node);
-    node._chTimer = setTimeout(node._chHide, o.ms || 3200);
+    var ms = o.ms || 3200;
+    node._chTimer = setTimeout(node._chHide, ms);
+    // A reporter could not read new awards before they left (#234): a finger or the
+    // mouse on a notice holds it, letting go gives it its full time again, and a tap
+    // closes it at once.
+    var hold = function () { clearTimeout(node._chTimer); };
+    var release = function () { clearTimeout(node._chTimer); node._chTimer = setTimeout(node._chHide, ms); };
+    node.addEventListener('pointerenter', hold);
+    node.addEventListener('pointerdown', hold);
+    node.addEventListener('pointerleave', release);
+    node.addEventListener('click', function () { clearTimeout(node._chTimer); node._chHide(); });
     return node;
   };
 

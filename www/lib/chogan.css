@@ -736,6 +736,9 @@ a  { color: var(--c-accent); text-decoration: none; }
   max-width: min(100%, 400px);
   animation: ch-drop var(--t-slow) var(--ease-back);
   border: 1px solid var(--c-line);
+  /* the host lets taps through to the page; the notice itself can be held or closed (#234) */
+  pointer-events: auto;
+  cursor: pointer;
 }
 [dir="rtl"] .ch-toast { padding: 8px 8px 8px 18px; }
 .ch-toast--out { animation: ch-lift var(--t-mid) var(--ease) forwards; }
