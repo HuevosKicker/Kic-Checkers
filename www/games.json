@@ -419,6 +419,27 @@
       "soft": "#E3E8FA",
       "added": "2026-10-10",
       "files": []
+    },
+    {
+      "id": "gomoku",
+      "name": {
+        "fa": "گوموکو",
+        "en": "Gomoku",
+        "zh": "五子棋",
+        "de": "Gomoku"
+      },
+      "summary": {
+        "fa": "پنج مهره در یک خط؛ با ربات در سه سطح یا دو نفره، روی تخته‌ی ۹، ۱۳ یا ۱۵.",
+        "en": "Five in a row against the AI on three levels or two players, on a 9, 13 or 15 board.",
+        "zh": "五子连珠：对战三个难度的电脑或双人对弈，棋盘 9、13 或 15 路。",
+        "de": "Fünf in einer Reihe gegen die KI in drei Stufen oder zu zweit, auf 9, 13 oder 15 Linien."
+      },
+      "path": "games/gomoku/index.html",
+      "icon": "games/gomoku/icon.svg",
+      "color": "#C45C26",
+      "soft": "#F5E6D3",
+      "added": "2026-10-17",
+      "files": []
     }
   ]
 }
