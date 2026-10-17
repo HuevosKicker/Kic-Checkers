@@ -30,6 +30,9 @@
   .wo-arrow--in { animation: wo-in var(--t-mid) var(--ease-back) backwards; transform-box: fill-box; transform-origin: center; }
   @keyframes wo-in { from { opacity: 0; transform: scale(.6); } }
   /* an arrow already tapped while blocked keeps a red head and halo until it leaves */
+  /* the whole arrow stays red, not just its head: the owner found a red head on a purple
+     body too easy to miss (#229) */
+  .wo-arrow--struck .wo-body { stroke: var(--c-bad); }
   .wo-arrow--struck .wo-head path { fill: var(--c-bad); stroke: var(--c-bad); }
   .wo-arrow--struck .wo-glow { stroke: var(--c-bad); opacity: .3; }
   .wo-arrow--bad .wo-body { stroke: var(--c-bad); }
