@@ -796,7 +796,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
 
   function newGame(id, date) {
     closePanel();
-    autoAt = 0; wasActive = false;
+    autoAt = 0; wasActive = false; shotsLive = []; impacts = [];
     mapId = id;
     var path = pathFor(id, date);
     S = E.createGame({ path: path, money: 200, lives: 20, lastWave: 20 });
@@ -982,26 +982,87 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
       g.strokeRect(buildCell.c * cs + 2, buildCell.r * cs + 2, cs - 4, cs - 4);
     }
 
-    // شلیک‌ها
-    for (var e = 0; e < S.effects.length; e++) {
-      var f = S.effects[e];
-      g.strokeStyle = f.color;
-      g.globalAlpha = 0.85;
-      g.lineWidth = f.kind === 'cannon' ? 4 : (f.kind === 'tesla' ? 3 : 2);
-      g.beginPath();
-      g.moveTo(f.x1 * cs, f.y1 * cs);
-      if (f.kind === 'tesla') {
-        var mx = (f.x1 + f.x2) / 2 * cs + (Math.random() - 0.5) * cs * 0.5;
-        var my = (f.y1 + f.y2) / 2 * cs + (Math.random() - 0.5) * cs * 0.5;
-        g.lineTo(mx, my);
-      }
-      g.lineTo(f.x2 * cs, f.y2 * cs);
-      g.stroke();
-      g.globalAlpha = 1;
-    }
+    // Shots fly (#245): a tester could not see what towers did when each shot was a
+    // one-frame line. Projectiles are drawn from the shots the engine reports; damage
+    // still lands in the engine at once, so this is only what the player sees.
+    drawShots(g, performance.now());
 
     // دشمن‌ها
     for (var n = 0; n < S.enemies.length; n++) drawEnemy(g, S.enemies[n]);
+  }
+
+  var SHOT_MS = { archer: 230, cannon: 340, frost: 260, tesla: 150 };
+  var shotsLive = [], impacts = [];
+  function takeShots(now) {
+    if (!S || !S.effects.length) return;
+    for (var i = 0; i < S.effects.length && shotsLive.length < 160; i++) {
+      var f = S.effects[i];
+      shotsLive.push({ kind: f.kind, x1: f.x1, y1: f.y1, x2: f.x2, y2: f.y2, color: f.color, t0: now, dur: C.ui.reduceMotion() ? 90 : (SHOT_MS[f.kind] || 220) });
+    }
+    S.effects.length = 0;
+  }
+  function drawShots(g, now) {
+    var still = [], quiet = C.ui.reduceMotion();
+    for (var i = 0; i < shotsLive.length; i++) {
+      var f = shotsLive[i], p = (now - f.t0) / f.dur;
+      if (p >= 1) {
+        if (!quiet && (f.kind === 'cannon' || f.kind === 'frost')) impacts.push({ kind: f.kind, x: f.x2, y: f.y2, color: f.color, t0: now, dur: f.kind === 'cannon' ? 320 : 260 });
+        continue;
+      }
+      still.push(f);
+      var x = (f.x1 + (f.x2 - f.x1) * p) * cs, y = (f.y1 + (f.y2 - f.y1) * p) * cs;
+      var ang = Math.atan2(f.y2 - f.y1, f.x2 - f.x1);
+      if (quiet || f.kind === 'tesla') {
+        // a bolt is instant; it flickers for its short life instead of travelling
+        g.strokeStyle = f.color; g.globalAlpha = 1 - p; g.lineWidth = 3;
+        g.beginPath(); g.moveTo(f.x1 * cs, f.y1 * cs);
+        if (f.kind === 'tesla') for (var k = 1; k < 4; k++) g.lineTo((f.x1 + (f.x2 - f.x1) * k / 4) * cs + (Math.random() - 0.5) * cs * 0.35, (f.y1 + (f.y2 - f.y1) * k / 4) * cs + (Math.random() - 0.5) * cs * 0.35);
+        g.lineTo(f.x2 * cs, f.y2 * cs); g.stroke(); g.globalAlpha = 1;
+        continue;
+      }
+      g.save(); g.translate(x, y);
+      if (f.kind === 'archer') {
+        // an arrow: shaft and head, pointing where it flies
+        g.rotate(ang); g.strokeStyle = f.color; g.fillStyle = f.color; g.lineWidth = Math.max(2.5, cs * 0.08); g.lineCap = 'round';
+        g.beginPath(); g.moveTo(-cs * 0.34, 0); g.lineTo(cs * 0.12, 0); g.stroke();
+        g.beginPath(); g.moveTo(cs * 0.26, 0); g.lineTo(cs * 0.08, -cs * 0.11); g.lineTo(cs * 0.08, cs * 0.11); g.closePath(); g.fill();
+      } else if (f.kind === 'cannon') {
+        // a cannonball rises and falls on its way, with its shadow on the ground
+        var lift = Math.sin(Math.PI * p) * cs * 0.45;
+        g.fillStyle = 'rgba(0,0,0,.18)'; g.beginPath(); g.ellipse(0, cs * 0.06, cs * 0.1, cs * 0.05, 0, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#3B2F28'; g.beginPath(); g.arc(0, -lift, cs * 0.15, 0, Math.PI * 2); g.fill();
+        // a light rim keeps the ball visible on the dark board too
+        g.strokeStyle = 'rgba(255,240,220,.7)'; g.lineWidth = 1.5; g.stroke();
+        g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.arc(-cs * 0.04, -lift - cs * 0.04, cs * 0.035, 0, Math.PI * 2); g.fill();
+      } else {
+        // a frost shard spins as it goes
+        g.rotate(p * Math.PI * 3); g.fillStyle = f.color;
+        g.beginPath(); g.moveTo(0, -cs * 0.17); g.lineTo(cs * 0.09, 0); g.lineTo(0, cs * 0.17); g.lineTo(-cs * 0.09, 0); g.closePath(); g.fill();
+      }
+      g.restore();
+    }
+    shotsLive = still;
+    var left = [];
+    for (var j = 0; j < impacts.length; j++) {
+      var m = impacts[j], q = (now - m.t0) / m.dur;
+      if (q >= 1) continue;
+      left.push(m);
+      g.globalAlpha = 1 - q;
+      if (m.kind === 'cannon') {
+        // the burst grows to the splash radius
+        var R = cs * (0.25 + q * 0.85);
+        g.fillStyle = 'rgba(232,145,58,.35)'; g.beginPath(); g.arc(m.x * cs, m.y * cs, R, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = '#E8913A'; g.lineWidth = 3; g.stroke();
+      } else {
+        g.strokeStyle = m.color; g.lineWidth = 2.5;
+        for (var r = 0; r < 6; r++) {
+          var an = r * Math.PI / 3, l1 = cs * 0.12, l2 = cs * (0.2 + q * 0.4);
+          g.beginPath(); g.moveTo(m.x * cs + Math.cos(an) * l1, m.y * cs + Math.sin(an) * l1); g.lineTo(m.x * cs + Math.cos(an) * l2, m.y * cs + Math.sin(an) * l2); g.stroke();
+        }
+      }
+      g.globalAlpha = 1;
+    }
+    impacts = left;
   }
 
   function drawGate(g, x, y, col) {
@@ -1115,6 +1176,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
         if (mult > 1 && S.effects.length) shots = shots.concat(S.effects);
       }
       if (mult > 1) S.effects = shots;
+      takeShots(now);
       hudTick();
       wasActive = true;
     } else if (S && S.effects.length) {
