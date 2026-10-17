@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2874;
+const MIN_CHECKS = 2876;
 
 function ok(cond, msg) {
   checks++;
@@ -4006,6 +4006,14 @@ function testPasurLead() {
   ok(!miss.length, 'lead strings in all four languages' + (miss.length ? ' (' + miss.join(', ') + ')' : ''));
 }
 
+// #242: dialog buttons were equal width, so «مرحله‌ی بعد» broke onto two lines
+function testModalButtons() {
+  head('Dialog buttons');
+  const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
+  ok(/\.ch-modal__actions \{[^}]*flex-wrap: wrap;/.test(css), 'dialog buttons wrap to a new row when they do not fit');
+  ok(/\.ch-modal__actions \.ch-btn \{[^}]*white-space: nowrap;/.test(css) && !/\.ch-modal__actions \.ch-btn \{ flex: 1; \}/.test(css), 'a dialog button keeps its label on one line instead of a fixed equal width');
+}
+
 /* ------------------------------------------------------------- پاسور */
 function testPasur() {
   head('پاسور');
@@ -5667,6 +5675,7 @@ testMahjongTimed();
 testBlackjack();
 testAwardToasts();
 testPasurLead();
+testModalButtons();
 testTd();
 testVersionStamp();
 testDeployGate();
