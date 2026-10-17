@@ -1,4 +1,4 @@
-Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Achtzehn Spiele sind dabei, und neue kommen als Updates derselben App dazu.
+Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Zweiundzwanzig Spiele sind dabei, und neue kommen als Updates derselben App dazu.
 
 Die Spiele:
 
@@ -20,12 +20,16 @@ Die Spiele:
 * Pasur — das persische Kartenspiel gegen drei Stufen Computer, mit Surs und klassischer Wertung
 * Mahjong — drei Aufstellungen samt klassischer Schildkröte, jedes Spiel lösbar, mit Tipps und Mischen
 * Schach — gegen die KI in drei Stufen oder zu zweit an einem Handy, dazu Lichess-Rätsel
+* Hokm — das persische Kartenspiel zu viert: du und dein Partner gegen zwei KI-Gegner
+* Blocksturz — fallende Steine: 40-Reihen-Sprint oder 100-Reihen-Marathon
+* Gomoku — fünf in einer Reihe auf 9, 13 oder 15 Linien, gegen die KI in drei Stufen oder zu zweit
+* Go — Go auf 9×9 mit automatischer Zählung, gegen die KI in drei Stufen oder zu zweit
 
 Rund um die Spiele:
 
 * Ein Tagesrätsel, das auf jedem Gerät gleich ist, ganz ohne Server
 * Eine wöchentliche Offline-Liga mit fünf Stufen
-* Über sechzig Erfolge
+* Über achtzig Erfolge
 * Statistik und Profil
 * Oberfläche auf Persisch, Englisch, vereinfachtem Chinesisch und Deutsch, mit hellem und dunklem Design
 

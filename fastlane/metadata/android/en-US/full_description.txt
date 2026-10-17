@@ -1,4 +1,4 @@
-Chogan is a collection of small, finishable games in a single app. It ships with eighteen games, and new ones arrive as updates to the same app.
+Chogan is a collection of small, finishable games in a single app. It ships with twenty-two games, and new ones arrive as updates to the same app.
 
 The games:
 
@@ -20,12 +20,16 @@ The games:
 * Pasur — the Persian fishing card game against three levels of AI, with surs and the classic scoring
 * Mahjong Solitaire — three layouts including the classic turtle, every deal solvable, with hints and shuffles
 * Chess — against the AI on three levels or two players on one phone, plus Lichess puzzles
+* Hokm — the Persian four-player card game: you and your partner against two AI rivals
+* Block Drop — falling blocks: a 40-line sprint or a 100-line marathon
+* Gomoku — five in a row on a 9, 13 or 15 board, against three levels of AI or two players
+* Go — 9×9 Go with automatic counting, against three levels of AI or two players
 
 Around the games:
 
 * A daily challenge that is identical on every device, with no server at all
 * A weekly offline league with five tiers
-* Over sixty awards
+* Over eighty awards
 * Stats and a profile
 * Persian, English, Simplified Chinese and German interface with light and dark themes
 
