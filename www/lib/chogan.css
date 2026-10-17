@@ -688,8 +688,10 @@ a  { color: var(--c-accent); text-decoration: none; }
 .ch-modal__head .ch-iconbtn { flex: none; width: 34px; height: 34px; margin-block-start: -2px; }
 .ch-modal__head .ch-iconbtn svg { width: 20px; height: 20px; }
 .ch-modal h2 { margin-bottom: var(--s-2); }
-.ch-modal__actions { display: flex; gap: var(--s-2); margin-top: var(--s-5); }
-.ch-modal__actions .ch-btn { flex: 1; }
+/* Equal-width buttons broke longer labels in two («مرحله‌ی / بعد», #242): a label stays
+   on one line, buttons grow to share a row, and wrap to a new row when they do not fit */
+.ch-modal__actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-5); }
+.ch-modal__actions .ch-btn { flex: 1 1 auto; white-space: nowrap; padding-inline: var(--s-4); }
 
 /* ------------------------------------------------------------- اعلان */
 /* نوار آپدیت، بالای نوار پایین صفحه */
