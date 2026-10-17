@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2536;
+const MIN_CHECKS = 2541;
 
 function ok(cond, msg) {
   checks++;
@@ -4315,6 +4315,21 @@ function testPasurGone() {
   ok(!missing.length, 'panel strings exist in all four languages' + (missing.length ? ' (' + missing.join(', ') + ')' : ''));
 }
 
+/* ------------------------------------------------ Privacy page top bar (#207) */
+// The page had only a small text link back and its title bar stayed light in dark
+// mode, because its theme-color meta was fixed while the app changes it on theme.
+function testPrivacyBar() {
+  head('Privacy page top bar');
+  const html = fs.readFileSync(path.join(ROOT, 'www/privacy.html'), 'utf8');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(/<header class="ch-gamebar[^"]*"/.test(html), 'the page has the same top bar as the games');
+  ok(/<a class="ch-iconbtn[^"]*" id="back" href="\.\/"/.test(html), 'the bar has a back button to the app');
+  const colours = (core.match(/dark \? '(#[0-9A-F]{6})' : '(#[0-9A-F]{6})'/) || []).slice(1);
+  ok(colours.length === 2, 'the core sets two theme colours');
+  ok(colours.length === 2 && html.indexOf("dark ? '" + colours[0] + "' : '" + colours[1] + "'") > 0, 'the page sets the same dark and light theme colours as the app');
+  ok(/prefers-color-scheme: dark/.test(html) && /addEventListener\('change', paint\)/.test(html), 'the page follows the system theme when no theme is chosen');
+}
+
 /* ------------------------------------------------ Privacy policy page */
 // Play requires a public privacy policy URL (#161). The page says nothing is
 // collected and the Android app has no internet permission; these checks keep
@@ -4866,6 +4881,7 @@ testPrivacyPage();
 testReadme();
 testMenuPins();
 testWaysToPlay();
+testPrivacyBar();
 testPasurGone();
 testStoreMetadata();
 testAndroidShare();
