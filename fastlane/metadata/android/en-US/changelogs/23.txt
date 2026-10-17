@@ -1,5 +1,8 @@
-New games: Go (9×9, with automatic counting) and Gomoku, each against three AI levels or two players, with a daily game.
-Menu: pin games to the top, and a Recently played row.
-Pasur: on easy, a panel shows the cards already taken.
-In Persian, the daily calendar now shows Persian months.
-The privacy page has a top bar, and Profile lists the ways to play: web, Android and Telegram.
+New games:
+- Go (9×9, with automatic counting) against three AI levels or two players, with a daily game
+- Gomoku against three AI levels or two players, with a daily game
+Improvements:
+- Menu: pin games to the top, and a Recently played row
+- Pasur: on easy, a panel shows the cards already taken
+- Persian months in the daily calendar
+- The privacy page has a top bar; Profile lists the ways to play

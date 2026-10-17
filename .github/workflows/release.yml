@@ -139,8 +139,9 @@ jobs:
           else
             # GitHub release notes are English for a global audience; the Persian
             # changelog stays in place for F-Droid.
-            NOTES="fastlane/metadata/android/en-US/changelogs/${VERSION_CODE}.txt"
-            if [ -f "$NOTES" ]; then
+            # Sectioned changelog (New games, Bug fixes, Improvements) as nested bullets (#265)
+            NOTES="$RUNNER_TEMP/notes.md"
+            if python3 tools/release-notes.py --md "fastlane/metadata/android/en-US/changelogs/${VERSION_CODE}.txt" > "$NOTES"; then
               gh release create "$GITHUB_REF_NAME" --title "${GITHUB_REF_NAME}" --notes-file "$NOTES" \
                 || gh release edit "$GITHUB_REF_NAME" --notes-file "$NOTES"
             else

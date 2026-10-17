@@ -1,1 +1,2 @@
-Stopped embedding the dependency metadata block that the Android Gradle Plugin adds to the APK signature. F-Droid rejects that block, and it also differs between build machines, which would break reproducible builds. No gameplay changes.
+Bug fixes:
+- Android builds are reproducible again for F-Droid: the APK no longer embeds a dependency block that differs between build machines. No gameplay changes

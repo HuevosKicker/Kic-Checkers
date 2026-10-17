@@ -1,1 +1,2 @@
-Sudoku: a puzzle with a completely empty row (like the daily of 9 October) squeezed that row to a thin strip. All nine rows are now always the same size.
+Bug fixes:
+- Sudoku: a puzzle with an empty row (like the daily of 9 October) squeezed that row to a thin strip; all nine rows are now the same size

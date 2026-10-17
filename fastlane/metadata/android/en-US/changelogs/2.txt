@@ -1,2 +1,4 @@
-First-run welcome: pick your language, name and character, choose a theme, and turn sound effects, music and vibration on or off. You can see it again any time from your profile.
-Fixed the soft accent colour in dark theme.
+Bug fixes:
+- The soft accent colour in the dark theme
+Improvements:
+- A first-run welcome: pick your language, name and character, theme, and sound, music and vibration. See it again any time from your profile

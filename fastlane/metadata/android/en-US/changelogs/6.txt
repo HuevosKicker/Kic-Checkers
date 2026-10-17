@@ -1,6 +1,8 @@
-The app name and the interface now follow your phone's language instead of always starting in Persian.
-Sharing a result now sends a picture of the finished board, not just a line of text.
-The result panel has a close button, so you can look at the board you just finished.
-Minesweeper: the board sits in a real frame with curved corners.
-Tower defence: towers are built from a permanent bar instead of a popup.
-Thirty-five other fixes across all four games.
+Bug fixes:
+- Thirty-five fixes across all four games
+Improvements:
+- The app follows your phone's language instead of always starting in Persian
+- Sharing a result sends a picture of the finished board
+- The result panel can be closed to look at the board
+- Minesweeper: the board sits in a real frame
+- Tower Defence: towers are built from a permanent bar instead of a popup

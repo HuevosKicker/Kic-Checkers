@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3091;
+const MIN_CHECKS = 3095;
 
 function ok(cond, msg) {
   checks++;
@@ -5755,6 +5755,20 @@ function testMenuSelect() {
 // English-speaking players had no way to hear about a release.
 function testTelegramPost() {
   head('Releases are posted to the Telegram channel (#258, #263)');
+  // Release notes are sections with bullets (owner's wish, #265): one source for F-Droid, Play, GitHub and Telegram
+  const clDir = path.join(ROOT, 'fastlane/metadata/android/en-US/changelogs');
+  const cls = fs.readdirSync(clDir).filter((f) => /^\d+\.txt$/.test(f));
+  ok(cls.length >= 25, 'English changelogs found (' + cls.length + ')');
+  const badCl = cls.filter((f) => spawnSync('python3', [path.join(ROOT, 'tools/release-notes.py'), '--check', path.join(clDir, f)], { encoding: 'utf8' }).status !== 0);
+  ok(!badCl.length, 'every English changelog is New games / Bug fixes / Improvements with bullets, under 500 characters' + (badCl.length ? ' (' + badCl.join(', ') + ')' : ''));
+  const md = spawnSync('python3', [path.join(ROOT, 'tools/release-notes.py'), '--md', path.join(clDir, '24.txt')], { encoding: 'utf8' }).stdout;
+  ok(/^- \*\*New games\*\*\n  - Way Out/.test(md) && /\n- \*\*Improvements\*\*\n  - /.test(md), 'GitHub notes are nested bullets under bold sections');
+  const bad = path.join(os.tmpdir(), 'chogan-cl-' + process.pid + '.txt');
+  fs.writeFileSync(bad, 'Improvements:\n- a\nNew games:\n- b\n');
+  ok(spawnSync('python3', [path.join(ROOT, 'tools/release-notes.py'), '--check', bad], { encoding: 'utf8' }).status === 1, 'a changelog with sections out of order is refused');
+  fs.unlinkSync(bad);
+  const relYml = fs.readFileSync(path.join(ROOT, '.github/workflows/release.yml'), 'utf8');
+  ok(/python3 tools\/release-notes\.py --md "fastlane\/metadata\/android\/en-US\/changelogs\/\$\{VERSION_CODE\}\.txt"/.test(relYml), 'release.yml writes the GitHub notes through the formatter');
   const script = path.join(ROOT, 'tools/telegram-post.sh');
   ok(fs.existsSync(script) && fs.existsSync(path.join(ROOT, 'tools/game-shots.sh')), 'tools/telegram-post.sh and tools/game-shots.sh exist');
   if (!fs.existsSync(script)) return;
@@ -5772,15 +5786,12 @@ function testTelegramPost() {
   // A release that added games shows a picture of each: the git diff of games.json decides which
   ok(/with pictures: tower-defence sudoku minesweeper dots\n/.test(block('v0.1.0')), 'the first release shows its four games');
   ok(/with pictures: backgammon battleship breakout bridges freecell mancala mastermind morris nonogram peg reversi\n/.test(block('v0.3.0')), '0.3.0 shows its eleven new games (two albums)');
-  ok(/with pictures: blackjack wayout\n/.test(block('v0.5.1')) && /New games: Blackjack, Way Out/.test(block('v0.5.1')), '0.5.1 shows and names Blackjack and Way Out');
-  ok(!/with pictures/.test(block('v0.5.2')) && !/New games/.test(block('v0.5.2')), 'a release without new games is plain text');
-  ok(/^Chogan 0\.5\.1 · 17 October 2026$/m.test(block('v0.5.1')), 'each post names its version and real release date');
-  const vjs = (t) => spawnSync('git', ['show', t + ':www/version.js'], { cwd: ROOT, encoding: 'utf8' }).stdout;
-  const code = (vjs('v0.5.1').match(/APP_VERSION_CODE = (\d+)/) || [])[1];
-  const notes = spawnSync('git', ['show', 'v0.5.1:fastlane/metadata/android/en-US/changelogs/' + code + '.txt'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim();
-  const bullets = notes.split('\n').filter((l) => l.trim()).map((l) => '• ' + l.trim()).join('\n');
-  ok(notes.length > 0 && block('v0.5.1').indexOf(bullets) > 0, 'the post carries that release\'s English changelog, one bullet per line');
-  ok(tags.every((t) => !/\n• [-*•] /.test(block(t))), 'no doubled bullet where a changelog line already had one');
+  ok(/with pictures: blackjack wayout\n/.test(block('v0.5.1')) && /<b>New games<\/b>\n• Way Out[^\n]*\n• Blackjack/.test(block('v0.5.1')), '0.5.1 shows Blackjack and Way Out and lists them under New games');
+  ok(!/with pictures/.test(block('v0.5.2')) && !/New games/.test(block('v0.5.2')), 'a release without new games has no pictures and no New games section');
+  ok(/^<b>Chogan 0\.5\.1<\/b> · 17 October 2026$/m.test(block('v0.5.1')), 'each post names its version and real release date');
+  // The post is the sectioned changelog from the working tree, as HTML (#265)
+  const html = spawnSync('python3', [path.join(ROOT, 'tools/release-notes.py'), '--html', path.join(ROOT, 'fastlane/metadata/android/en-US/changelogs/24.txt')], { encoding: 'utf8' }).stdout.trim();
+  ok(html.length > 0 && block('v0.5.1').indexOf(html) > 0, 'the post carries the release\'s sectioned changelog');
   // The links are buttons (owner's wish), so they must parse as Telegram's inline keyboard
   const btnLine = (block('v0.5.1').match(/^\[buttons\] (.*)$/m) || [])[1] || '';
   let kb = null; try { kb = JSON.parse(btnLine); } catch (e) { kb = null; }
