@@ -520,7 +520,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = WayOutEngi
   C.boot({});
   var ctx = C.game({
     id: 'wayout',
-    name: { fa: 'راه دررو', en: 'Way Out', zh: '出路', de: 'Ausweg' },
+    name: { fa: 'راه دررو', en: 'Way Out', zh: '出路', de: 'Ausweg', es: 'Salida' },
     accent: '#8E6390',
     mood: 'sudoku',
     strings: {
@@ -583,6 +583,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = WayOutEngi
         tutTitle1: 'Freie Bahn', tutText1: 'Tippe einen Pfeil an, vor dessen Spitze bis zum Rand nichts liegt. Er geht mit der Spitze voran, der Rest folgt.',
         tutTitle2: 'Versperrt', tutText2: 'Liegt ein anderer Pfeil im Weg, wackelt er und du verlierst ein Herz. Derselbe Pfeil kostet danach nichts mehr.',
         tutTitle3: 'Der Reihe nach', tutText3: 'Jedes Brett ist lösbar. Schick zuerst die Pfeile mit freier Bahn hinaus, dann wird der Weg für die übrigen frei. Halt den Finger drauf, um den Weg zu sehen.'
+      },
+      es: {
+        level: 'Nivel', levelN: 'Nivel {n}', left: 'Quedan', hearts: 'Corazones', hintKey: 'Pista', hintsLeft: 'Pistas restantes',
+        restartLevel: 'Reiniciar nivel', dailyWo: 'Salida diaria',
+        lostHeart: 'Bloqueada: pierdes un corazón', blockedAgain: 'Sigue bloqueada',
+        hintOn: 'La flecha verde tiene el camino libre', hintPending: 'Saca primero la flecha verde',
+        noHints: 'No quedan pistas', hintSoon: 'Cada pocos niveles recibes una pista gratis',
+        outOfHearts: 'Sin corazones', outSub: 'Empieza el nivel de nuevo o sigue una vez con un corazón.',
+        outSubLast: 'Empieza el nivel de nuevo con tres corazones.', tryAgain: 'Empezar de nuevo', keepGoing: 'Un corazón más',
+        levelClear: 'Nivel superado', nextLevel: 'Siguiente nivel', giftHint: 'Regalo: una pista',
+        board: 'Tablero de Salida', move: 'Moverse entre flechas', send: 'Sacarla',
+        rules: 'Toca una flecha para que salga del tablero, con la punta por delante. Solo sale si delante de su punta no hay otras flechas hasta el borde; las casillas vacías y los huecos del tablero no son obstáculo. Tocar una flecha con el camino bloqueado cuesta un corazón, una sola vez por flecha. Tienes tres corazones por nivel. Todos los tableros tienen solución, y sacar una flecha nunca bloquea a otra. Empiezas con tres pistas y recibes una más después del nivel 4 y luego cada cinco niveles. Mantén el dedo sobre una flecha para ver su salida.',
+        tutTitle1: 'Camino libre', tutText1: 'Toca una flecha que no tenga nada delante de la punta hasta el borde. Sale con la punta por delante y el cuerpo la sigue.',
+        tutTitle2: 'Bloqueada', tutText2: 'Si otra flecha está en medio, tiembla y pierdes un corazón. Volver a tocar la misma flecha ya no cuesta nada.',
+        tutTitle3: 'En orden', tutText3: 'Todos los tableros tienen solución. Saca primero las flechas con el camino libre para abrir paso al resto. Mantén el dedo para ver el camino.'
       }
     }
   });

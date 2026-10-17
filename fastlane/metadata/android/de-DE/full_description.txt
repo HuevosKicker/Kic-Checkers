@@ -33,7 +33,7 @@ Rund um die Spiele:
 * Eine wöchentliche Offline-Liga mit fünf Stufen
 * Über achtzig Erfolge
 * Statistik und Profil
-* Oberfläche auf Persisch, Englisch, vereinfachtem Chinesisch und Deutsch, mit hellem und dunklem Design
+* Oberfläche auf Persisch, Englisch, vereinfachtem Chinesisch, Deutsch und Spanisch, mit hellem und dunklem Design
 
 Zur Privatsphäre:
 

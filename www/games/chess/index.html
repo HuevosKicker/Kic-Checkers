@@ -882,7 +882,7 @@ function ChessBotFactory() {
   C.boot({});
   var ctx = C.game({
     id: 'chess',
-    name: { fa: 'شطرنج', en: 'Chess', zh: '国际象棋', de: 'Schach' },
+    name: { fa: 'شطرنج', en: 'Chess', zh: '国际象棋', de: 'Schach', es: 'Ajedrez' },
     accent: '#5A6B7B',
     mood: 'menu',
     strings: {
@@ -945,6 +945,21 @@ function ChessBotFactory() {
         tutTitle1: 'Gegen KI oder zu zweit', tutText1: 'Spiel gegen die KI oder mit jemandem am selben Handy. Tippe eine Figur an, um ihre Zielfelder zu sehen, dann tippe das Zielfeld an oder zieh die Figur.',
         tutTitle2: 'Alle Regeln', tutText2: 'Rochade, en passant und Umwandlung sind dabei. Das Brett dreht sich nach jedem Zug zum nächsten Spieler; mit dem Dreh-Knopf schaltest du das ab.',
         tutTitle3: 'Das Ende', tutText3: 'Matt gewinnt. Patt, dreifache Wiederholung und fünfzig Züge ohne Schlagen sind Remis. Zurück ist unbegrenzt, und ihr könnt aufgeben oder Remis vereinbaren.'
+      },
+      es: {
+        white: 'Blancas', black: 'Negras', toMove: 'Turno: {c}', check: '¡Jaque!', mate: 'Jaque mate',
+        stalemate: 'Ahogado: tablas', fifty: 'Cincuenta jugadas sin captura ni movimiento de peón: tablas', repetition: 'Triple repetición: tablas',
+        material: 'Material insuficiente para dar mate: tablas', agreed: 'Tablas por acuerdo', whiteWins: 'Ganan blancas', blackWins: 'Ganan negras',
+        resigned: 'Abandono: {c}', resign: 'Rendirse', resignAsk: '¿Abandono de {c}?', offerDraw: 'Tablas',
+        drawAsk: '¿Aceptan los dos jugadores las tablas?', autoFlip: 'Girar tablero', promote: 'Coronar el peón como',
+        newGame: 'Nueva partida', undoMove: 'Deshacer', board: 'Tablero de ajedrez', move: 'Moverse por el tablero',
+        pick: 'Elegir o mover', flipKey: 'Girar el tablero', cancelPick: 'Cancelar selección', moves: 'Jugadas',
+        vsAi: 'Contra la IA', twoPlayers: 'Dos jugadores', bot: 'IA', thinking: 'La IA está pensando…', yourMove: 'Tu turno',
+        youWin: '¡Ganaste!', youLose: 'Perdiste', newMatch: 'Nueva partida', resignMe: '¿Abandonar esta partida?', draw: 'Tablas', yourColor: 'Tu color', puzzles: 'Problemas', pzFind: 'Encuentra la mejor jugada', pzMateIn: 'Mate en {n}', pzWatch: 'Juega el rival…', pzWrong: 'Esa no. Inténtalo otra vez', pzRight: '¡Bien! Sigue', pzSolved: '¡Resuelto!', pzLate: 'Resuelto, tras un fallo', pzShown: 'Esta era la solución', pzHint: 'Pista', pzHintOn: 'Mueve esta pieza', pzShow: 'Solución', pzNext: 'Siguiente problema', pzEnd: 'Terminar', pzOf: 'Problema {i} de {n}', pzSet: '{s} de {n} resueltos', pzRating: 'Puntuación', pzDaily: 'Problemas diarios', pzCredit: 'Los problemas vienen de la base de datos abierta de problemas de Lichess (CC0).', pzRules: 'Problemas: el rival hace una jugada y tú encuentras la mejor continuación. Una ronda tiene cinco problemas; el reto diario tiene tres, uno de cada nivel. Una jugada errónea se deshace y puedes volver a intentarlo, pero ese problema ya no cuenta como resuelto.',
+        rules: 'Reglas completas de la FIDE, sin reloj: enroque, captura al paso y coronación. El jaque mate gana; el ahogado, la triple repetición, cincuenta jugadas sin captura ni movimiento de peón y el material insuficiente son tablas. Juega contra la IA en tres niveles, o dos jugadores en un mismo móvil; en una partida a dos con el giro activado, el tablero se gira hacia el siguiente jugador tras cada jugada.',
+        tutTitle1: 'Contra la IA o un amigo', tutText1: 'Juega contra la IA o con un amigo en el mismo móvil. Toca una pieza para ver adónde puede ir y luego toca la casilla de destino, o arrastra la pieza.',
+        tutTitle2: 'Todas las reglas', tutText2: 'El enroque, la captura al paso y la coronación están incluidos. El tablero se gira hacia el siguiente jugador tras cada jugada; desactívalo con el botón de girar.',
+        tutTitle3: 'El final', tutText3: 'El jaque mate gana. El ahogado, la triple repetición y cincuenta jugadas sin captura son tablas. Deshacer no tiene límite y puedes rendirte o acordar tablas.'
       }
     }
   });

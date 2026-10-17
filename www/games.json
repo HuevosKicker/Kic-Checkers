@@ -6,13 +6,15 @@
         "fa": "دفاع از برج",
         "en": "Tower Defence",
         "zh": "塔防",
-        "de": "Turm\u00adverteidigung"
+        "de": "Turm\u00adverteidigung",
+        "es": "Defensa de torres"
       },
       "summary": {
         "fa": "برج بساز، ارتقا بده، بیست موج را دوام بیاور.",
         "en": "Build towers, upgrade them, survive twenty waves.",
         "zh": "建造并升级防御塔，撑过二十波进攻。",
-        "de": "Bau Türme, verbessere sie, überlebe zwanzig Wellen."
+        "de": "Bau Türme, verbessere sie, überlebe zwanzig Wellen.",
+        "es": "Construye torres, mejóralas y resiste veinte oleadas."
       },
       "path": "games/tower-defence/index.html",
       "icon": "games/tower-defence/icon.svg",
@@ -27,13 +29,15 @@
         "fa": "سودوکو",
         "en": "Sudoku",
         "zh": "数独",
-        "de": "Sudoku"
+        "de": "Sudoku",
+        "es": "Sudoku"
       },
       "summary": {
         "fa": "چهار سختی، یادداشت، راهنمایی و چالش روزانه.",
         "en": "Four difficulties, notes, hints and a daily challenge.",
         "zh": "四种难度，笔记、提示和每日挑战。",
-        "de": "Vier Schwierigkeitsstufen, Notizen, Tipps und ein Tagesrätsel."
+        "de": "Vier Schwierigkeitsstufen, Notizen, Tipps und ein Tagesrätsel.",
+        "es": "Cuatro dificultades, notas, pistas y un reto diario."
       },
       "path": "games/sudoku/index.html",
       "icon": "games/sudoku/icon.svg",
@@ -48,13 +52,15 @@
         "fa": "مین‌روب",
         "en": "Minesweeper",
         "zh": "扫雷",
-        "de": "Minesweeper"
+        "de": "Minesweeper",
+        "es": "Buscaminas"
       },
       "summary": {
         "fa": "میدان مین را بدون حدس زدن پاک کن.",
         "en": "Clear the minefield without guessing.",
         "zh": "不靠猜测扫清雷区。",
-        "de": "Räum das Minenfeld, ohne raten zu müssen."
+        "de": "Räum das Minenfeld, ohne raten zu müssen.",
+        "es": "Despeja el campo de minas sin adivinar."
       },
       "path": "games/minesweeper/index.html",
       "icon": "games/minesweeper/icon.svg",
@@ -69,13 +75,15 @@
         "fa": "نقطه‌بازی",
         "en": "Dots and Boxes",
         "zh": "点格棋",
-        "de": "Käsekästchen"
+        "de": "Käsekästchen",
+        "es": "Puntos y cajas"
       },
       "summary": {
         "fa": "خط بکش، مربع بگیر. دونفره یا مقابل هوش مصنوعی.",
         "en": "Draw lines, close boxes. Two players or versus the AI.",
         "zh": "画线围格子。双人对战或对战电脑。",
-        "de": "Zieh Linien, schließ Kästchen. Zu zweit oder gegen den Computer."
+        "de": "Zieh Linien, schließ Kästchen. Zu zweit oder gegen den Computer.",
+        "es": "Traza líneas y cierra cajas. Dos jugadores o contra la IA."
       },
       "path": "games/dots/index.html",
       "icon": "games/dots/icon.svg",
@@ -90,13 +98,15 @@
         "fa": "نونوگرام",
         "en": "Nonogram",
         "zh": "数织",
-        "de": "Nonogramm"
+        "de": "Nonogramm",
+        "es": "Nonograma"
       },
       "summary": {
         "fa": "از روی عددها تصویر پنهان را پیدا کن، بدون حدس.",
         "en": "Use the numbers to reveal a hidden picture, no guessing.",
         "zh": "根据数字揭开隐藏的图案，无需猜测。",
-        "de": "Deck mit den Zahlen ein verstecktes Bild auf, ganz ohne Raten."
+        "de": "Deck mit den Zahlen ein verstecktes Bild auf, ganz ohne Raten.",
+        "es": "Usa los números para revelar un dibujo oculto, sin adivinar."
       },
       "path": "games/nonogram/index.html",
       "icon": "games/nonogram/icon.svg",
@@ -111,13 +121,15 @@
         "fa": "منقله",
         "en": "Mancala",
         "zh": "播棋",
-        "de": "Mancala"
+        "de": "Mancala",
+        "es": "Mancala"
       },
       "summary": {
         "fa": "دانه بکار، از حریف بگیر. دونفره یا مقابل هوش مصنوعی.",
         "en": "Sow seeds, capture your rival's. Two players or versus the AI.",
         "zh": "播种吃子。双人对战或对战电脑。",
-        "de": "Säe Samen, fang die des Gegners. Zu zweit oder gegen den Computer."
+        "de": "Säe Samen, fang die des Gegners. Zu zweit oder gegen den Computer.",
+        "es": "Siembra semillas y captura las del rival. Dos jugadores o contra la IA."
       },
       "path": "games/mancala/index.html",
       "icon": "games/mancala/icon.svg",
@@ -132,13 +144,15 @@
         "fa": "فری‌سل",
         "en": "FreeCell",
         "zh": "空当接龙",
-        "de": "FreeCell"
+        "de": "FreeCell",
+        "es": "FreeCell"
       },
       "summary": {
         "fa": "بازی ورق تک‌نفره؛ تقریباً هر دستش بردنی است.",
         "en": "Solitaire where nearly every deal can be won.",
         "zh": "几乎每一局都能赢的单人纸牌。",
-        "de": "Patience, bei der fast jedes Spiel lösbar ist."
+        "de": "Patience, bei der fast jedes Spiel lösbar ist.",
+        "es": "Un solitario en el que casi todas las partidas se pueden ganar."
       },
       "path": "games/freecell/index.html",
       "icon": "games/freecell/icon.svg",
@@ -153,13 +167,15 @@
         "fa": "میخ‌پران",
         "en": "Peg Solitaire",
         "zh": "孔明棋",
-        "de": "Solitär"
+        "de": "Solitär",
+        "es": "Senku"
       },
       "summary": {
         "fa": "میخ‌ها را از روی هم بپران تا فقط یکی بماند.",
         "en": "Jump pegs over each other until only one is left.",
         "zh": "让棋子互相跳吃，直到只剩一枚。",
-        "de": "Spring mit Stiften übereinander, bis nur noch einer übrig ist."
+        "de": "Spring mit Stiften übereinander, bis nur noch einer übrig ist.",
+        "es": "Salta fichas unas sobre otras hasta que solo quede una."
       },
       "path": "games/peg/index.html",
       "icon": "games/peg/icon.svg",
@@ -174,13 +190,15 @@
         "fa": "ریورسی",
         "en": "Reversi",
         "zh": "黑白棋",
-        "de": "Reversi"
+        "de": "Reversi",
+        "es": "Reversi"
       },
       "summary": {
         "fa": "مهره‌های حریف را محاصره کن و برگردان. دونفره یا مقابل هوش مصنوعی.",
         "en": "Outflank and flip your rival's discs. Two players or versus the AI.",
         "zh": "夹住并翻转对手的棋子。双人对战或对战电脑。",
-        "de": "Schließ die Steine des Gegners ein und dreh sie um. Zu zweit oder gegen den Computer."
+        "de": "Schließ die Steine des Gegners ein und dreh sie um. Zu zweit oder gegen den Computer.",
+        "es": "Flanquea y voltea las fichas del rival. Dos jugadores o contra la IA."
       },
       "path": "games/reversi/index.html",
       "icon": "games/reversi/icon.svg",
@@ -195,13 +213,15 @@
         "fa": "تخته‌نرد",
         "en": "Backgammon",
         "zh": "双陆棋",
-        "de": "Backgammon"
+        "de": "Backgammon",
+        "es": "Backgammon"
       },
       "summary": {
         "fa": "نرد کامل، دونفره یا مقابل هوش مصنوعی.",
         "en": "Full backgammon, two players or versus the AI.",
         "zh": "完整双陆棋，双人或对战电脑。",
-        "de": "Echtes Backgammon, zu zweit oder gegen den Computer."
+        "de": "Echtes Backgammon, zu zweit oder gegen den Computer.",
+        "es": "Backgammon completo, dos jugadores o contra la IA."
       },
       "path": "games/backgammon/index.html",
       "icon": "games/backgammon/icon.svg",
@@ -216,13 +236,15 @@
         "fa": "دوز",
         "en": "Nine Men's Morris",
         "zh": "九子棋",
-        "de": "Mühle"
+        "de": "Mühle",
+        "es": "Molino"
       },
       "summary": {
         "fa": "سه‌تا در یک خط بچین و مهره‌ی حریف را بردار. دونفره یا مقابل هوش مصنوعی.",
         "en": "Line up three and take a piece. Two players or versus the AI.",
         "zh": "连成三子吃掉对方一子。双人对战或对战电脑。",
-        "de": "Bilde eine Mühle und nimm einen Stein. Zu zweit oder gegen den Computer."
+        "de": "Bilde eine Mühle und nimm einen Stein. Zu zweit oder gegen den Computer.",
+        "es": "Alinea tres y quita una ficha. Dos jugadores o contra la IA."
       },
       "path": "games/morris/index.html",
       "icon": "games/morris/icon.svg",
@@ -237,13 +259,15 @@
         "fa": "نبرد دریایی",
         "en": "Battleship",
         "zh": "海战棋",
-        "de": "Schiffe versenken"
+        "de": "Schiffe versenken",
+        "es": "Batalla naval"
       },
       "summary": {
         "fa": "ناوگانت را بچین و پیش از حریف ناوگانش را غرق کن.",
         "en": "Place your fleet and sink the rival's before it sinks yours.",
         "zh": "布置舰队，抢先击沉对手的全部战舰。",
-        "de": "Stell deine Flotte auf und versenk die des Gegners zuerst."
+        "de": "Stell deine Flotte auf und versenk die des Gegners zuerst.",
+        "es": "Coloca tu flota y hunde la del rival antes de que hunda la tuya."
       },
       "path": "games/battleship/index.html",
       "icon": "games/battleship/icon.svg",
@@ -258,13 +282,15 @@
         "fa": "پل‌ها",
         "en": "Bridges",
         "zh": "数桥",
-        "de": "Brücken"
+        "de": "Brücken",
+        "es": "Puentes"
       },
       "summary": {
         "fa": "جزیره‌ها را با پل به هم وصل کن. هر پازل فقط یک جواب دارد.",
         "en": "Link the islands with bridges. Every puzzle has one answer.",
         "zh": "用桥连接岛屿，每道谜题只有一个答案。",
-        "de": "Verbinde die Inseln mit Brücken. Jedes Rätsel hat genau eine Lösung."
+        "de": "Verbinde die Inseln mit Brücken. Jedes Rätsel hat genau eine Lösung.",
+        "es": "Une las islas con puentes. Cada puzle tiene una sola solución."
       },
       "path": "games/bridges/index.html",
       "icon": "games/bridges/icon.svg",
@@ -279,13 +305,15 @@
         "fa": "رمزشکن",
         "en": "Code Breaker",
         "zh": "猜密码",
-        "de": "Codeknacker"
+        "de": "Codeknacker",
+        "es": "Descifra el código"
       },
       "summary": {
         "fa": "رمز رنگی را با ده حدس و سرنخ‌هایش پیدا کن.",
         "en": "Crack a colour code in ten guesses from the clues.",
         "zh": "根据提示，在十次之内猜出颜色密码。",
-        "de": "Knack einen Farbcode in zehn Versuchen anhand der Hinweise."
+        "de": "Knack einen Farbcode in zehn Versuchen anhand der Hinweise.",
+        "es": "Descifra un código de colores en diez intentos a partir de las pistas."
       },
       "path": "games/mastermind/index.html",
       "icon": "games/mastermind/icon.svg",
@@ -300,13 +328,15 @@
         "fa": "آجرشکن",
         "en": "Breakout",
         "zh": "打砖块",
-        "de": "Breakout"
+        "de": "Breakout",
+        "es": "Rompeladrillos"
       },
       "summary": {
         "fa": "دوازده دیوار آجری؛ راکت را با یک انگشت بکش.",
         "en": "Twelve brick walls. Drag the paddle with one finger.",
         "zh": "十二面砖墙，用一根手指拖动挡板。",
-        "de": "Zwölf Mauern aus Steinen. Zieh den Schläger mit einem Finger."
+        "de": "Zwölf Mauern aus Steinen. Zieh den Schläger mit einem Finger.",
+        "es": "Doce muros de ladrillos. Arrastra la pala con un dedo."
       },
       "path": "games/breakout/index.html",
       "icon": "games/breakout/icon.svg",
@@ -321,13 +351,15 @@
         "fa": "پاسور",
         "en": "Pasur",
         "zh": "帕苏尔",
-        "de": "Pasur"
+        "de": "Pasur",
+        "es": "Pasur"
       },
       "summary": {
         "fa": "بازی ورق ایرانی: جمع یازده، سور بزن، با حریف.",
         "en": "The Persian fishing card game: make eleven, score a sur, versus the AI.",
         "zh": "波斯钓鱼纸牌：凑成十一，清台得分，对战电脑。",
-        "de": "Das persische Kartenspiel: Mach elf, räum den Tisch ab, gegen den Computer."
+        "de": "Das persische Kartenspiel: Mach elf, räum den Tisch ab, gegen den Computer.",
+        "es": "El juego de cartas persa de pesca: suma once, haz un sur, contra la IA."
       },
       "path": "games/pasur/index.html",
       "icon": "games/pasur/icon.svg",
@@ -342,13 +374,15 @@
         "fa": "ماهجونگ",
         "en": "Mahjong Solitaire",
         "zh": "麻将接龙",
-        "de": "Mahjong"
+        "de": "Mahjong",
+        "es": "Mahjong"
       },
       "summary": {
         "fa": "کاشی‌های جور و آزاد را جفت کن؛ هر دست حل‌شدنی است.",
         "en": "Match free pairs of tiles until the board is clear. Every deal can be solved.",
         "zh": "配对可拿的相同牌，直到清空牌桌。每一局都有解。",
-        "de": "Räum freie Paare gleicher Steine ab. Jedes Spiel ist lösbar."
+        "de": "Räum freie Paare gleicher Steine ab. Jedes Spiel ist lösbar.",
+        "es": "Empareja fichas libres hasta vaciar el tablero. Todas las partidas tienen solución."
       },
       "path": "games/mahjong/index.html",
       "icon": "games/mahjong/icon.svg",
@@ -363,13 +397,15 @@
         "fa": "شطرنج",
         "en": "Chess",
         "zh": "国际象棋",
-        "de": "Schach"
+        "de": "Schach",
+        "es": "Ajedrez"
       },
       "summary": {
         "fa": "شطرنج با ربات در سه سطح یا دو نفره روی یک گوشی، به‌علاوه‌ی معما.",
         "en": "Chess against the AI on three levels or two players on one phone, plus puzzles.",
         "zh": "和三个难度的电脑对弈或两人共用一部手机，还有谜题。",
-        "de": "Schach gegen die KI in drei Stufen oder zu zweit an einem Handy, dazu Rätsel."
+        "de": "Schach gegen die KI in drei Stufen oder zu zweit an einem Handy, dazu Rätsel.",
+        "es": "Ajedrez contra la IA en tres niveles o para dos en un mismo móvil, y además problemas."
       },
       "path": "games/chess/index.html",
       "icon": "games/chess/icon.svg",
@@ -384,13 +420,15 @@
         "fa": "حکم",
         "en": "Hokm",
         "zh": "霍克姆",
-        "de": "Hokm"
+        "de": "Hokm",
+        "es": "Hokm"
       },
       "summary": {
         "fa": "حکم ایرانی چهارنفره؛ تو و یارت در برابر دو حریف رایانه‌ای.",
         "en": "Persian four-player Hokm: you and your partner against two AI rivals.",
         "zh": "波斯四人纸牌霍克姆：你和搭档对战两名电脑对手。",
-        "de": "Persisches Hokm zu viert: du und dein Partner gegen zwei KI-Gegner."
+        "de": "Persisches Hokm zu viert: du und dein Partner gegen zwei KI-Gegner.",
+        "es": "Hokm persa para cuatro: tú y tu compañero contra dos rivales de la IA."
       },
       "path": "games/hokm/index.html",
       "icon": "games/hokm/icon.svg",
@@ -405,13 +443,15 @@
         "fa": "بلوک‌ریز",
         "en": "Block Drop",
         "zh": "落块",
-        "de": "Blocksturz"
+        "de": "Blocksturz",
+        "es": "Lluvia de bloques"
       },
       "summary": {
         "fa": "قطعه‌ها را بچرخان و خط کامل کن؛ سرعتی ۴۰ خط یا ماراتن ۱۰۰ خط.",
         "en": "Turn the falling pieces and clear lines: a 40-line sprint or a 100-line marathon.",
         "zh": "旋转下落的方块并消行：40 行竞速或 100 行马拉松。",
-        "de": "Dreh die fallenden Steine und räum Reihen ab: 40-Reihen-Sprint oder 100-Reihen-Marathon."
+        "de": "Dreh die fallenden Steine und räum Reihen ab: 40-Reihen-Sprint oder 100-Reihen-Marathon.",
+        "es": "Gira las piezas que caen y completa líneas: un sprint de 40 líneas o un maratón de 100."
       },
       "path": "games/blockdrop/index.html",
       "icon": "games/blockdrop/icon.svg",
@@ -426,13 +466,15 @@
         "fa": "گوموکو",
         "en": "Gomoku",
         "zh": "五子棋",
-        "de": "Gomoku"
+        "de": "Gomoku",
+        "es": "Gomoku"
       },
       "summary": {
         "fa": "پنج مهره در یک خط؛ با ربات در سه سطح یا دو نفره، روی تخته‌ی ۹، ۱۳ یا ۱۵.",
         "en": "Five in a row against the AI on three levels or two players, on a 9, 13 or 15 board.",
         "zh": "五子连珠：对战三个难度的电脑或双人对弈，棋盘 9、13 或 15 路。",
-        "de": "Fünf in einer Reihe gegen die KI in drei Stufen oder zu zweit, auf 9, 13 oder 15 Linien."
+        "de": "Fünf in einer Reihe gegen die KI in drei Stufen oder zu zweit, auf 9, 13 oder 15 Linien.",
+        "es": "Cinco en línea contra la IA en tres niveles o para dos, en tablero de 9, 13 o 15."
       },
       "path": "games/gomoku/index.html",
       "icon": "games/gomoku/icon.svg",
@@ -447,13 +489,15 @@
         "fa": "گو",
         "en": "Go",
         "zh": "围棋",
-        "de": "Go"
+        "de": "Go",
+        "es": "Go"
       },
       "summary": {
         "fa": "گوی ۹×۹: زمین بگیر و اسیر کن، با ربات در سه سطح یا دو نفره.",
         "en": "Go on a 9×9 board: surround territory and capture, against the AI on three levels or two players.",
         "zh": "9×9 围棋：围地与提子，对战三个难度的电脑或双人对弈。",
-        "de": "Go auf 9×9: Gebiet umschließen und fangen, gegen die KI in drei Stufen oder zu zweit."
+        "de": "Go auf 9×9: Gebiet umschließen und fangen, gegen die KI in drei Stufen oder zu zweit.",
+        "es": "Go en un tablero de 9×9: rodea territorio y captura, contra la IA en tres niveles o para dos."
       },
       "path": "games/go/index.html",
       "icon": "games/go/icon.svg",
@@ -468,13 +512,15 @@
         "fa": "راه دررو",
         "en": "Way Out",
         "zh": "出路",
-        "de": "Ausweg"
+        "de": "Ausweg",
+        "es": "Salida"
       },
       "summary": {
         "fa": "پیکان‌ها را به ترتیب درست از تخته بیرون بفرست؛ پیکانِ راه‌بسته یک جان می‌گیرد.",
         "en": "Send the arrows off the board in a working order; tapping a blocked one costs a heart.",
         "zh": "按可行的顺序把箭头送出棋盘；点到被挡住的箭头会失去一颗心。",
-        "de": "Schick die Pfeile in einer passenden Reihenfolge vom Brett; ein versperrter kostet ein Herz."
+        "de": "Schick die Pfeile in einer passenden Reihenfolge vom Brett; ein versperrter kostet ein Herz.",
+        "es": "Saca las flechas del tablero en un orden que funcione; tocar una bloqueada cuesta un corazón."
       },
       "path": "games/wayout/index.html",
       "icon": "games/wayout/icon.svg",
@@ -489,13 +535,15 @@
         "fa": "بیست‌ویک",
         "en": "Blackjack",
         "zh": "二十一点",
-        "de": "Blackjack"
+        "de": "Blackjack",
+        "es": "Blackjack"
       },
       "summary": {
         "fa": "به ۲۱ نزدیک‌تر از دیلر برس؛ مسابقه‌ی ده‌دستی، بدون شرط‌بندی.",
         "en": "Get closer to 21 than the dealer: a ten-hand match, with no betting.",
         "zh": "比庄家更接近 21：十手一场，没有下注。",
-        "de": "Komm näher an 21 als der Croupier: eine Partie aus zehn Händen, ohne Einsätze."
+        "de": "Komm näher an 21 als der Croupier: eine Partie aus zehn Händen, ohne Einsätze.",
+        "es": "Acércate más a 21 que la banca: una partida de diez manos, sin apuestas."
       },
       "path": "games/blackjack/index.html",
       "icon": "games/blackjack/icon.svg",

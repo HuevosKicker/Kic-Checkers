@@ -241,7 +241,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
   C.boot({});
   var ctx = C.game({
     id: 'mahjong',
-    name: { fa: 'ماهجونگ', en: 'Mahjong Solitaire', zh: '麻将接龙', de: 'Mahjong' },
+    name: { fa: 'ماهجونگ', en: 'Mahjong Solitaire', zh: '麻将接龙', de: 'Mahjong', es: 'Mahjong' },
     accent: '#1F8A82',
     mood: 'menu',
     strings: {
@@ -292,6 +292,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
         tutTitle1: 'Freie Paare', tutText1: 'Tippe zwei gleiche Steine an. Beide müssen frei sein: nichts darauf und links oder rechts offen.',
         tutTitle2: 'Blumen und Jahreszeiten', tutText2: 'Blumen passen zueinander und Jahreszeiten auch, selbst wenn die Bilder verschieden sind.',
         tutTitle3: 'Feststecken?', tutText3: 'Jedes Spiel hat eine Lösung. Ein Tipp zeigt ein Paar, Mischen verteilt die übrigen Steine lösbar neu, und Zurück ist unbegrenzt.'
+      },
+      es: {
+        small: 'Pequeño', medium: 'Mediano', turtle: 'Tortuga', left: 'Quedan', pairs: 'Parejas libres',
+        untimed: 'Sin reloj', timed: 'Con tiempo', timeUp: 'Se acabó el tiempo', timeUpSub: 'Sigue jugando; solo pierdes el bonus de rapidez.', speedBonus: 'Bonus de rapidez',
+        shuffle: 'Barajar', shufflesLeft: 'Quedan {n} barajadas', hintKey: 'Pista', undoMove: 'Deshacer',
+        newDeal: 'Nueva partida', noPairs: 'No quedan parejas libres', noPairsSub: 'Baraja o deshaz algunos movimientos.',
+        blocked: 'Esa ficha no está libre', dailyMj: 'Mahjong diario', turtleNote: 'Pellizca para hacer zoom y arrastra para moverte', fit: 'Ver todo',
+        tile: 'Ficha', board: 'Tablero de mahjong', move: 'Moverse entre fichas libres', select: 'Elegir una ficha',
+        rules: 'Toca dos fichas iguales que estén libres para quitarlas. Una ficha está libre si no tiene nada encima y su lado izquierdo o derecho está abierto. Cualquier flor empareja con cualquier flor y cualquier estación con cualquier estación. Quita todas las fichas para ganar. Todas las partidas tienen solución; si te atascas, baraja o deshaz.',
+        tutTitle1: 'Parejas libres', tutText1: 'Toca dos fichas iguales. Las dos deben estar libres: nada encima y el lado izquierdo o derecho abierto.',
+        tutTitle2: 'Flores y estaciones', tutText2: 'Las flores emparejan entre sí y las estaciones también, aunque los dibujos sean distintos.',
+        tutTitle3: '¿Atascado?', tutText3: 'Todas las partidas tienen solución. Una pista muestra una pareja, barajar reparte las fichas restantes de forma que se puedan resolver, y deshacer no tiene límite.'
       }
     }
   });

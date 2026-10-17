@@ -412,7 +412,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MorrisEngi
   C.boot({});
   var ctx = C.game({
     id: 'morris',
-    name: { fa: 'دوز', en: "Nine Men's Morris", zh: '九子棋', de: 'Mühle' },
+    name: { fa: 'دوز', en: "Nine Men's Morris", zh: '九子棋', de: 'Mühle', es: 'Molino' },
     accent: '#8C6BB1',
     mood: 'dots',
     strings: {
@@ -487,6 +487,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MorrisEngi
         tutTitle2: 'Mühle bauen', tutText2: 'Drei eigene Steine in einer Reihe sind eine Mühle, und du nimmst deinem Gegner einen Stein. Steine in einer Mühle sind sicher, außer alle stehen in Mühlen.',
         tutTitle3: 'Ziehen', tutText3: 'Sind alle gesetzt, ziehst du einen Stein entlang einer Linie auf einen freien Nachbarpunkt. Mit nur noch drei Steinen darfst du überallhin springen.',
         tutTitle4: 'Gewinnen', tutText4: 'Wer nur noch zwei Steine oder keinen möglichen Zug hat, verliert.'
+      },
+      es: {
+        twoPlayers: 'Dos jugadores', vsAi: 'Contra la IA',
+        you: 'Tú', rival: 'Rival', player1: 'Jugador 1', player2: 'Jugador 2', renameP2: 'Nombre del jugador 2',
+        thinking: 'Pensando…', yourTurn: 'Tu turno', playerTurn: 'Turno de {n}',
+        placeHint: 'Pon una ficha en un punto vacío', pickHint: 'Elige una de tus fichas',
+        toHint: 'Muévela a un punto vacío de al lado', flyHint: 'Quedan tres fichas: vuela a cualquier punto vacío',
+        removeHint: '¡Molino! Quita una de las fichas marcadas del rival',
+        lostPiece: 'Tu rival hizo molino y te quitó una ficha',
+        draw: 'Empate', playerWon: 'Victoria: {n}', inHand: 'En la mano', left: 'Fichas restantes', moves: 'Movimientos',
+        whyPieces: 'Solo quedan dos fichas', whyBlocked: 'No queda ningún movimiento', whyFifty: 'Cincuenta movimientos sin molino', whyRepeat: 'Misma posición tres veces',
+        newMatch: 'Nueva partida', undoMove: 'Deshacer', move: 'Mover cursor', cancelPick: 'Cancelar selección',
+        dailyMorris: 'Molino diario', vsHard: 'contra la IA difícil',
+        rules: 'Cada bando tiene nueve fichas. Primero se colocan por turnos en los puntos, y luego en cada turno deslizas una ficha a un punto vacío vecino. Tres fichas tuyas en línea forman un molino: quitas una ficha del rival, pero no una que esté en un molino, salvo que todas lo estén. Con solo tres fichas puedes volar a cualquier punto vacío. Con dos fichas, o sin movimiento posible, pierdes. Cincuenta movimientos sin molino, o la misma posición tres veces, es empate.',
+        tutTitle1: 'Coloca', tutText1: 'Cada bando tiene nueve fichas. Se colocan por turnos en puntos vacíos.',
+        tutTitle2: 'Haz molino', tutText2: 'Tres fichas tuyas en línea forman un molino, y quitas una ficha del rival. Las fichas en un molino están a salvo, salvo que todas estén en molinos.',
+        tutTitle3: 'Mueve', tutText3: 'Cuando todas estén colocadas, desliza una ficha por una línea hasta un punto vacío vecino. Con solo tres fichas puedes volar a cualquier sitio.',
+        tutTitle4: 'Gana', tutText4: 'Pierde quien se quede con dos fichas o sin movimiento posible.'
       }
     }
   });

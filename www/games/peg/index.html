@@ -243,7 +243,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PegEngineF
   C.boot({});
   var ctx = C.game({
     id: 'peg',
-    name: { fa: 'میخ‌پران', en: 'Peg Solitaire', zh: '孔明棋', de: 'Solitär' },
+    name: { fa: 'میخ‌پران', en: 'Peg Solitaire', zh: '孔明棋', de: 'Solitär', es: 'Senku' },
     accent: '#9AA84A',
     accentSoft: '#EEF1DB',
     mood: 'sudoku',
@@ -291,6 +291,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PegEngineF
         tutTitle1: 'Springen und entfernen', tutText1: 'Ein Stift springt waagerecht oder senkrecht über einen Nachbarstift ins leere Loch dahinter. Der übersprungene Stift wird entfernt.',
         tutTitle2: 'Ein Stift', tutText2: 'Das Spiel endet, wenn kein Sprung mehr geht. Ein Stift übrig ist ein Sieg, und ein Stift genau in der Mitte ist perfekt.',
         tutTitle3: 'Frei zurücknehmen', tutText3: 'Nimm so viele Züge zurück, wie du willst. Tippe auf einen Stift und dann auf sein Ziel, oder zieh ihn.'
+      },
+      es: {
+        pegs: 'Fichas', moves: 'Movimientos', newBoard: 'Nuevo tablero', undoMove: 'Deshacer',
+        dailyPeg: 'Senku diario', perfect: '¡Perfecto! Última ficha en el centro',
+        onePeg: 'Queda una ficha', pegsLeftN: 'Quedan {n} fichas', pegsLeft: 'Fichas restantes',
+        centre: 'Centro', yes: 'Sí', no: 'No', undos: 'Deshechos',
+        pickPeg: 'Toma una ficha', pickTarget: 'Toca el hueco de destino', canMove: '{n} saltos posibles',
+        move: 'Mover', selectJump: 'Tomar ficha / saltar', deselect: 'Soltar la ficha',
+        tutTitle1: 'Salta y quita', tutText1: 'Una ficha salta sobre otra vecina, en horizontal o en vertical, hasta el hueco vacío de detrás. La ficha saltada se retira.',
+        tutTitle2: 'Una ficha', tutText2: 'La partida termina cuando no quedan saltos. Si queda una ficha ganas, y si esa ficha está justo en el centro es perfecto.',
+        tutTitle3: 'Deshaz sin límite', tutText3: 'Deshaz tantos movimientos como quieras. Toca una ficha y luego su destino, o arrástrala.'
       }
     }
   });

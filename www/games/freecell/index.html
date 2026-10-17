@@ -304,7 +304,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
   C.boot({});
   var ctx = C.game({
     id: 'freecell',
-    name: { fa: 'فری‌سل', en: 'FreeCell', zh: '空当接龙', de: 'FreeCell' },
+    name: { fa: 'فری‌سل', en: 'FreeCell', zh: '空当接龙', de: 'FreeCell', es: 'FreeCell' },
     accent: '#C9545F',
     mood: 'sudoku',
     strings: {
@@ -359,6 +359,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
         tutTitle1: 'Das Ziel', tutText1: 'Bring alle Karten auf die vier Ablagen oben: jede Farbe vom Ass bis zum König.',
         tutTitle2: 'Spalten und freie Felder', tutText2: 'Eine Karte kommt auf eine um eins höhere Karte der anderen Farbe. Die vier freien Felder halten je eine Karte für eine Weile.',
         tutTitle3: 'Tippen oder ziehen', tutText3: 'Tippe auf eine Karte, um sie zum besten Platz zu schicken, oder zieh sie, wohin du willst. Rückgängig ist unbegrenzt, und Karten, die nicht mehr gebraucht werden, gehen von selbst auf die Ablagen.'
+      },
+      es: {
+        table: 'Mesa de cartas', moves: 'Movimientos', movesN: '{n} movimientos', dealN: 'Partida {n}', dailyFc: 'FreeCell diario',
+        newDeal: 'Nueva partida', randomDeal: 'Partida al azar', playDeal: 'Jugar esta partida',
+        dealNumber: 'Número de partida', dealHint: 'Un número del 1 al 32000. Cada número tiene la misma disposición que en otros programas de FreeCell.',
+        badDeal: 'Ese no es un número de partida', restartDaily: 'Reiniciar partida',
+        undoMove: 'Deshacer', noMoves: 'No quedan movimientos', noMovesSub: 'Deshaz algunos movimientos o empieza una nueva partida.',
+        kbColumn: 'Moverse entre columnas', kbCard: 'Elegir carta o fila superior', kbAuto: 'Enviar al mejor sitio',
+        kbPick: 'Tomar y soltar', kbCancel: 'Soltar la carta tomada', kbNew: 'Nueva partida',
+        rules: 'Llena las cuatro bases del as al rey, un palo en cada una. En las columnas, una carta va sobre otra de un rango más y del otro color. Cada celda libre guarda una carta. Una escalera ordenada se mueve entera si hay suficientes celdas libres y columnas vacías.',
+        tutTitle1: 'El objetivo', tutText1: 'Lleva todas las cartas a las cuatro bases de arriba: cada palo del as al rey.',
+        tutTitle2: 'Columnas y celdas libres', tutText2: 'Una carta va sobre otra de un rango más y del otro color. Las cuatro celdas libres guardan una carta cada una por un rato.',
+        tutTitle3: 'Toca o arrastra', tutText3: 'Toca una carta para enviarla al mejor sitio, o arrástrala a donde quieras. Puedes deshacer sin límite, y las cartas que ya no hacen falta van solas a las bases.'
       }
     }
   });

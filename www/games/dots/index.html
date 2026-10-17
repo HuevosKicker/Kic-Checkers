@@ -395,7 +395,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DotsEngine
   C.boot({});
   var ctx = C.game({
     id: 'dots',
-    name: { fa: 'نقطه‌بازی', en: 'Dots and Boxes', zh: '点格棋', de: 'Käsekästchen' },
+    name: { fa: 'نقطه‌بازی', en: 'Dots and Boxes', zh: '点格棋', de: 'Käsekästchen', es: 'Puntos y cajas' },
     accent: '#7BAE7F',
     mood: 'dots',
     strings: {
@@ -442,6 +442,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DotsEngine
         tutTitle1: 'Zieh eine Linie', tutText1: 'In deinem Zug ziehst du eine Linie zwischen zwei benachbarten Punkten.',
         tutTitle2: 'Schließ ein Kästchen', tutText2: 'Zieh die vierte Seite eines Kästchens, dann gehört es dir und du bist noch mal dran.',
         tutTitle3: 'Ketten', tutText3: 'Manchmal lohnt es sich, die letzten zwei Kästchen liegen zu lassen, damit dein Gegner die nächste Kette öffnen muss.'
+      },
+      es: {
+        twoPlayers: 'Dos jugadores', vsAi: 'Contra la IA', size: 'Tamaño',
+        you: 'Tú', rival: 'Rival', player1: 'Jugador 1', player2: 'Jugador 2', renameP2: 'Nombre del jugador 2',
+        thinking: 'Pensando…', yourTurn: 'Tu turno', draw: 'Empate', playerWon: 'Gana: {n}', move: 'Mover',
+        rotate: 'Girar línea',
+        boxes: 'Cajas', newMatch: 'Nueva partida', undoMove: 'Deshacer',
+        dailyDots: 'Puntos y cajas diario', vsHard: 'contra la IA difícil',
+        tutTitle1: 'Traza una línea', tutText1: 'En tu turno trazas una línea entre dos puntos vecinos.',
+        tutTitle2: 'Cierra una caja', tutText2: 'Traza el cuarto lado de una caja y será tuya, y vuelves a jugar.',
+        tutTitle3: 'Cadenas', tutText3: 'A veces conviene dejar las dos últimas cajas para que tu rival tenga que abrir la siguiente cadena.'
       }
     }
   });

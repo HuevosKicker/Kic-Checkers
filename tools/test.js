@@ -13,14 +13,14 @@ const { spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 // زبان‌های اپ، به همان ترتیب جدول LOCALES در هسته
-const LOCALE_CODES = ['fa', 'en', 'zh', 'de'];
+const LOCALE_CODES = ['fa', 'en', 'zh', 'de', 'es'];
 let failures = 0;
 let checks = 0;
 // حداقل تعداد بررسی‌ای که یک اجرای کامل باید داشته باشد. قبلاً اگر یک گروه کامل
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2913;
+const MIN_CHECKS = 3063;
 
 function ok(cond, msg) {
   checks++;
@@ -1556,7 +1556,7 @@ function testBackgammon() {
   ok(title('Sara', 1) === '<starts:Sara>', 'با نام پروفایل: «{n} شروع می‌کند»');
   ok(title('', 2) === '<starts:<rival> · <hard>>', 'حریف: سوم‌شخص می‌ماند');
   const str = (lang, key) => { const m = bgHtml.match(new RegExp(key + ": '([^']*)'", 'g')); return m ? m.map((x) => x.split(": '")[1].slice(0, -1)) : []; };
-  ok(JSON.stringify(str('', 'youStart')) === JSON.stringify(['تو شروع می‌کنی', 'You start', '你先走', 'Du fängst an']), 'متن youStart در هر چهار زبان درست است');
+  ok(JSON.stringify(str('', 'youStart')) === JSON.stringify(['تو شروع می‌کنی', 'You start', '你先走', 'Du fängst an', 'Empiezas tú']), 'youStart reads right in every language');
 }
 
 /* ------------------------------------------------------------- دوز */
@@ -2840,7 +2840,15 @@ function testFiles() {
   for (const k of ['name_localized', 'short_name_localized', 'description_localized']) {
     ok(man[k] && man[k].fa, 'منیفست ' + k + ' فارسی دارد');
   }
+  // An installed app's description follows the device language; Spanish was missing until #256
+  const manLang = { fa: 'fa', zh: 'zh-Hans', de: 'de', es: 'es' };
+  ok(LOCALE_CODES.filter((c) => c !== 'en').every((c) => man.description_localized[manLang[c]] && man.description_localized[manLang[c]].value), 'the manifest describes the app in every language');
   ok(man.name_localized.fa.value === 'چوگان', 'نام فارسی در منیفست درست است');
+  // Five languages in one pill ran past the card at 390px and scrolled the page sideways (#256)
+  const menuSrc = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
+  const cssSrc = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
+  ok(!/C\.ui\.segmented\(C\.locales\(\)/.test(menuSrc.replace(/function langPicker[\s\S]*?\n  \}/, '')) && (menuSrc.match(/langPicker\(/g) || []).length === 3, 'both language pickers use the wrapping langPicker');
+  ok(/\.ch-seg--wrap \{[^}]*flex-wrap: wrap;[^}]*width: 100%;/.test(cssSrc), 'the language picker wraps inside its card');
   ok(man.name_localized.fa.dir === 'rtl', 'نام فارسی جهت راست‌به‌چپ دارد');
   ok(man.name_localized.fa.value !== man.name, 'نام فارسی با پیش‌فرض یکی نیست');
   const menuHtml = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
@@ -3261,6 +3269,7 @@ function testLocales() {
     // فقط چینی ساده‌شده داریم؛ سنتی باید انگلیسی بگیرد نه ترجمه‌ی اشتباه
     ['zh-TW', 'en'], ['zh-HK', 'en'], ['zh-Hant', 'en'],
     ['de-DE', 'de'], ['de', 'de'], ['de-AT', 'de'], ['de-CH', 'de'],
+    ['es-ES', 'es'], ['es', 'es'], ['es-MX', 'es'], ['es-419', 'es'],
     ['en-GB', 'en'], ['da-DK', 'en'], ['', 'en']
   ];
   ok(cases.length > 0, 'فهرست حالت‌های زبان دستگاه خالی نیست');
@@ -3317,27 +3326,37 @@ function testLocales() {
     return out;
   };
   const holes = (t) => (t.match(/\{[a-z]+\}/g) || []).sort().join();
+  // Spanish followed German the same way (#256)
   for (const f of files) {
     const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
-    const en = dictOf(src, 'en') || {}, de = dictOf(src, 'de');
-    ok(!!de, f + ': دیکشنری آلمانی دارد');
-    if (!de) continue;
-    const miss = Object.keys(en).filter((k) => !(k in de));
-    ok(Object.keys(en).length > 0 && miss.length === 0, f + ' · de: همه‌ی کلیدهای انگلیسی ترجمه شده' + (miss.length ? ' (' + miss.join(',') + ')' : ''));
-    const badHoles = Object.keys(en).filter((k) => k in de && holes(en[k]) !== holes(de[k]));
-    ok(badHoles.length === 0, f + ' · de: جای‌نگهدارها با انگلیسی یکی‌اند' + (badHoles.length ? ' (' + badHoles.join(',') + ')' : ''));
+    const en = dictOf(src, 'en') || {};
+    for (const code of ['de', 'es']) {
+      const de = dictOf(src, code);
+      ok(!!de, f + ': ' + code + ' dictionary exists');
+      if (!de) continue;
+      const miss = Object.keys(en).filter((k) => !(k in de));
+      ok(Object.keys(en).length > 0 && miss.length === 0, f + ' · ' + code + ': every English key is translated' + (miss.length ? ' (' + miss.join(',') + ')' : ''));
+      const badHoles = Object.keys(en).filter((k) => k in de && holes(en[k]) !== holes(de[k]));
+      ok(badHoles.length === 0, f + ' · ' + code + ': placeholders match English' + (badHoles.length ? ' (' + badHoles.join(',') + ')' : ''));
+    }
   }
   const achLines = core.split('\n').filter((l) => /^\s*\{ id: '[^']+',.*den: '/.test(l));
   ok(achLines.length >= 60, 'فهرست دستاوردها خوانده شد (' + achLines.length + ')');
-  const achNoDe = achLines.filter((l) => !/ de: '[^']+', dde: '[^']+'/.test(l)).map((l) => l.match(/id: '([^']+)'/)[1]);
-  ok(achNoDe.length === 0, 'همه‌ی دستاوردها عنوان و توضیح آلمانی دارند' + (achNoDe.length ? ' (' + achNoDe.join(',') + ')' : ''));
+  const achNoDe = achLines.filter((l) => !/ de: '[^']+', dde: '[^']+'/.test(l) || !/ es: '[^']+', des: '[^']+'/.test(l)).map((l) => l.match(/id: '([^']+)'/)[1]);
+  ok(achNoDe.length === 0, 'every award has a German and a Spanish title and description' + (achNoDe.length ? ' (' + achNoDe.join(',') + ')' : ''));
   // «Du» با فعل سوم‌شخص نمی‌خواند («Du gewinnt»)؛ متنی که نام بازیکن می‌گیرد بی‌فعل صرف‌شده نوشته می‌شود
   const thirdPerson = /\{[an]\} (ist|gewinnt|würfelt|kann|hat|passt|zieht)\b/;
   for (const g of games) {
     const de = dictOf(fs.readFileSync(path.join(ROOT, 'www', g.path), 'utf8'), 'de') || {};
     const bad = Object.keys(de).filter((k) => thirdPerson.test(de[k]));
     ok(bad.length === 0, g.id + ' · de: نام بازیکن با فعل سوم‌شخص نیامده' + (bad.length ? ' (' + bad.join(',') + ')' : ''));
+  }  const thirdPersonEs = /\{[an]\} (gana|pierde|es|está|tiene|puede|juega|tira|mueve|pasa|empieza|lleva)\b/;
+  for (const g of games) {
+    const es = dictOf(fs.readFileSync(path.join(ROOT, 'www', g.path), 'utf8'), 'es') || {};
+    const bad = Object.keys(es).filter((k) => thirdPersonEs.test(es[k]));
+    ok(bad.length === 0, g.id + ' · es: no third-person verb right after a player name' + (bad.length ? ' (' + bad.join(',') + ')' : ''));
   }
+
 
   // نام بازی در نوار بالا از شیء name خود بازی می‌آید، نه games.json. نبودن یک
   // زبان در آن شیء نام را فارسی نشان می‌داد: آلمانی در هر پانزده بازی، چینی در پنج تا (#121)
@@ -3439,7 +3458,7 @@ function testCardArt() {
   ok(styles.length === 1, 'the backs are injected once, however often they are applied');
 
   ok(/cardBack: 'carpet'/.test(coreJs.match(/var DEFAULT_SETTINGS = \{[\s\S]*?\};/)[0]), 'the carpet is the default back');
-  ok((coreJs.match(/cardBack: '[^']+', backCarpet: '[^']+', backTermeh: '[^']+',/g) || []).length === 4, 'the picker is named in all four languages');
+  ok((coreJs.match(/cardBack: '[^']+', backCarpet: '[^']+', backTermeh: '[^']+',/g) || []).length === LOCALE_CODES.length, 'the picker is named in every language');
   ok(/Chogan\.applyTheme\(\);\s*Chogan\.cards\.applyBack\(\);/.test(coreJs), 'the saved back is applied when a page boots');
   ok(/\.ch-pback \{[^}]*100% 100% no-repeat/.test(coreCss) && !/\.ch-pback \{[^}]*data:image/.test(coreCss), 'the CSS stretches one picture over the back instead of tiling a pattern');
   for (const g of ['pasur', 'hokm']) {
@@ -3626,7 +3645,7 @@ function testBlockDrop() {
   ok((page.match(/class: 'bd-btn'/g) || []).length === 1 && /\['hold', C\.t\('holdKey'\)\], \['left'/.test(page), 'the touch pad has hold, left, rotate, right, soft drop and drop');
   ok(/'bd-sprint'/.test(page) && /'bd-tetris'/.test(page) && /'bd-marathon'/.test(page), 'the page unlocks its three achievements');
   const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
-  ok(['bd-sprint', 'bd-tetris', 'bd-marathon'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '").test(core)), 'the achievements are defined in the core in all four languages');
+  ok(['bd-sprint', 'bd-tetris', 'bd-marathon'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '").test(core) && new RegExp("\\{ id: '" + id + "',[^\\n]*des: '").test(core)), 'the achievements are defined in the core in every language');
   ok(!/Tetris/i.test(page.replace(/tetrises|'bd-tetris'|e\.cleared === 4/g, '')), 'the trademark name is not used in the game');
 }
 
@@ -3873,7 +3892,7 @@ function testWayOut() {
     'out of hearts offers a free start again and one free heart, nothing to pay');
   ok(/'wo-win'/.test(page) && /'wo-deep'/.test(page) && /'wo-clean'/.test(page), 'the page unlocks its three achievements');
   const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
-  ok(['wo-win', 'wo-deep', 'wo-clean'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '").test(core)), 'the achievements are defined in the core in all four languages');
+  ok(['wo-win', 'wo-deep', 'wo-clean'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '").test(core) && new RegExp("\\{ id: '" + id + "',[^\\n]*des: '").test(core)), 'the achievements are defined in the core in every language');
 }
 
 // Checks added in review (PR #217): the promises the rules text makes to the player,
@@ -4000,8 +4019,8 @@ function testMahjongTimed() {
   ok(tick.length > 0 && !/S\.done = true|finish\(\)/.test(tick) && /C\.ui\.toast\(/.test(tick), 'running out of time only shows a notice; the game goes on');
   ok(/var spare = S\.timed \? Math\.max\(0, TIME_LIMIT\[S\.layout\] - elapsed\) : 0;/.test(page) && /points \+= bonus;/.test(page), 'only a timed game gets a speed bonus, never a penalty');
   ok(/C\.onPause\(function \(\) \{ if \(!pausedAt\) pausedAt = Date\.now\(\); \}\);/.test(page) && /S\.startedAt \+= Date\.now\(\) - pausedAt;/.test(page), 'the clock stops while the app is in the background');
-  const miss = ['untimed', 'timed', 'timeUp', 'timeUpSub', 'speedBonus'].filter((k) => (page.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < 4);
-  ok(!miss.length, 'timed-mode strings in all four languages' + (miss.length ? ' (' + miss.join(', ') + ')' : ''));
+  const miss = ['untimed', 'timed', 'timeUp', 'timeUpSub', 'speedBonus'].filter((k) => (page.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < LOCALE_CODES.length);
+  ok(!miss.length, 'timed-mode strings in every language' + (miss.length ? ' (' + miss.join(', ') + ')' : ''));
 }
 
 /* ------------------------------------------------------------ Blackjack (#226) */
@@ -4084,8 +4103,8 @@ function testPasurLead() {
   ok(!/prefs\.games % 2\);\n    S = E\.newDeal/.test(page) && /note = C\.t\(first \? 'rivalStarts' : 'youStart'\);/.test(ng), 'the lead no longer follows the finished-game count, and the table says who leads');
   ok(/    riffle: function \(\) \{/.test(core) && /C\.audio\.sfx\('riffle'\);/.test(page), 'the shuffle plays a riffle sound');
   ok(/\.ps-shuffle \.ch-pback \{ position: absolute; width: calc\(var\(--cw\) \* 1\.5\); \}/.test(page), 'the shuffling backs are drawn large');
-  const miss = ['youStart', 'rivalStarts'].filter((k) => (page.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < 4);
-  ok(!miss.length, 'lead strings in all four languages' + (miss.length ? ' (' + miss.join(', ') + ')' : ''));
+  const miss = ['youStart', 'rivalStarts'].filter((k) => (page.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < LOCALE_CODES.length);
+  ok(!miss.length, 'lead strings in every language' + (miss.length ? ' (' + miss.join(', ') + ')' : ''));
 }
 
 // #242: dialog buttons were equal width, so «مرحله‌ی بعد» broke onto two lines
@@ -4104,8 +4123,8 @@ function testTdAutoWaves() {
   ok(/if \(prefs\.auto && !S\.over\) autoAt = now \+ AUTO_MS;/.test(page) && /else if \(now >= autoAt\) launchWave\(\);/.test(page), 'with Auto on, a finished wave counts down to the next one');
   ok(/S\.wave > 0 \? performance\.now\(\) \+ AUTO_MS : 0;/.test(page), 'the first wave always waits for the player');
   ok(/autoAt = 0; wasActive = false;/.test(page), 'a new game clears a pending countdown');
-  const miss = ['auto', 'nextIn'].filter((k) => (page.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < 4);
-  ok(!miss.length, 'auto-wave strings in all four languages' + (miss.length ? ' (' + miss.join(', ') + ')' : ''));
+  const miss = ['auto', 'nextIn'].filter((k) => (page.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < LOCALE_CODES.length);
+  ok(!miss.length, 'auto-wave strings in every language' + (miss.length ? ' (' + miss.join(', ') + ')' : ''));
 }
 
 // #245: shots were a one-frame line a tester could not follow
@@ -4716,7 +4735,7 @@ function testNonogramPictures() {
   for (const p of P) {
     const n = p.rows.length;
     if ([10, 15].indexOf(n) < 0 || p.rows.some((r) => r.length !== n)) { bad.push(p.id + ' size'); continue; }
-    if (!['fa', 'en', 'zh', 'de'].every((l) => typeof p.name[l] === 'string' && p.name[l].length)) { bad.push(p.id + ' name'); continue; }
+    if (!LOCALE_CODES.every((l) => typeof p.name[l] === 'string' && p.name[l].length)) { bad.push(p.id + ' name'); continue; }
     const letters = [...new Set(p.rows.join('').replace(/\./g, ''))];
     if (!letters.length || letters.some((c) => !/^#[0-9A-F]{6}$/i.test(p.col[c] || ''))) { bad.push(p.id + ' colour'); continue; }
     const grid = [];
@@ -4875,7 +4894,7 @@ function testStoreGames() {
   head('Store text lists every game');
   const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
   ok(games.length > 0, 'games.json lists games');
-  for (const [lang, key] of [['en-US', 'en'], ['fa', 'fa'], ['zh-CN', 'zh'], ['de-DE', 'de']]) {
+  for (const [lang, key] of [['en-US', 'en'], ['fa', 'fa'], ['zh-CN', 'zh'], ['de-DE', 'de'], ['es-ES', 'es']]) {
     const text = fs.readFileSync(path.join(ROOT, 'fastlane/metadata/android', lang, 'full_description.txt'), 'utf8');
     const miss = games.filter((g) => text.indexOf('* ' + g.name[key].replace(/\u00ad/g, '') + ' ') < 0).map((g) => g.id);
     ok(!miss.length, lang + ': every game has a line in the store description' + (miss.length ? ' (missing: ' + miss.join(', ') + ')' : ''));
@@ -4921,8 +4940,8 @@ function testMenuPins() {
   ok(/ch-section--pinned/.test(home) && /C\.recent\.list\(\)/.test(home), 'the home page shows pinned games and recent games');
   const keys = ['pinned', 'recent', 'pin', 'unpin'];
   const missing = [];
-  for (const k of keys) { const n = (home.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length; if (n < 4) missing.push(k + ' ' + n); }
-  ok(!missing.length, 'pin and recent strings exist in all four languages' + (missing.length ? ' (' + missing.join(', ') + ')' : ''));
+  for (const k of keys) { const n = (home.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length; if (n < LOCALE_CODES.length) missing.push(k + ' ' + n); }
+  ok(!missing.length, 'pin and recent strings exist in every language' + (missing.length ? ' (' + missing.join(', ') + ')' : ''));
 }
 
 /* ------------------------------------------------ Ways to play (#203) */
@@ -4949,8 +4968,8 @@ function testWaysToPlay() {
   const miss = urls.filter((u) => row.indexOf("'" + u + "'") < 0);
   ok(!miss.length, 'the row links the web, F-Droid and Telegram' + (miss.length ? ' (missing: ' + miss.join(', ') + ')' : ''));
   const keys = ['waysToPlay', 'playWeb', 'playAndroid', 'playTelegram'];
-  const short = keys.filter((k) => (home.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < 4);
-  ok(!short.length, 'ways-to-play strings exist in all four languages' + (short.length ? ' (' + short.join(', ') + ')' : ''));
+  const short = keys.filter((k) => (home.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < LOCALE_CODES.length);
+  ok(!short.length, 'ways-to-play strings exist in every language' + (short.length ? ' (' + short.join(', ') + ')' : ''));
   ok(!/telegram-web-app\.js/.test(home), 'no Telegram script is loaded (owner decision 2026-10-15)');
   const fa = md.indexOf('## فارسی');
   ok(fa > 0, 'README has a Persian section');
@@ -4972,8 +4991,8 @@ function testPasurGone() {
   ok(/if \(S\.level !== 'easy'\) \{ goneBox\.setAttribute\('hidden', ''\); return; \}/.test(body), 'the panel is hidden unless the level is easy');
   ok(/S\.caps\[0\]\.concat\(S\.caps\[1\]\)/.test(body), 'the panel marks exactly the cards in both capture piles');
   ok(/paintGone\(\);/.test(src.slice(src.indexOf('function paint()'), at)), 'the panel is repainted with the table');
-  const missing = ['gone', 'goneSub'].filter((k) => (src.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < 4);
-  ok(!missing.length, 'panel strings exist in all four languages' + (missing.length ? ' (' + missing.join(', ') + ')' : ''));
+  const missing = ['gone', 'goneSub'].filter((k) => (src.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < LOCALE_CODES.length);
+  ok(!missing.length, 'panel strings exist in every language' + (missing.length ? ' (' + missing.join(', ') + ')' : ''));
 }
 
 /* ------------------------------------------------ Gomoku (#202) */
@@ -5455,7 +5474,7 @@ function testHomeGrid() {
   ok(/^\s+list: '/m.test(core), 'نماد list در هسته هست');
   for (const k of ['viewGrid', 'viewList']) {
     const n = (menu.match(new RegExp('\\b' + k + ': \'', 'g')) || []).length;
-    ok(n === 4, k + ' در هر چهار زبان منو هست (' + n + ')');
+    ok(n === LOCALE_CODES.length, k + ' is in every menu language (' + n + ')');
   }
 }
 
@@ -5564,7 +5583,8 @@ function testShortcuts() {
     name_localized: {
       fa: { value: g.name.fa, lang: 'fa', dir: 'rtl' },
       'zh-Hans': { value: g.name.zh, lang: 'zh-Hans', dir: 'ltr' },
-      de: { value: g.name.de, lang: 'de', dir: 'ltr' }
+      de: { value: g.name.de, lang: 'de', dir: 'ltr' },
+      es: { value: g.name.es, lang: 'es', dir: 'ltr' }
     },
     url: g.path + '?from=shortcut',
     icons: [{ src: 'games/' + g.id + '/icon-192.png', sizes: '192x192', type: 'image/png' }]

@@ -289,7 +289,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BlockDropE
   C.boot({});
   var ctx = C.game({
     id: 'blockdrop',
-    name: { fa: 'بلوک‌ریز', en: 'Block Drop', zh: '落块', de: 'Blocksturz' },
+    name: { fa: 'بلوک‌ریز', en: 'Block Drop', zh: '落块', de: 'Blocksturz', es: 'Lluvia de bloques' },
     accent: '#4F6BD8',
     mood: 'dots',
     strings: {
@@ -332,6 +332,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BlockDropE
         tutTitle1: 'Reihen füllen', tutText1: 'Steine fallen von oben. Jede volle Reihe verschwindet. Reichen die Steine bis oben, ist die Runde vorbei.',
         tutTitle2: 'Mit dem Finger', tutText2: 'Tippe aufs Feld zum Drehen, zieh zum Verschieben, wisch schnell nach unten zum Fallenlassen und nach oben zum Halten. Die Knöpfe unten tun dasselbe.',
         tutTitle3: 'Zwei Rundenarten', tutText3: 'Sprint: 40 Reihen so schnell wie möglich. Marathon: 100 Reihen, alle 10 schneller. Vier Reihen auf einmal bringen am meisten.'
+      },
+      es: {
+        lines: 'Líneas', time: 'Tiempo', level: 'Nivel', sprint: 'Sprint 40', marathon: 'Maratón 100',
+        holdLbl: 'Guardar', nextLbl: 'Siguiente', tapStart: 'Toca para empezar', tapResume: 'Pausa — toca para seguir',
+        sprintDone: '40 líneas completadas', marathonDone: '¡Maratón completado!', toppedOut: 'Sin espacio', pieces: 'Piezas',
+        dailyBd: 'Lluvia de bloques diaria', newRound: 'Nueva ronda',
+        left: 'Izquierda', right: 'Derecha', rotate: 'Girar', rotateBack: 'Girar al revés', softDrop: 'Bajar despacio', hardDrop: 'Soltar', holdKey: 'Guardar', pauseKey: 'Pausa',
+        tutTitle1: 'Completa líneas', tutText1: 'Las piezas caen desde arriba. Cada fila llena desaparece. Si las piezas llegan arriba, la ronda termina.',
+        tutTitle2: 'Con el dedo', tutText2: 'Toca el tablero para girar, arrastra para mover, desliza rápido hacia abajo para soltar y hacia arriba para guardar una pieza. Los botones de abajo hacen lo mismo.',
+        tutTitle3: 'Dos tipos de ronda', tutText3: 'Sprint: completa 40 líneas lo más rápido posible. Maratón: 100 líneas, cada 10 más rápido. Cuatro líneas a la vez dan más puntos.'
       }
     }
   });

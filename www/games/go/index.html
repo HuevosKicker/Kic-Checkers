@@ -303,7 +303,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GoEngineFa
   C.boot({});
   var ctx = C.game({
     id: 'go',
-    name: { fa: 'گو', en: 'Go', zh: '围棋', de: 'Go' },
+    name: { fa: 'گو', en: 'Go', zh: '围棋', de: 'Go', es: 'Go' },
     accent: '#8A6A3B',
     mood: 'sudoku',
     strings: {
@@ -374,6 +374,23 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GoEngineFa
         tutTitle1: 'Freiheiten und Fangen', tutText1: 'Die leeren Punkte neben einer Gruppe sind ihre Freiheiten. Besetzt du alle, fängst du die Gruppe – sie kommt vom Brett.',
         tutTitle2: 'Gebiet umschließen', tutText2: 'Ziel ist, die meisten leeren Punkte zu umschließen. Eine Gruppe mit zwei getrennten Augen kann nie gefangen werden.',
         tutTitle3: 'Ende und Zählen', tutText3: 'Ist nichts Sinnvolles mehr zu tun, passe. Nach zwei Pässen nacheinander werden Steine und Gebiet gezählt – hoffnungslose Steine gelten automatisch als tot.'
+      },
+      es: {
+        twoPlayers: 'Dos jugadores', vsAi: 'Contra la IA',
+        you: 'Tú', rival: 'Rival', player2: 'Jugador dos', renameP2: 'Nombre del jugador dos',
+        black: 'Negras', white: 'Blancas', playerWon: 'Gana: {n}', newMatch: 'Nueva partida', undoMove: 'Deshacer jugada',
+        boardLabel: 'Tablero de go 9×9', pass: 'Pasar', captured: 'capturadas',
+        playBlack: 'Con negras', playWhite: 'Con blancas',
+        passedNote: 'Pasa: {n}. Si tú también pasas, la partida termina.', koNote: 'Ese punto es ko: juega primero en otro sitio y luego podrás recapturar.',
+        suicideNote: 'Esa jugada dejaría a tu propio grupo sin libertades.',
+        scoreLine: '{b} a {w}', area: 'Puntos', komi: 'komi', deadNote: 'Las piedras marcadas con una cruz se contaron como muertas.',
+        dailyGo: 'Go diario', vsMedium: 'contra la IA media',
+        resetWarn: 'Esto termina la partida actual. ¿Seguir?',
+        rules: 'Por turnos, cada jugador coloca una piedra en un cruce; empiezan las negras. Un grupo sin ningún punto vacío al lado (sin libertades) queda capturado y se retira. No se puede jugar una piedra que deje a tu propio grupo sin libertades, ni recapturar al instante una sola piedra (ko). Cuando los dos jugadores pasan seguidos, la partida termina: cada lado cuenta sus piedras más los puntos vacíos que rodea, y las blancas reciben 6,5 puntos de komi por jugar en segundo lugar.',
+        keyboard: 'Teclado', moveCursor: 'Mover el cursor', place: 'Colocar una piedra',
+        tutTitle1: 'Libertades y capturas', tutText1: 'Los puntos vacíos junto a un grupo son sus libertades. Si ocupas todas las libertades de un grupo, lo capturas y sale del tablero.',
+        tutTitle2: 'Rodea territorio', tutText2: 'El objetivo es rodear el mayor número de puntos vacíos. Un grupo con dos ojos separados nunca puede ser capturado.',
+        tutTitle3: 'Final y recuento', tutText3: 'Cuando no quede nada útil por hacer, pasa. Tras dos pases seguidos se cuentan las piedras y el territorio de cada lado, y las piedras sin salvación se cuentan como muertas automáticamente.'
       }
     }
   });

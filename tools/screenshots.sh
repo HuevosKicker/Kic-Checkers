@@ -80,7 +80,7 @@ shot() {
 # metadata only confuses people. 450×900 at 2.4 gives 1080×2160, exactly the
 # 2:1 Google Play allows; 440 wide gave 1056×2160, which Play rejects (#163).
 TODAY=$(date +%Y-%m-%d)
-for lang in fa en zh de; do
+for lang in fa en zh de es; do
   mkdir -p "$OUT/$lang"
   shot 1 "index.html" light "$lang"
   shot 2 "games%2Ftower-defence%2Findex.html" light "$lang"
@@ -101,6 +101,7 @@ copy_to fa fa
 copy_to en-US en
 copy_to zh-CN zh
 copy_to de-DE de
+copy_to es-ES es
 mkdir -p fastlane/metadata/android/en-US/images
 "$CHROME" --headless --disable-gpu --no-sandbox --hide-scrollbars --virtual-time-budget=5000 \
   --window-size=1024,500 --screenshot="fastlane/metadata/android/en-US/images/featureGraphic.png" \
