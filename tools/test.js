@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2701;
+const MIN_CHECKS = 2799;
 
 function ok(cond, msg) {
   checks++;
@@ -3795,6 +3795,48 @@ function testWayOut() {
   ok(['wo-win', 'wo-deep', 'wo-clean'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '").test(core)), 'the achievements are defined in the core in all four languages');
 }
 
+// Checks added in review (PR #217): the promises the rules text makes to the player,
+// tested over many generated boards rather than on hand-built ones.
+function testWayOutPromises() {
+  head('Way Out promises');
+  const E = loadEngine('wayout', 'WayOutEngineFactory');
+  let boards = 0, neverBlocks = true, roundTrip = true, picks = true, fallback = 0, slow = 0, hintFree = true;
+  for (const lv of [1, 2, 3, 5, 8, 12, 20, 30, 45, 80, 150, 300]) {
+    for (let sd = 0; sd < 4; sd++) {
+      const t0 = Date.now(), S = E.generate(lv, rng(lv * 131 + sd * 7));
+      if (Date.now() - t0 > 60) slow++;
+      boards++;
+      if (lv > 2 && S.w === 3 && S.h === 3) fallback++;
+      // every arrow cell, tapped at its centre, picks that arrow
+      S.arrows.forEach((A, a) => A.c.forEach((c) => { if (E.pick(S, c % S.w + 0.5, Math.floor(c / S.w) + 0.5) !== a) picks = false; }));
+      const r = rng(lv + sd * 1000), P = { hints: 99 };
+      while (E.left(S)) {
+        const free = E.freeArrows(S);
+        if (!free.length) { neverBlocks = false; break; }
+        // a hint, when asked for, always names an arrow that can leave now
+        if (S.hint < 0 && r() < 0.3) { const h = E.useHint(S, P); if (h >= 0 && !E.isFree(S, h)) hintFree = false; }
+        const a = free[Math.floor(r() * free.length)];
+        E.tap(S, a);
+        // taking an arrow out never blocks one that was free
+        if (free.some((b) => b !== a && !E.isFree(S, b))) neverBlocks = false;
+        if (r() < 0.2) {
+          const back = E.restore(JSON.parse(JSON.stringify(S)));
+          if (!back || back.hearts !== S.hearts || E.left(back) !== E.left(S) || back.gone.join() !== S.gone.join() || back.hint !== S.hint) roundTrip = false;
+        }
+      }
+      if (!S.done) neverBlocks = false;
+    }
+  }
+  ok(boards === 48, 'generated 48 boards from level 1 to 300');
+  ok(neverBlocks, 'on every board, taking out a free arrow never blocks another free one, and the board always empties');
+  ok(hintFree, 'every hint names an arrow that can leave at once');
+  ok(roundTrip, 'a save taken at any point comes back with the same hearts, arrows and hint');
+  ok(picks, 'tapping the centre of any arrow cell picks that arrow');
+  ok(fallback === 0 && slow === 0, 'no level up to 300 needs the fallback board or more than 60 ms (' + fallback + ' fallbacks, ' + slow + ' slow)');
+  const a = E.generate(20, rng(20261017)), b = E.generate(20, rng(20261017));
+  ok(JSON.stringify(a) === JSON.stringify(b), 'the daily board (level 20 from the day\'s seed) is the same on every device');
+}
+
 /* ------------------------------------------------------------- پاسور */
 function testPasur() {
   head('پاسور');
@@ -5447,6 +5489,7 @@ testNonogramPictures();
 testHokm();
 testBlockDrop();
 testWayOut();
+testWayOutPromises();
 testTd();
 testVersionStamp();
 testDeployGate();

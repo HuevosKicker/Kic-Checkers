@@ -1,4 +1,4 @@
-Chogan is a collection of small, finishable games in a single app. It ships with twenty-two games, and new ones arrive as updates to the same app.
+Chogan is a collection of small, finishable games in a single app. It ships with twenty-three games, and new ones arrive as updates to the same app.
 
 The games:
 
@@ -24,6 +24,7 @@ The games:
 * Block Drop — falling blocks: a 40-line sprint or a 100-line marathon
 * Gomoku — five in a row on a 9, 13 or 15 board, against three levels of AI or two players
 * Go — 9×9 Go with automatic counting, against three levels of AI or two players
+* Way Out — send every arrow off the board in a working order, three hearts a level, levels without end
 
 Around the games:
 
