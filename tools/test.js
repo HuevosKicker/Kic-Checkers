@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2816;
+const MIN_CHECKS = 2821;
 
 function ok(cond, msg) {
   checks++;
@@ -3890,7 +3890,22 @@ function testMahjongArt() {
   ok(all.length === 8 && all.every((svg, i) => svg.indexOf('>' + chars[i] + '</text>') > 0 && svg.indexOf('>' + (i % 4 + 1) + '</text>') > 0), 'each tile carries its character and number');
   ok(new Set(all).size === 8, 'all eight paintings differ');
   ok(all.every((svg) => !/href|url\(|<image|<script/i.test(svg)), 'the art is drawn inline, with no images or links');
-  ok(/s \+= ART\[f - 34\]\(\);/.test(page) && /s \+= SEASONS\[f - 38\]\(\);/.test(page) && page.indexOf('#E8913A') < 0, 'faceSvg draws them, and the old sun is gone');
+  ok(/s \+= ART\[f - 34\]\(\);/.test(page) && /s \+= SEASONS\[f - 38\]\(\);/.test(page) && page.indexOf('cy="22" r="8" fill="#E8913A"') < 0, 'faceSvg draws them, and the old sun is gone');
+}
+
+// #227: a matched pair gave the generic 'place' blip; it now clacks like two tiles and sparks
+function testMahjongClack() {
+  head('Mahjong match sound and spark');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const page = fs.readFileSync(path.join(ROOT, 'www/games/mahjong/index.html'), 'utf8');
+  const at = core.indexOf('    clack: function () {');
+  const body = at > 0 ? core.slice(at, core.indexOf('\n    }', at)) : '';
+  ok(at > 0 && (body.match(/noise\(/g) || []).length === 1 && /\[\[0, 3200, 1500\], \[0\.055,/.test(body), 'the core has a two-knock clack sound');
+  ok(/clack: \['clack', 'tap'\]/.test(core), 'feedback knows clack, with a light vibration');
+  const tapAt = page.indexOf('  function tap(i) {'), tapBody = page.slice(tapAt, page.indexOf('\n  }\n', tapAt));
+  ok(/spark\(sel, i\);\s+E\.remove\(S, sel, i\);/.test(tapBody) && /C\.feedback\('clack'\);/.test(tapBody) && !/C\.feedback\('place'\)/.test(tapBody), 'a match sparks before the tiles go and clacks');
+  ok(/function spark\(a, b\) \{\n\s+if \(C\.ui\.reduceMotion\(\)\) return;/.test(page) && /setTimeout\(function \(\) \{ fx\.remove\(\); \}, 400\);/.test(page), 'the spark respects reduced motion and removes itself');
+  ok(/\.mj-spark \{ position: absolute; z-index: 100000;/.test(page) && /zIndex = String\(p\[2\] \* 1000 \+ p\[1\] \* 10 \+ p\[0\]\)/.test(page), 'the spark draws above every tile layer');
 }
 
 /* ------------------------------------------------------------- پاسور */
@@ -5549,6 +5564,7 @@ testWayOutPromises();
 testWayOutLook();
 testContextMenu();
 testMahjongArt();
+testMahjongClack();
 testTd();
 testVersionStamp();
 testDeployGate();

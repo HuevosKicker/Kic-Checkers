@@ -653,7 +653,16 @@
         tone({ freq: f, dur: 0.36, gain: 0.18, type: 'sine', at: b + i * 0.13 });
       });
     },
-    tick: function () { tone({ freq: 1400, dur: 0.03, gain: 0.06, type: 'square' }); }
+    tick: function () { tone({ freq: 1400, dur: 0.03, gain: 0.06, type: 'square' }); },
+    // Two hard tiles knocking together: a bright click, then a second, slightly lower
+    // one a moment later, each a short band of noise over a quick wooden ping (#227)
+    clack: function () {
+      var b = now();
+      [[0, 3200, 1500], [0.055, 2600, 1250]].forEach(function (k) {
+        noise({ freq: k[1], to: k[1] * 0.6, dur: 0.035, gain: 0.22, at: b + k[0] });
+        tone({ freq: k[2], to: k[2] * 0.8, dur: 0.05, gain: 0.1, type: 'triangle', at: b + k[0] });
+      });
+    }
   };
 
   /* --------- موسیقی پس‌زمینه: حلقه‌ی کوتاه و ملایم، هر بازی یک حال */
@@ -789,7 +798,7 @@
   // بازخورد استاندارد یک لمس: صدا + لرزش با هم
   Chogan.feedback = function (kind) {
     var map = { tap: ['tap', 'tap'], select: ['select', 'select'], good: ['good', 'success'],
-      bad: ['bad', 'error'], win: ['win', 'win'], coin: ['coin', 'success'], place: ['place', 'tap'] };
+      bad: ['bad', 'error'], win: ['win', 'win'], coin: ['coin', 'success'], place: ['place', 'tap'], clack: ['clack', 'tap'] };
     var m = map[kind] || map.tap;
     audioApi.sfx(m[0]);
     Chogan.haptic(m[1]);

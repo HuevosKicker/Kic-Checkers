@@ -16,6 +16,10 @@
   /* The view clips the board; zoom and pan move the board inside it (#167) */
   .mj-view { position: relative; overflow: hidden; touch-action: none; margin: 6px auto; border-radius: var(--r-md); }
   .mj-board { position: relative; direction: ltr; transform-origin: 0 0; }
+  /* above every tile: tiles stack at layer * 1000 + row * 10 + column */
+  .mj-spark { position: absolute; z-index: 100000; pointer-events: none; animation: mj-spark 380ms var(--ease) forwards; }
+  .mj-spark svg { display: block; }
+  @keyframes mj-spark { from { opacity: 1; transform: scale(.4); } 60% { opacity: 1; } to { opacity: 0; transform: scale(1.25); } }
   .mj-tile {
     position: absolute; padding: 0; border: 0; cursor: pointer; border-radius: 6px;
     background: var(--mj-face); box-shadow: 3px 3px 0 var(--mj-side), 4px 4px 0 var(--mj-edge), 4px 6px 8px rgba(0,0,0,.25);
@@ -714,9 +718,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
     if (hint && hint.indexOf(i) < 0) hint = null;
     if (sel < 0 || sel === i) { sel = sel === i ? -1 : i; C.feedback(sel < 0 ? 'tap' : 'select'); paint(); return; }
     if (E.matches(S.faces[sel], S.faces[i])) {
+      spark(sel, i);
       E.remove(S, sel, i);
       sel = -1; hint = null;
-      C.feedback('place');
+      C.feedback('clack');
       save();
       paint();
       if (S.done) { finish(); return; }
@@ -727,6 +732,27 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
     sel = i;
     C.feedback('tap');
     paint();
+  }
+
+  // A matched pair strikes like flint: a small burst of gold sparks where the two tiles
+  // were, gone in a third of a second (#227). Skipped when the system asks for less motion.
+  function spark(a, b) {
+    if (C.ui.reduceMotion()) return;
+    [a, b].forEach(function (k) {
+      var t = nodes[k];
+      if (!t) return;
+      var x = t.offsetLeft + t.offsetWidth / 2, y = t.offsetTop + t.offsetHeight / 2, r = Math.max(14, t.offsetWidth * 0.7);
+      var s = '<svg viewBox="-20 -20 40 40" width="' + (r * 2) + '" height="' + (r * 2) + '"><circle r="5" fill="#FFF6D8"/>';
+      for (var q = 0; q < 8; q++) {
+        var ang = (q * 45 + 22) * Math.PI / 180, l = q % 2 ? 16 : 19;
+        s += '<line x1="' + (Math.cos(ang) * 7).toFixed(1) + '" y1="' + (Math.sin(ang) * 7).toFixed(1) + '" x2="' + (Math.cos(ang) * l).toFixed(1) + '" y2="' + (Math.sin(ang) * l).toFixed(1) +
+          '" stroke="' + (q % 2 ? '#F2C14E' : '#E8913A') + '" stroke-width="2.4" stroke-linecap="round"/>';
+      }
+      var fx = el('div', { class: 'mj-spark', html: s + '</svg>' });
+      fx.style.left = (x - r) + 'px'; fx.style.top = (y - r) + 'px';
+      board.appendChild(fx);
+      setTimeout(function () { fx.remove(); }, 400);
+    });
   }
 
   function stuck() {
