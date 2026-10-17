@@ -12,6 +12,8 @@
   :root { --mj-face: #FBF7EE; --mj-side: #D9CDB4; --mj-edge: #B9AB8E; }
   .mj-wrap { width: 100%; max-width: 980px; display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
   .mj-top { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; align-items: center; }
+  .mj-clock { font-variant-numeric: tabular-nums; min-width: 52px; justify-content: center; }
+  .mj-clock--out { color: var(--c-bad); }
   /* تخته در راست‌چین آینه نمی‌شود؛ جای کاشی‌ها بخشی از چیدمان است */
   /* The view clips the board; zoom and pan move the board inside it (#167) */
   .mj-view { position: relative; overflow: hidden; touch-action: none; margin: 6px auto; border-radius: var(--r-md); }
@@ -245,6 +247,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
     strings: {
       fa: {
         small: 'کوچک', medium: 'متوسط', turtle: 'لاک‌پشت', left: 'مانده', pairs: 'جفت آزاد',
+        untimed: 'بی‌زمان', timed: 'با زمان', timeUp: 'زمان تمام شد', timeUpSub: 'بازی ادامه دارد؛ فقط جایزه‌ی سرعت را نمی‌گیری.', speedBonus: 'جایزه‌ی سرعت',
         shuffle: 'بُر زدن', shufflesLeft: '{n} بُر مانده', hintKey: 'راهنمایی', undoMove: 'برگرداندن',
         newDeal: 'دست تازه', noPairs: 'جفت آزادی نمانده', noPairsSub: 'بُر بزن یا چند حرکت برگردان.',
         blocked: 'این کاشی آزاد نیست', dailyMj: 'ماهجونگ روزانه', turtleNote: 'با دو انگشت بزرگ‌نمایی کن و بکش', fit: 'نمای کامل',
@@ -256,6 +259,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
       },
       en: {
         small: 'Small', medium: 'Medium', turtle: 'Turtle', left: 'Left', pairs: 'Free pairs',
+        untimed: 'No clock', timed: 'Timed', timeUp: 'Time is up', timeUpSub: 'Keep playing; only the speed bonus is gone.', speedBonus: 'Speed bonus',
         shuffle: 'Shuffle', shufflesLeft: '{n} shuffles left', hintKey: 'Hint', undoMove: 'Undo',
         newDeal: 'New deal', noPairs: 'No free pairs left', noPairsSub: 'Shuffle, or undo a few moves.',
         blocked: 'That tile isn’t free', dailyMj: 'Daily mahjong', turtleNote: 'Pinch to zoom, drag to move', fit: 'Fit board',
@@ -267,6 +271,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
       },
       zh: {
         small: '小', medium: '中', turtle: '乌龟', left: '剩余', pairs: '可配对',
+        untimed: '不计时', timed: '计时', timeUp: '时间到', timeUpSub: '可以继续玩，只是没有速度奖励了。', speedBonus: '速度奖励',
         shuffle: '洗牌', shufflesLeft: '还能洗 {n} 次', hintKey: '提示', undoMove: '撤销',
         newDeal: '新一局', noPairs: '没有可配对的牌了', noPairsSub: '洗牌，或者撤销几步。',
         blocked: '这张牌还不能拿', dailyMj: '每日麻将', turtleNote: '双指缩放，单指拖动', fit: '全图',
@@ -278,6 +283,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
       },
       de: {
         small: 'Klein', medium: 'Mittel', turtle: 'Schildkröte', left: 'Übrig', pairs: 'Freie Paare',
+        untimed: 'Ohne Uhr', timed: 'Mit Zeit', timeUp: 'Zeit ist um', timeUpSub: 'Spiel weiter; nur der Tempo-Bonus ist weg.', speedBonus: 'Tempo-Bonus',
         shuffle: 'Mischen', shufflesLeft: 'Noch {n}× mischen', hintKey: 'Tipp', undoMove: 'Zurück',
         newDeal: 'Neues Spiel', noPairs: 'Keine freien Paare mehr', noPairsSub: 'Misch oder nimm ein paar Züge zurück.',
         blocked: 'Dieser Stein ist nicht frei', dailyMj: 'Tägliches Mahjong', turtleNote: 'Mit zwei Fingern zoomen, mit einem verschieben', fit: 'Ganzes Brett',
@@ -294,6 +300,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
   var dailyDate = params.get('daily');
   var prefs = ctx.store.get('prefs', { layout: 'small' });
   var MAX_SHUFFLES = 3;
+  // Optional timed mode (#227), off by default: finishing inside the time adds a speed
+  // bonus; running out only loses the bonus, the game goes on. The daily has no clock.
+  var TIME_LIMIT = { small: 5 * 60000, medium: 9 * 60000, turtle: 15 * 60000 };
+  var clockTimer = null, timeUpShown = false, pausedAt = 0;
 
   var S = null, sel = -1, hint = null, cur = -1, nodes = [], tw = 44, th = 58, depth = 4;
 
@@ -491,11 +501,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
     delete S.solution;
     Z = { z: 1, x: 0, y: 0 };
     S.daily = daily || null;
+    S.timed = !daily && !!prefs.timed;
     S.startedAt = Date.now();
     sel = -1; hint = null; cur = -1;
+    timeUpShown = false;
     build();
     render();
     save();
+  }
+
+  function timeLeft() { return S.timed ? TIME_LIMIT[S.layout] - (Date.now() - S.startedAt) : null; }
+  function tickClock() {
+    var badge = top.querySelector('.mj-clock');
+    if (!S || !S.timed || !badge) return;
+    var left = S.done ? Math.max(0, TIME_LIMIT[S.layout] - (S.endedAt - S.startedAt)) : Math.max(0, timeLeft());
+    badge.textContent = C.time(left);
+    badge.classList.toggle('mj-clock--out', left <= 0);
+    if (left <= 0 && !S.done && !timeUpShown) {
+      timeUpShown = true;
+      C.ui.toast({ icon: 'bolt', title: C.t('timeUp'), sub: C.t('timeUpSub') });
+    }
   }
 
   function layoutSize() {
@@ -667,7 +692,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
         }
         go();
       }));
+      top.appendChild(C.ui.segmented([
+        { value: 0, label: C.t('untimed') }, { value: 1, label: C.t('timed') }
+      ], S.timed ? 1 : 0, function (v) {
+        if (!!v === !!S.timed) return;
+        var go = function () { prefs.timed = !!v; ctx.store.set('prefs', prefs); newGame(S.layout); };
+        if (S.history.length && !S.done) {
+          C.ui.confirm({ title: C.t('newDeal'), body: C.t('resetWarn'), onOk: go, onCancel: function () { render(); } });
+          render();
+          return;
+        }
+        go();
+      }));
+      if (S.timed) top.appendChild(el('span', { class: 'ch-badge mj-clock' }));
     }
+    clearInterval(clockTimer);
+    if (S.timed) { tickClock(); clockTimer = setInterval(tickClock, 1000); }
     actions.innerHTML = '';
     var hb = el('button', { class: 'ch-btn ch-btn--soft', type: 'button' }, [C.icon('bulb', 18), el('span', { text: C.t('hintKey') })]);
     hb.addEventListener('click', showHint);
@@ -794,10 +834,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
 
   function finish() {
     var elapsed = Date.now() - S.startedAt;
+    S.endedAt = Date.now();
+    clearInterval(clockTimer);
+    tickClock();
     var base = { small: 8, medium: 14, turtle: 22 }[S.layout] || 10;
     var clean = !S.hints && !S.undos && !S.shuffles;
     var coins = base + (clean ? 4 : 0) + (S.daily ? 8 : 0);
     var points = base * 4 + (S.daily ? 25 : 0);
+    // a point for every six seconds to spare, and a coin for every minute
+    var spare = S.timed ? Math.max(0, TIME_LIMIT[S.layout] - elapsed) : 0;
+    var bonus = Math.round(spare / 6000);
+    points += bonus;
+    coins += Math.floor(spare / 60000);
     C.achievements.unlock('mj-win');
     if (S.layout === 'turtle') C.achievements.unlock('mj-turtle');
     if (clean) C.achievements.unlock('mj-clean');
@@ -813,7 +861,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
         { label: C.t('time'), value: C.time(elapsed) },
         { label: C.t('hints'), value: C.num(S.hints) },
         { label: C.t('shuffle'), value: C.num(S.shuffles) }
-      ],
+      ].concat(S.timed ? [{ label: C.t('speedBonus'), value: bonus ? '+' + C.num(bonus) : C.t('timeUp') }] : []),
       shareText: 'چوگان · ماهجونگ' + (S.daily ? ('\nروزانه ' + S.daily) : '') + '\n' + C.time(elapsed),
       onAgain: S.daily ? null : function () { newGame(S.layout); }
     });
@@ -912,12 +960,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
     resizeT = setTimeout(function () { if (S) { build(); paint(); } }, 120);
   });
 
+  // time in the background is not time spent on the board, so the clock stops too
+  C.onPause(function () { if (!pausedAt) pausedAt = Date.now(); });
+  C.onResume(function () {
+    if (pausedAt && S && !S.done) S.startedAt += Date.now() - pausedAt;
+    pausedAt = 0;
+    tickClock();
+  });
+
   /* ---------------------------------------------------------- شروع */
 
   function restore(v) {
     S = v;
     S.startedAt = Date.now() - (v.elapsed || 0);
     sel = -1; hint = null; cur = -1;
+    timeUpShown = S.timed && timeLeft() <= 0;
     build();
     render();
   }
