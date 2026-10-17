@@ -17,6 +17,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 CHANNEL="${TELEGRAM_CHANNEL:-@chogan_games}"
+# Overridable only so the test can point the real curl at a local server
+API="${TELEGRAM_API:-https://api.telegram.org}"
 DRY="${DRY_RUN:-0}"
 SHOTS="${SHOTS_DIR:-$(mktemp -d)}"
 
@@ -35,7 +37,10 @@ api() {  # api <method> [curl args...]; prints Telegram's JSON, never the token
   local method="$1"; shift
   local r
   for attempt in 1 2 3; do
-    r=$(curl -s --max-time 120 "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/$method" "$@") || r='{"ok":false,"description":"could not reach Telegram"}'
+    local rc=0
+    r=$(curl -s --max-time 120 "$API/bot${TELEGRAM_BOT_TOKEN}/$method" "$@") || rc=$?
+    # curl's own failure, e.g. 26 when a -F value starting with @ was read as a file (#267)
+    [ "$rc" -eq 0 ] || r="{\"ok\":false,\"description\":\"curl failed with exit code $rc\"}"
     # Channels take about 20 posts a minute; on 429 wait as long as Telegram asks
     local wait; wait=$(printf '%s' "$r" | sed -n 's/.*"retry_after":\([0-9]*\).*/\1/p')
     if [ -n "$wait" ]; then sleep $((wait + 1)); continue; fi
@@ -94,7 +99,7 @@ post() {
     local ids=(); mapfile -t ids <<< "$games"
     if [ "${#ids[@]}" -eq 1 ]; then
       # An album needs at least two pictures
-      check "$tag" "$(api sendPhoto -F "chat_id=$CHANNEL" -F "photo=@$SHOTS/${ids[0]}.png" -F "caption=$(game_name "$tag" "${ids[0]}")")"
+      check "$tag" "$(api sendPhoto --form-string "chat_id=$CHANNEL" -F "photo=@$SHOTS/${ids[0]}.png" --form-string "caption=$(game_name "$tag" "${ids[0]}")")"
     else
       # An album takes 2 to 10 pictures, so eleven games go out as 6 + 5, not 10 + 1
       local n=${#ids[@]} i=0 size
@@ -107,7 +112,7 @@ post() {
           media="$media{\"type\":\"photo\",\"media\":\"attach://p$j\",\"caption\":$cap}"
           files+=(-F "p$j=@$SHOTS/${ids[$j]}.png")
         done
-        check "$tag" "$(api sendMediaGroup -F "chat_id=$CHANNEL" -F "media=$media]" "${files[@]}")"
+        check "$tag" "$(api sendMediaGroup --form-string "chat_id=$CHANNEL" --form-string "media=$media]" "${files[@]}")"
         i=$((i + size))
       done
     fi
@@ -135,7 +140,7 @@ case "${1:-}" in
     echo "Deleted message $2" ;;
   --set-photo)
     [ "$DRY" = "1" ] && { echo "Would set the channel photo to www/icon-512.png"; exit 0; }
-    check "the channel photo (the bot needs the 'Change channel info' right)" "$(api setChatPhoto -F "chat_id=$CHANNEL" -F "photo=@www/icon-512.png")"
+    check "the channel photo (the bot needs the 'Change channel info' right)" "$(api setChatPhoto --form-string "chat_id=$CHANNEL" -F "photo=@www/icon-512.png")"
     echo "Channel photo set" ;;
   v*) post "$1" ;;
   *) echo "Usage: tools/telegram-post.sh <tag> | --history | --delete <id> | --set-photo" >&2; exit 2 ;;
