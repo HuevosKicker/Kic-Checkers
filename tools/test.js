@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2869;
+const MIN_CHECKS = 2874;
 
 function ok(cond, msg) {
   checks++;
@@ -3991,6 +3991,21 @@ function testAwardToasts() {
   ok(/pointer-events: auto;/.test(toast), 'a notice receives touches although its host lets them through');
 }
 
+// #238: the rival led every game for a player who restarted games, the shuffle was
+// silent and its card backs were too small to show the pattern
+function testPasurLead() {
+  head('Pasur lead and shuffle');
+  const page = fs.readFileSync(path.join(ROOT, 'www/games/pasur/index.html'), 'utf8');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const ng = page.slice(page.indexOf('  function newGame(level, daily) {'), page.indexOf('\n  }\n', page.indexOf('  function newGame(level, daily) {')));
+  ok(/var first = daily \? 0 : prefs\.next;/.test(ng) && /if \(!daily\) \{ prefs\.next = 1 - first; ctx\.store\.set\('prefs', prefs\); \}/.test(ng), 'every new ordinary game flips who leads, finished or not; the daily is always yours');
+  ok(!/prefs\.games % 2\);\n    S = E\.newDeal/.test(page) && /note = C\.t\(first \? 'rivalStarts' : 'youStart'\);/.test(ng), 'the lead no longer follows the finished-game count, and the table says who leads');
+  ok(/    riffle: function \(\) \{/.test(core) && /C\.audio\.sfx\('riffle'\);/.test(page), 'the shuffle plays a riffle sound');
+  ok(/\.ps-shuffle \.ch-pback \{ position: absolute; width: calc\(var\(--cw\) \* 1\.5\); \}/.test(page), 'the shuffling backs are drawn large');
+  const miss = ['youStart', 'rivalStarts'].filter((k) => (page.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < 4);
+  ok(!miss.length, 'lead strings in all four languages' + (miss.length ? ' (' + miss.join(', ') + ')' : ''));
+}
+
 /* ------------------------------------------------------------- پاسور */
 function testPasur() {
   head('پاسور');
@@ -5651,6 +5666,7 @@ testMahjongClack();
 testMahjongTimed();
 testBlackjack();
 testAwardToasts();
+testPasurLead();
 testTd();
 testVersionStamp();
 testDeployGate();
