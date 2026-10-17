@@ -1,2 +1,5 @@
-Chess: promoting a pawn works again on Android; the piece picker no longer closes on the same tap that opens it. The board also stays still while the move list grows.
-Pasur: you now see the card your rival plays, and the cards it takes are highlighted for a moment before they leave the table.
+Bug fixes:
+- Chess: promoting a pawn works again on Android
+- Chess: the board stays still while the move list grows
+Improvements:
+- Pasur: you see the card your rival plays, and the cards it takes are highlighted before they leave the table

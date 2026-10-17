@@ -1,2 +1,3 @@
-Minesweeper: on phones narrower than the board, the last columns were off-screen with nothing showing it, so the visible edge looked like the end of the board and its numbers seemed wrong. The hidden side now fades out and shows an arrow until you scroll to it.
-FreeCell: on wide screens, cards being dragged are no longer cut off at the edge of the board.
+Bug fixes:
+- Minesweeper: on narrow phones the last columns were hidden with nothing showing it; the hidden side now fades out with an arrow until you scroll to it
+- FreeCell: dragged cards are no longer cut off on wide screens

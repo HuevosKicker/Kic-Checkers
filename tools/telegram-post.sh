@@ -50,23 +50,19 @@ check() {  # check <what> <json>
 }
 
 text_for() {
-  local tag="$1" version code notes day games names=""
+  local tag="$1" version code file day
   version=$(field "$tag" APP_VERSION); code=$(field "$tag" APP_VERSION_CODE)
-  notes=$(git show "$tag:fastlane/metadata/android/en-US/changelogs/$code.txt" 2>/dev/null) \
-    || { echo "No English changelog for $tag (version code $code)" >&2; exit 2; }
-  # One changelog line is one feature; the owner wants them as bullets in the channel
-  notes=$(printf '%s\n' "$notes" | sed -e 's/^[[:space:]]*[-*•][[:space:]]*//' -e '/^[[:space:]]*$/d' -e 's/^/• /')
-  day=$(LC_ALL=C date -u -d "$(git log -1 --format=%cI "$tag")" '+%-d %B %Y')
-  games=$(new_games "$tag")
-  if [ -n "$games" ]; then
-    while read -r id; do names="${names:+$names, }$(game_name "$tag" "$id")"; done <<< "$games"
-    names="
-New games: $names"
+  # The checked-out changelog wins over the tag's: old releases were rewritten
+  # into sections afterwards (#265), and a new tag carries its own file anyway
+  file="fastlane/metadata/android/en-US/changelogs/$code.txt"
+  if [ ! -f "$file" ]; then
+    file=$(mktemp)
+    git show "$tag:fastlane/metadata/android/en-US/changelogs/$code.txt" > "$file" 2>/dev/null \
+      || { echo "No English changelog for $tag (version code $code)" >&2; exit 2; }
   fi
-  # Plain text, no parse_mode: a changelog character taken as markup would get the post refused
-  printf '%s' "Chogan $version · $day$names
-
-$notes"
+  day=$(LC_ALL=C date -u -d "$(git log -1 --format=%cI "$tag")" '+%-d %B %Y')
+  # HTML for bold headings; the formatter escapes the changelog text
+  printf '%s\n\n%s' "<b>Chogan $version</b> · $day" "$(python3 tools/release-notes.py --html "$file")"
 }
 # The links are buttons under the post (owner's wish); an album cannot carry
 # buttons, so a release with new games sends its pictures first and this after
@@ -117,7 +113,8 @@ post() {
     fi
   fi
   check "$tag" "$(api sendMessage --data-urlencode "chat_id=$CHANNEL" --data-urlencode "text=$text" \
-    --data-urlencode "link_preview_options=$(cover_for "$tag")" --data-urlencode "reply_markup=$buttons")"
+    --data-urlencode "parse_mode=HTML" --data-urlencode "link_preview_options=$(cover_for "$tag")" \
+    --data-urlencode "reply_markup=$buttons")"
   echo "Posted $tag${games:+ with pictures}"
 }
 

@@ -1,5 +1,10 @@
-New games: Way Out (send every arrow off the board in the right order) and Blackjack (ten hands against the dealer, no betting).
-Tower Defence: three new maps, picked from a list with your stars.
-Mahjong: painted flowers and seasons, a tile click and spark on every match, and an optional timed mode.
-Pasur: the lead now alternates every game, with a shuffle sound.
-Award notices stay longer; right-click no longer opens the browser menu.
+New games:
+- Way Out: send every arrow off the board in the right order
+- Blackjack: ten hands against the dealer, no betting
+Bug fixes:
+- Right-click no longer opens the browser menu
+Improvements:
+- Tower Defence: three new maps, picked from a list with your stars
+- Mahjong: painted flowers and seasons, a click and spark on every match, an optional timed mode
+- Pasur: the lead alternates every game, with a shuffle sound
+- Award notices stay longer

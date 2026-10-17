@@ -1,4 +1,6 @@
-Tower Defence: two more upgrade levels with a preview of what each one gives, an Auto switch that starts the next wave by itself, shots you can see fly and land, clearer tower icons and small map thumbnails in the picker.
-Profile: characters and palettes come first, four to a row.
-Way Out: a struck arrow turns red along its whole body.
-Dialog buttons keep their labels on one line.
+Bug fixes:
+- Way Out: a struck arrow turns red along its whole body
+- Dialog buttons keep their labels on one line
+Improvements:
+- Tower Defence: two more upgrade levels with a preview, an Auto switch for the next wave, shots you can see, clearer tower icons and map thumbnails
+- Profile: characters and palettes come first, four to a row
