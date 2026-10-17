@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2799;
+const MIN_CHECKS = 2806;
 
 function ok(cond, msg) {
   checks++;
@@ -3837,6 +3837,27 @@ function testWayOutPromises() {
   ok(JSON.stringify(a) === JSON.stringify(b), 'the daily board (level 20 from the day\'s seed) is the same on every device');
 }
 
+// Owner feedback (#229): the heads had sharp corners and the accent was a loud magenta
+function testWayOutLook() {
+  head('Way Out look');
+  const page = fs.readFileSync(path.join(ROOT, 'www/games/wayout/index.html'), 'utf8');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/wayout/icon.svg'), 'utf8');
+  ok(/\.wo-head path \{[^}]*stroke: var\(--game\);[^}]*stroke-linejoin: round;/.test(page), 'board heads are stroked with round joins');
+  ok(['struck', 'bad', 'chain'].every((k) => new RegExp('\\.wo-arrow--' + k + ' \\.wo-head path \\{ fill: ([^;]+); stroke: \\1; \\}').test(page)), 'coloured heads change fill and stroke together');
+  const heads = icon.match(/<path d="M[^"]*z"[^>]*>/g) || [];
+  ok(heads.length === 3 && heads.every((h) => /stroke-linejoin="round"/.test(h)), 'the icon\'s three heads have round corners');
+  ok((page.match(/l-1[0-9] -?[0-9]+v[0-9]+z" fill="' \+ col \+ '" stroke="' \+ col \+ '"[^>]*stroke-linejoin="round"/g) || []).length === 1, 'tutorial heads are drawn with round joins');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const sat = (hex) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255); const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; return mx === mn ? 0 : (mx - mn) / (1 - Math.abs(2 * l - 1)); };
+  const wo = games.find((g) => g.id === 'wayout');
+  // The magenta #B34DAF had saturation 0.40; the owner asked for a calmer, greyer tone like
+  // mancala (0.25) or morris (0.31), so the bar is the calmer of those two
+  ok(!!wo && sat(wo.color) <= 0.25, 'the accent is a muted tone, saturation at most 0.25 (' + (wo ? sat(wo.color).toFixed(2) : '-') + ')');
+  ok(!!wo && /accent: '([^']+)'/.test(page) && page.match(/accent: '([^']+)'/)[1] === wo.color && icon.indexOf(wo.color) > 0, 'page accent, games.json and icon use the same colour');
+  const lum = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  ok(!!wo && 1.05 / (lum(wo.color) + 0.05) >= 4.5, 'white text on the accent keeps 4.5:1 (' + (wo ? (1.05 / (lum(wo.color) + 0.05)).toFixed(2) : '-') + ')');
+}
+
 /* ------------------------------------------------------------- پاسور */
 function testPasur() {
   head('پاسور');
@@ -5490,6 +5511,7 @@ testHokm();
 testBlockDrop();
 testWayOut();
 testWayOutPromises();
+testWayOutLook();
 testTd();
 testVersionStamp();
 testDeployGate();
