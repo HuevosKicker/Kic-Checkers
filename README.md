@@ -33,6 +33,7 @@ Ways to play:
 | Chess | Two players or three levels of AI, plus 600 puzzles; the daily challenge is three puzzles |
 | Hokm | Four players in two teams, you and three AI players at three levels, matches to 3 or 7 |
 | Block Drop | Falling blocks: a 40-line sprint and a 100-line marathon, with hold and three next pieces |
+| Gomoku | Five in a row on a 9, 13 or 15 board, two players or three levels of AI, and a daily game |
 
 Around the games: a daily challenge that is identical on every device with no server at all, a weekly offline league with five tiers, nearly eighty awards, a shared coin that is only ever spent on hints and cosmetics, stats and a profile, and a Persian, English, Simplified Chinese and German interface with light and dark themes.
 
@@ -118,6 +119,7 @@ MIT, see [LICENSE](LICENSE). The Vazirmatn font is under the OFL; its licence te
 | شطرنج | دو نفره یا مقابل هوش مصنوعی با سه سطح، به‌علاوه‌ی ۶۰۰ معما؛ چالش روزانه سه معماست |
 | حکم | چهار نفر در دو تیم، تو و سه بازیکن هوش مصنوعی با سه سطح، بازی تا ۳ یا ۷ |
 | بلوک‌ریز | بلوک‌های ریزان: سرعتی ۴۰ خط و ماراتن ۱۰۰ خط، با نگه داشتن قطعه و سه قطعه‌ی بعدی |
+| گوموکو | پنج در یک خط روی تخته‌ی ۹، ۱۳ یا ۱۵، دو نفره یا مقابل ربات با سه سطح، و بازی روزانه |
 
 بیرون از بازی‌ها: چالش روزانه‌ی مشترک برای همه‌ی دستگاه‌ها بدون هیچ سروری، لیگ هفتگی آفلاین با پنج رده، نزدیک هشتاد دستاورد، سکه‌ی مشترک که فقط خرج راهنمایی و تزئینات می‌شود، آمار و پروفایل، و رابط فارسی، انگلیسی، چینی ساده‌شده و آلمانی با تم روشن و تاریک.
 

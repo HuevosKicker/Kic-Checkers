@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2559;
+const MIN_CHECKS = 2621;
 
 function ok(cond, msg) {
   checks++;
@@ -4315,6 +4315,97 @@ function testPasurGone() {
   ok(!missing.length, 'panel strings exist in all four languages' + (missing.length ? ' (' + missing.join(', ') + ')' : ''));
 }
 
+/* ------------------------------------------------ Gomoku (#202) */
+// Built from PR #215. Its bot did not block open threes and lost in five moves to
+// itself, so the engine is checked on the shapes that decide a game, and the levels
+// are checked against each other by playing whole games.
+function testGomoku() {
+  head('Gomoku');
+  const E = loadEngine('gomoku', 'GomokuEngineFactory');
+  const n = 15, at = (r, c) => r * n + c;
+  const board = (stones) => { const b = E.emptyBoard(n); for (const [r, c, p] of stones) b[at(r, c)] = p; return b; };
+  ok(E.emptyBoard(n).length === 225 && E.SIZES.join(',') === '9,13,15', 'boards of 9, 13 and 15 lines');
+
+  // Five through the last stone in each of the four directions; four is not a win
+  for (const [dr, dc, name] of [[0, 1, 'horizontal'], [1, 0, 'vertical'], [1, 1, 'diagonal'], [1, -1, 'anti-diagonal']]) {
+    const five = [0, 1, 2, 3, 4].map((k) => [5 + dr * k, 7 + dc * k, 1]);
+    const b = board(five.slice(0, 4));
+    ok(E.winLine(b, n, at(five[3][0], five[3][1]), 1) === null, name + ': four in a row is not a win');
+    const res = E.applyMove(b, n, at(five[4][0], five[4][1]), 1);
+    ok(res.won && res.line.length === 5, name + ': the fifth stone wins and the line has five cells');
+    const mid = E.applyMove(board([five[0], five[1], five[3], five[4]]), n, at(five[2][0], five[2][1]), 1);
+    ok(mid.won, name + ': filling the gap in the middle also wins');
+  }
+  ok(!E.applyMove(board([[7, 3, 1], [7, 4, 1], [7, 5, 1], [7, 6, 2]]), n, at(7, 7), 1).won, 'a line broken by the opponent is not five');
+  ok(E.applyMove(board([[7, 3, 1], [7, 4, 1], [7, 6, 1], [7, 7, 1], [7, 8, 1]]), n, at(7, 5), 1).line.length === 6, 'six in a row also wins (free-style gomoku)');
+  ok(E.applyMove(board([[7, 7, 1]]), n, at(7, 7), 2) === null, 'an occupied crossing is refused');
+  const full = []; for (let i = 0; i < 81; i++) full.push(((i % 9) + ((i / 9) | 0) * 2) % 4 < 2 ? 1 : 2);
+  full[80] = 0;
+  const last = E.applyMove(full, 9, 80, full[79] === 1 ? 2 : 1);
+  ok(last && (last.won || last.draw), 'filling the last crossing ends the game');
+  ok(E.candidates(E.emptyBoard(n), n).join() === String(at(7, 7)), 'the first move is the centre');
+
+  for (const level of ['easy', 'medium', 'hard']) {
+    ok(E.think(board([[7, 3, 2], [7, 4, 2], [7, 5, 2], [7, 6, 2], [3, 3, 1], [3, 4, 1], [3, 5, 1], [3, 6, 1]]), n, 2, level, () => 0.99) === at(7, 7) ||
+      E.think(board([[7, 3, 2], [7, 4, 2], [7, 5, 2], [7, 6, 2], [3, 3, 1], [3, 4, 1], [3, 5, 1], [3, 6, 1]]), n, 2, level, () => 0.99) === at(7, 2), level + ': takes its own five before blocking');
+  }
+  for (const level of ['medium', 'hard']) {
+    const four = board([[7, 3, 1], [7, 4, 1], [7, 5, 1], [7, 6, 1], [6, 6, 2], [8, 8, 2], [5, 5, 2]]);
+    const m = E.think(four, n, 2, level);
+    ok(m === at(7, 7) || m === at(7, 2), level + ': blocks a four');
+    const three = board([[7, 5, 1], [7, 6, 1], [7, 7, 1], [9, 9, 2]]);
+    const b3 = E.think(three, n, 2, level);
+    ok([at(7, 4), at(7, 8), at(7, 3), at(7, 9)].includes(b3), level + ': closes an open three (' + ((b3 / n) | 0) + ',' + (b3 % n) + ')');
+  }
+
+  // Whole games between the levels, from seeded openings, each level taking both colours
+  const play = (a, b, seed) => {
+    const r = rng(seed);
+    let B = E.dailyOpening(r, n).board, p = 1, worst = 0;
+    for (let k = 0; k < n * n; k++) {
+      const t = Date.now();
+      const m = E.think(B, n, p, p === 1 ? a : b, r);
+      worst = Math.max(worst, Date.now() - t);
+      const res = E.applyMove(B, n, m, p);
+      if (!res) return { illegal: true, worst };
+      B = res.board;
+      if (res.won) return { w: p, worst };
+      if (res.draw) return { w: 0, worst };
+      p = 3 - p;
+    }
+    return { w: 0, worst };
+  };
+  const match = (x, y, games) => {
+    let xw = 0, yw = 0, illegal = 0, worst = 0;
+    for (let g = 0; g < games; g++) {
+      const xBlack = g % 2 === 0, res = play(xBlack ? x : y, xBlack ? y : x, 500 + g);
+      worst = Math.max(worst, res.worst);
+      if (res.illegal) illegal++;
+      else if (res.w && (res.w === 1) === xBlack) xw++;
+      else if (res.w) yw++;
+    }
+    return { xw, yw, illegal, worst };
+  };
+  const he = match('hard', 'easy', 12), me = match('medium', 'easy', 12), hm = match('hard', 'medium', 12);
+  ok(!he.illegal && !me.illegal && !hm.illegal, 'no level ever plays an illegal move');
+  ok(he.xw >= 10, 'hard beats easy in at least 10 of 12 games (' + he.xw + '-' + he.yw + ')');
+  ok(me.xw >= 10, 'medium beats easy in at least 10 of 12 games (' + me.xw + '-' + me.yw + ')');
+  ok(hm.xw > hm.yw, 'hard wins more games than medium (' + hm.xw + '-' + hm.yw + ')');
+  ok(Math.max(he.worst, me.worst, hm.worst) < 300, 'every bot move takes under 300 ms here (' + Math.max(he.worst, me.worst, hm.worst) + ' ms)');
+
+  const o1 = E.dailyOpening(rng(42), n), o2 = E.dailyOpening(rng(42), n);
+  ok(o1.board.join() === o2.board.join() && o1.turn === 1, 'the daily opening is the same for the same seed and black moves next');
+  ok(o1.board.filter((v) => v === 1).length === 2 && o1.board.filter((v) => v === 2).length === 2 &&
+    o1.moves.every((i) => Math.abs(((i / n) | 0) - 7) <= 2 && Math.abs(i % n - 7) <= 2), 'the opening is two stones each, near the centre');
+
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/gomoku/index.html'), 'utf8');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(/E\.dailyOpening\(C\.daily\('gomoku', o\.daily\)\.rng, n\)/.test(html), 'the daily game starts from the day\'s seed');
+  ok(/C\.stats\.daily\('gomoku', S\.daily/.test(html), 'a finished daily game is recorded');
+  ok(/id: 'gk-win'/.test(core) && /id: 'gk-hard'/.test(core) && /unlock\('gk-win'\)/.test(html) && /unlock\('gk-hard'\)/.test(html), 'both gomoku awards exist and are unlocked');
+  ok(!/C\.ui\.prompt/.test(html), 'no call to C.ui.prompt, which the core does not have');
+}
+
 /* ------------------------------------------------ Persian calendar in Persian (#213) */
 // The daily calendar drew Gregorian months even in Persian. The grid now follows
 // the Persian calendar there, while daily keys stay Gregorian (C.dateKey).
@@ -4913,6 +5004,7 @@ testMancala();
 testFreecell();
 testPeg();
 testReversi();
+testGomoku();
 testBackgammon();
 testMorris();
 testBattleship();
