@@ -440,6 +440,27 @@
       "soft": "#F5E6D3",
       "added": "2026-10-17",
       "files": []
+    },
+    {
+      "id": "go",
+      "name": {
+        "fa": "گو",
+        "en": "Go",
+        "zh": "围棋",
+        "de": "Go"
+      },
+      "summary": {
+        "fa": "گوی ۹×۹: زمین بگیر و اسیر کن، با ربات در سه سطح یا دو نفره.",
+        "en": "Go on a 9×9 board: surround territory and capture, against the AI on three levels or two players.",
+        "zh": "9×9 围棋：围地与提子，对战三个难度的电脑或双人对弈。",
+        "de": "Go auf 9×9: Gebiet umschließen und fangen, gegen die KI in drei Stufen oder zu zweit."
+      },
+      "path": "games/go/index.html",
+      "icon": "games/go/icon.svg",
+      "color": "#8A6A3B",
+      "soft": "#F1E4CC",
+      "added": "2026-10-17",
+      "files": []
     }
   ]
 }

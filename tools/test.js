@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2621;
+const MIN_CHECKS = 2672;
 
 function ok(cond, msg) {
   checks++;
@@ -4406,6 +4406,93 @@ function testGomoku() {
   ok(!/C\.ui\.prompt/.test(html), 'no call to C.ui.prompt, which the core does not have');
 }
 
+/* ------------------------------------------------ Go (#205) */
+// 9×9 go with area scoring. The rules that decide games (capture, suicide, ko,
+// counting) are checked on fixed positions; the bot by its answers and by play.
+function testGo() {
+  head('Go');
+  const E = loadEngine('go', 'GoEngineFactory');
+  const N = 9, at = (r, c) => r * N + c;
+  const pos = (stones, turn) => { const s = E.newState(); for (const [r, c, p] of stones) s.board[at(r, c)] = p; s.turn = turn || 1; return s; };
+  ok(E.N === 9 && E.KOMI === 6.5 && E.newState().turn === 1, '9×9, komi 6.5, black starts');
+
+  let s = pos([[3, 4, 1], [5, 4, 1], [4, 3, 1], [4, 4, 2]]);
+  ok(E.play(s, at(4, 5)) && s.board[at(4, 4)] === 0 && s.caps[1] === 1, 'closing the last liberty captures a stone');
+  s = pos([[0, 0, 2], [0, 1, 1]]);
+  ok(E.play(s, at(1, 0)) && s.board[0] === 0, 'a corner stone has two liberties and is captured');
+  s = pos([[3, 4, 2], [3, 5, 2], [4, 3, 1], [4, 6, 1], [2, 4, 1], [2, 5, 1], [3, 3, 1], [3, 6, 1]]);
+  ok(E.play(s, at(4, 4)) && E.play(s, E.PASS) && E.play(s, at(4, 5)) && s.board[at(3, 4)] === 0 && s.board[at(3, 5)] === 0 && s.caps[1] === 2, 'a two-stone group is captured together');
+  s = pos([[0, 1, 2], [1, 0, 2]]);
+  ok(!E.play(s, at(0, 0)) && s.board[0] === 0 && s.turn === 1, 'suicide is refused and changes nothing');
+  s = pos([[0, 1, 2], [1, 0, 2], [0, 2, 1], [1, 1, 1], [2, 0, 1]]);
+  ok(E.play(s, at(0, 0)) && s.board[at(0, 1)] === 0 && s.board[at(1, 0)] === 0, 'a move with no liberty is fine when it captures');
+
+  // Ko: black takes at (4,4); white may not take back at (4,3) at once
+  s = pos([[3, 3, 1], [5, 3, 1], [4, 2, 1], [3, 4, 2], [5, 4, 2], [4, 5, 2], [4, 3, 2]]);
+  ok(E.play(s, at(4, 4)) && s.board[at(4, 3)] === 0 && s.ko === at(4, 3), 'taking a single stone sets the ko point');
+  ok(!E.play(s, at(4, 3)), 'the ko stone cannot be retaken straight away');
+  ok(E.play(s, at(0, 8)) && E.play(s, at(8, 8)) && E.play(s, at(4, 3)) && s.board[at(4, 4)] === 0, 'after a move elsewhere the ko can be retaken');
+
+  s = E.newState();
+  ok(E.play(s, E.PASS) && E.play(s, E.PASS) && s.passes === 2, 'two passes in a row end the game');
+  ok(E.score(E.newState().board).black === 0 && E.score(E.newState().board).white === 6.5, 'an empty board scores 0 to 6.5');
+  const wall = pos([]);
+  for (let r = 0; r < 9; r++) { wall.board[at(r, 4)] = 1; wall.board[at(r, 5)] = 2; }
+  const sw = E.score(wall.board);
+  ok(sw.black === 45 && sw.white === 42.5 && sw.winner === 1, 'area counts stones plus surrounded points (45 to 36 + 6.5)');
+  ok(E.isEye(pos([[3, 4, 1], [5, 4, 1], [4, 3, 1], [4, 5, 1]]).board, at(4, 4), 1) &&
+    !E.isEye(pos([[3, 4, 1], [5, 4, 1], [4, 3, 1], [4, 5, 1], [3, 3, 2], [5, 5, 2]]).board, at(4, 4), 1), 'an eye with two enemy diagonals is a false eye');
+
+  // A hopeless stone left in the opponent's area at the end is counted as dead
+  const end = pos([]);
+  for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) end.board[at(r, c)] = c <= 4 ? 1 : 2;
+  for (const [r, c] of [[1, 1], [4, 3], [7, 2], [1, 7], [4, 6], [7, 7]]) end.board[at(r, c)] = 0;
+  end.board[at(4, 2)] = 2;
+  const f = E.finalScore(end, rng(7), 200);
+  ok(f.dead.length === 1 && f.dead[0] === at(4, 2), 'the lone white stone in black\'s area is dead (' + f.dead.join(',') + ')');
+  ok(f.black === 45 && f.white === 42.5 && f.winner === 1, 'and the whole left side counts for black after removal (' + f.black + ' to ' + f.white + ')');
+
+  // The bot: takes a big capture, never plays an illegal move, passes when only its own eyes are left
+  const atari = pos([[2, 3, 2], [2, 4, 2], [2, 5, 2], [1, 3, 1], [1, 4, 1], [1, 5, 1], [2, 2, 1], [3, 3, 1], [3, 4, 1], [3, 5, 1], [6, 6, 2]], 1);
+  ok(E.think(atari, 'medium', rng(3)) === at(2, 6), 'medium captures three stones in atari');
+  const eyes = pos([]);
+  for (let i = 0; i < 81; i++) eyes.board[i] = 1;
+  eyes.board[at(2, 2)] = 0; eyes.board[at(6, 6)] = 0;
+  ok(E.think(eyes, 'easy', rng(1)) === E.PASS, 'with only its own eyes left the bot passes');
+
+  const play = (a, b, seed) => {
+    const r = rng(seed), g = E.newState();
+    let illegal = 0;
+    while (g.passes < 2 && g.moves < 200) {
+      const lv = g.turn === 1 ? a : b, m = E.think(g, lv[0], r, lv[1]);
+      if (!E.play(g, m)) { illegal++; E.play(g, E.PASS); }
+    }
+    return { w: E.score(g.board).winner, illegal };
+  };
+  let strong = 0, weak = 0, bad = 0;
+  for (let k = 0; k < 4; k++) {
+    const strongBlack = k % 2 === 0, res = play(strongBlack ? ['medium', 400] : ['easy'], strongBlack ? ['easy'] : ['medium', 400], 900 + k);
+    bad += res.illegal;
+    if ((res.w === 1) === strongBlack) strong++; else weak++;
+  }
+  ok(bad === 0, 'no illegal move in four whole games');
+  ok(strong >= 3, 'a 400-playout bot beats easy in at least 3 of 4 games (' + strong + '-' + weak + ')');
+  ok(E.BUDGET.easy < E.BUDGET.medium && E.BUDGET.medium < E.BUDGET.hard, 'the levels differ by playout budget');
+  let t0 = Date.now();
+  E.think(E.newState(), 'hard', rng(5));
+  const hardMs = Date.now() - t0;
+  ok(hardMs < 2000, 'a hard opening move takes under 2 s here (' + hardMs + ' ms)');
+
+  const o1 = E.dailyOpening(rng(11)), o2 = E.dailyOpening(rng(11));
+  ok(o1.board.join() === o2.board.join() && o1.turn === 1 && o1.board.filter((v) => v).length === 4, 'the daily opening is four stones, the same for the same seed, black to move');
+
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/go/index.html'), 'utf8');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(/E\.dailyOpening\(C\.daily\('go', o\.daily\)\.rng\)/.test(html) && /C\.stats\.daily\('go', S\.daily/.test(html), 'the daily game starts from the day\'s seed and is recorded');
+  ok(/E\.finalScore\(S\.g, rnd, 300\)/.test(html), 'the game is counted with dead stones removed');
+  ok(/id: 'go-win'/.test(core) && /id: 'go-hard'/.test(core) && /unlock\('go-win'\)/.test(html) && /unlock\('go-hard'\)/.test(html), 'both go awards exist and are unlocked');
+}
+
 /* ------------------------------------------------ Persian calendar in Persian (#213) */
 // The daily calendar drew Gregorian months even in Persian. The grid now follows
 // the Persian calendar there, while daily keys stay Gregorian (C.dateKey).
@@ -5005,6 +5092,7 @@ testFreecell();
 testPeg();
 testReversi();
 testGomoku();
+testGo();
 testBackgammon();
 testMorris();
 testBattleship();
