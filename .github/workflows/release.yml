@@ -146,3 +146,18 @@ jobs:
             fi
           fi
           gh release upload "$GITHUB_REF_NAME" "$APK" "$APK.sha256" --clobber
+
+  # English-speaking players follow updates on Telegram (#258). Runs after the
+  # release is out, so a refused post fails only this job, never the release.
+  announce:
+    name: Post the release to Telegram
+    runs-on: ubuntu-latest
+    needs: apk
+    if: ${{ !endsWith(github.ref_name, '-test') }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+      - name: Post to the channel
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: tools/telegram-post.sh "$GITHUB_REF_NAME"

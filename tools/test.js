@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3063;
+const MIN_CHECKS = 3076;
 
 function ok(cond, msg) {
   checks++;
@@ -5745,6 +5745,38 @@ function testMenuSelect() {
   ok(/body\.ch-menu input, body\.ch-menu textarea[^{]*\{[^}]*\buser-select: text;/.test(css), 'fields inside the menu stay selectable');
 }
 
+/* ------------------------------------------------ Telegram release post (#258) */
+// English-speaking players had no way to hear about a release.
+function testTelegramPost() {
+  head('Releases are posted to the Telegram channel (#258)');
+  const script = path.join(ROOT, 'tools/telegram-post.sh');
+  ok(fs.existsSync(script), 'tools/telegram-post.sh exists');
+  if (!fs.existsSync(script)) return;
+  const vjs = fs.readFileSync(path.join(ROOT, 'www/version.js'), 'utf8');
+  const version = (vjs.match(/APP_VERSION = '([^']+)'/) || [])[1];
+  const code = (vjs.match(/APP_VERSION_CODE = (\d+)/) || [])[1];
+  const notes = fs.readFileSync(path.join(ROOT, 'fastlane/metadata/android/en-US/changelogs', code + '.txt'), 'utf8').trim();
+  const env = Object.assign({}, process.env, { DRY_RUN: '1', TELEGRAM_BOT_TOKEN: '' });
+  const dry = spawnSync('bash', [script, 'v' + version], { cwd: ROOT, env, encoding: 'utf8' });
+  ok(dry.status === 0, 'a dry run for the current tag exits 0 (' + dry.status + ')');
+  const out = dry.stdout || '';
+  ok(out.indexOf('To @chogan_games:') === 0 && out.indexOf('Chogan ' + version + ' is out') > 0, 'the message goes to @chogan_games and names the version');
+  ok(notes.length > 0 && out.indexOf(notes) > 0, 'the message carries this version\'s English changelog');
+  ok(['https://choganhq.github.io/chogan/', 'https://github.com/choganhq/chogan/releases/tag/v' + version, 'https://f-droid.org/packages/io.github.choganhq.chogan/'].every((u) => out.indexOf(u) > 0), 'the message links the web, the release and F-Droid');
+  const wrong = spawnSync('bash', [script, 'v0.0.0'], { cwd: ROOT, env, encoding: 'utf8' });
+  ok(wrong.status === 2 && /does not match/.test(wrong.stderr), 'a tag that is not the checked-out version cannot be posted (exit 2)');
+  const noTok = spawnSync('bash', [script, 'v' + version], { cwd: ROOT, env: Object.assign({}, env, { DRY_RUN: '0' }), encoding: 'utf8' });
+  ok(noTok.status === 2 && /TELEGRAM_BOT_TOKEN is not set/.test(noTok.stderr), 'without the token it says so and exits 2 instead of passing');
+  const src = fs.readFileSync(script, 'utf8');
+  ok(!/(echo|printf)[^\n]*TELEGRAM_BOT_TOKEN\}/.test(src) && !/set -[a-z]*x/.test(src), 'the token is never printed');
+  const rel = fs.readFileSync(path.join(ROOT, '.github/workflows/release.yml'), 'utf8');
+  const job = rel.slice(rel.indexOf('\n  announce:'));
+  ok(job.length > 20 && /needs: apk/.test(job) && /!endsWith\(github\.ref_name, '-test'\)/.test(job), 'release.yml posts after the APK is published, never for -test tags');
+  ok(/TELEGRAM_BOT_TOKEN: \$\{\{ secrets\.TELEGRAM_BOT_TOKEN \}\}/.test(job) && /tools\/telegram-post\.sh "\$GITHUB_REF_NAME"/.test(job), 'the announce job passes the secret and the tag');
+  const man = fs.readFileSync(path.join(ROOT, '.github/workflows/telegram.yml'), 'utf8');
+  ok(/workflow_dispatch:/.test(man) && /dry_run:[\s\S]*?default: true/.test(man), 'the manual workflow exists and defaults to a dry run');
+}
+
 function testModalFocus() {
   head('Dialogs focus their primary action (#210)');
   // The game-over dialog focused Share, its first button, so Enter shared
@@ -5833,6 +5865,7 @@ testMenu();
 testKeyboardNav();
 testMenuSelect();
 testModalFocus();
+testTelegramPost();
 
 testSw().then(testVerifyDeploy).then(testPlayApi).then(function () {
   head('کامل بودن اجرا');

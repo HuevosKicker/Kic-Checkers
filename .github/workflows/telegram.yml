@@ -1,0 +1,41 @@
+name: Telegram post
+
+# Posts (or re-posts) a release's English changelog to the Telegram channel by
+# hand, e.g. for a release cut before the automatic post existed (#258). Every
+# new tag is posted by the announce job in release.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to announce, e.g. v0.5.2'
+        required: true
+        type: string
+      dry_run:
+        description: 'Only print the message'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  post:
+    name: Post ${{ inputs.tag }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+      - name: Post to the channel
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          # The script lives on main; an older tag may not have it yet.
+          git fetch --no-tags --depth=1 origin main
+          git show origin/main:tools/telegram-post.sh > "$RUNNER_TEMP/telegram-post.sh"
+          bash "$RUNNER_TEMP/telegram-post.sh" "$TAG"
