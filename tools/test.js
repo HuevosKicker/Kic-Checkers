@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3079;
+const MIN_CHECKS = 3091;
 
 function ok(cond, msg) {
   checks++;
@@ -5754,33 +5754,64 @@ function testMenuSelect() {
 /* ------------------------------------------------ Telegram release post (#258) */
 // English-speaking players had no way to hear about a release.
 function testTelegramPost() {
-  head('Releases are posted to the Telegram channel (#258)');
+  head('Releases are posted to the Telegram channel (#258, #263)');
   const script = path.join(ROOT, 'tools/telegram-post.sh');
-  ok(fs.existsSync(script), 'tools/telegram-post.sh exists');
+  ok(fs.existsSync(script) && fs.existsSync(path.join(ROOT, 'tools/game-shots.sh')), 'tools/telegram-post.sh and tools/game-shots.sh exist');
   if (!fs.existsSync(script)) return;
-  const vjs = fs.readFileSync(path.join(ROOT, 'www/version.js'), 'utf8');
-  const version = (vjs.match(/APP_VERSION = '([^']+)'/) || [])[1];
-  const code = (vjs.match(/APP_VERSION_CODE = (\d+)/) || [])[1];
-  const notes = fs.readFileSync(path.join(ROOT, 'fastlane/metadata/android/en-US/changelogs', code + '.txt'), 'utf8').trim();
+  const tags = (spawnSync('git', ['tag', '-l', 'v*', '--sort=v:refname'], { cwd: ROOT, encoding: 'utf8' }).stdout || '').split('\n').filter((t) => t && !/-test$/.test(t));
+  ok(tags.length >= 25, 'release tags are present (' + tags.length + '; CI must check out with fetch-depth: 0)');
+  if (!tags.length) return;
   const env = Object.assign({}, process.env, { DRY_RUN: '1', TELEGRAM_BOT_TOKEN: '' });
-  const dry = spawnSync('bash', [script, 'v' + version], { cwd: ROOT, env, encoding: 'utf8' });
-  ok(dry.status === 0, 'a dry run for the current tag exits 0 (' + dry.status + ')');
-  const out = dry.stdout || '';
-  ok(out.indexOf('To @chogan_games:') === 0 && out.indexOf('Chogan ' + version + ' is out') > 0, 'the message goes to @chogan_games and names the version');
-  ok(notes.length > 0 && out.indexOf(notes) > 0, 'the message carries this version\'s English changelog');
-  ok(['https://choganhq.github.io/chogan/', 'https://github.com/choganhq/chogan/releases/tag/v' + version, 'https://f-droid.org/packages/io.github.choganhq.chogan/'].every((u) => out.indexOf(u) > 0), 'the message links the web, the release and F-Droid');
-  const wrong = spawnSync('bash', [script, 'v0.0.0'], { cwd: ROOT, env, encoding: 'utf8' });
-  ok(wrong.status === 2 && /does not match/.test(wrong.stderr), 'a tag that is not the checked-out version cannot be posted (exit 2)');
-  const noTok = spawnSync('bash', [script, 'v' + version], { cwd: ROOT, env: Object.assign({}, env, { DRY_RUN: '0' }), encoding: 'utf8' });
+  const run = (args, extra) => spawnSync('bash', [script].concat(args), { cwd: ROOT, env: Object.assign({}, env, extra || {}), encoding: 'utf8' });
+  // The history is the channel's changelog: every release once, oldest first
+  const hist = run(['--history']);
+  ok(hist.status === 0, 'a dry run of the history exits 0 (' + hist.status + ')');
+  const posted = ((hist.stdout || '').match(/^=== (v\S+)/gm) || []).map((l) => l.slice(4));
+  ok(posted.join() === tags.join(), 'the history posts every release once, oldest first (' + posted.length + ' of ' + tags.length + ')');
+  const block = (t) => ((hist.stdout || '').split(/^(?==== )/m).find((b) => b.indexOf('=== ' + t + ' ') === 0) || '');
+  // A release that added games shows a picture of each: the git diff of games.json decides which
+  ok(/with pictures: tower-defence sudoku minesweeper dots\n/.test(block('v0.1.0')), 'the first release shows its four games');
+  ok(/with pictures: backgammon battleship breakout bridges freecell mancala mastermind morris nonogram peg reversi\n/.test(block('v0.3.0')), '0.3.0 shows its eleven new games (two albums)');
+  ok(/with pictures: blackjack wayout\n/.test(block('v0.5.1')) && /New games: Blackjack, Way Out/.test(block('v0.5.1')), '0.5.1 shows and names Blackjack and Way Out');
+  ok(!/with pictures/.test(block('v0.5.2')) && !/New games/.test(block('v0.5.2')), 'a release without new games is plain text');
+  ok(/^Chogan 0\.5\.1 · 17 October 2026$/m.test(block('v0.5.1')), 'each post names its version and real release date');
+  const vjs = (t) => spawnSync('git', ['show', t + ':www/version.js'], { cwd: ROOT, encoding: 'utf8' }).stdout;
+  const code = (vjs('v0.5.1').match(/APP_VERSION_CODE = (\d+)/) || [])[1];
+  const notes = spawnSync('git', ['show', 'v0.5.1:fastlane/metadata/android/en-US/changelogs/' + code + '.txt'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim();
+  const bullets = notes.split('\n').filter((l) => l.trim()).map((l) => '• ' + l.trim()).join('\n');
+  ok(notes.length > 0 && block('v0.5.1').indexOf(bullets) > 0, 'the post carries that release\'s English changelog, one bullet per line');
+  ok(tags.every((t) => !/\n• [-*•] /.test(block(t))), 'no doubled bullet where a changelog line already had one');
+  // The links are buttons (owner's wish), so they must parse as Telegram's inline keyboard
+  const btnLine = (block('v0.5.1').match(/^\[buttons\] (.*)$/m) || [])[1] || '';
+  let kb = null; try { kb = JSON.parse(btnLine); } catch (e) { kb = null; }
+  const urls = kb && Array.isArray(kb.inline_keyboard) ? [].concat(...kb.inline_keyboard).map((b) => b.text && b.url) : [];
+  ok(urls.join() === ['https://choganhq.github.io/chogan/', 'https://github.com/choganhq/chogan/releases/tag/v0.5.1', 'https://f-droid.org/packages/io.github.choganhq.chogan/'].join(), 'the post has buttons for the web, this release and F-Droid');
+  ok(!/https?:\/\//.test(block('v0.5.1').replace(/^\[(buttons|cover)\].*$/gm, '')), 'no bare links in the text; they are buttons');
+  let cover = null; try { cover = JSON.parse((block('v0.5.1').match(/^\[cover\] (.*)$/m) || [])[1]); } catch (e) { cover = null; }
+  ok(!!cover && cover.url === 'https://github.com/choganhq/chogan/releases/tag/v0.5.1' && cover.prefer_large_media === true && cover.show_above_text === true, 'the cover is the release\'s GitHub card, large, above the text');
+  const long = tags.filter((t) => block(t).replace(/^(===|\[buttons\]|\[cover\]).*$/gm, '').trim().length > 4096);
+  ok(!long.length, 'every post fits Telegram\'s 4096-character message' + (long.length ? ' (' + long.join(', ') + ')' : ''));
+  // Telegram takes 2 to 10 pictures an album; eleven new games once went out as 10 + 1
+  const sizeExpr = ((fs.readFileSync(script, 'utf8').match(/size=\$\(\( (.*) \)\)/) || [])[1] || '');
+  const splits = [];
+  for (let n = 2; n <= 40; n++) {
+    const size = Number(spawnSync('bash', ['-c', 'n=' + n + '; echo $(( ' + sizeExpr + ' ))'], { encoding: 'utf8' }).stdout);
+    const groups = []; for (let i = 0; i < n; i += size) groups.push(Math.min(size, n - i));
+    if (!(size > 0) || groups.some((g) => g < 2 || g > 10)) splits.push(n + ':' + groups.join('+'));
+  }
+  ok(sizeExpr.length > 0 && !splits.length, 'every album has 2 to 10 pictures, for 2 to 40 new games' + (splits.length ? ' (' + splits.join(', ') + ')' : ''));
+  const wrong = run(['v0.0.0']);
+  ok(wrong.status === 2 && /No release tag/.test(wrong.stderr), 'an unknown tag cannot be posted (exit 2)');
+  const noTok = run(['v0.5.2'], { DRY_RUN: '0' });
   ok(noTok.status === 2 && /TELEGRAM_BOT_TOKEN is not set/.test(noTok.stderr), 'without the token it says so and exits 2 instead of passing');
   const src = fs.readFileSync(script, 'utf8');
   ok(!/(echo|printf)[^\n]*TELEGRAM_BOT_TOKEN\}/.test(src) && !/set -[a-z]*x/.test(src), 'the token is never printed');
   const rel = fs.readFileSync(path.join(ROOT, '.github/workflows/release.yml'), 'utf8');
   const job = rel.slice(rel.indexOf('\n  announce:'));
   ok(job.length > 20 && /needs: apk/.test(job) && /!endsWith\(github\.ref_name, '-test'\)/.test(job), 'release.yml posts after the APK is published, never for -test tags');
-  ok(/TELEGRAM_BOT_TOKEN: \$\{\{ secrets\.TELEGRAM_BOT_TOKEN \}\}/.test(job) && /tools\/telegram-post\.sh "\$GITHUB_REF_NAME"/.test(job), 'the announce job passes the secret and the tag');
+  ok(/fetch-depth: 0/.test(job) && /TELEGRAM_BOT_TOKEN: \$\{\{ secrets\.TELEGRAM_BOT_TOKEN \}\}/.test(job) && /tools\/telegram-post\.sh "\$GITHUB_REF_NAME"/.test(job), 'the announce job has the tags, the secret and the tag name');
   const man = fs.readFileSync(path.join(ROOT, '.github/workflows/telegram.yml'), 'utf8');
-  ok(/workflow_dispatch:/.test(man) && /dry_run:[\s\S]*?default: true/.test(man), 'the manual workflow exists and defaults to a dry run');
+  ok(/options: \[release, history, delete, photo\]/.test(man) && /dry_run:[\s\S]*?default: true/.test(man), 'the manual workflow offers release, history, delete and photo, dry run by default');
 }
 
 function testModalFocus() {

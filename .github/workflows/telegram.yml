@@ -1,18 +1,28 @@
 name: Telegram post
 
-# Posts (or re-posts) a release's English changelog to the Telegram channel by
-# hand, e.g. for a release cut before the automatic post existed (#258). Every
-# new tag is posted by the announce job in release.yml.
+# Hand-run posts to the Telegram channel (#258, #263). Every new tag is posted
+# by the announce job in release.yml; this is for the rest: one release again,
+# the whole history, deleting a post, or setting the channel photo.
 
 on:
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Release tag to announce, e.g. v0.5.2'
+      mode:
+        description: 'release (one tag), history (all, oldest first), delete (a message) or photo (channel photo)'
         required: true
+        default: release
+        type: choice
+        options: [release, history, delete, photo]
+      tag:
+        description: 'For release: the tag, e.g. v0.5.2'
+        required: false
+        type: string
+      message_id:
+        description: 'For delete: the message number in t.me/chogan_games/<n>'
+        required: false
         type: string
       dry_run:
-        description: 'Only print the message'
+        description: 'Only print what would be sent'
         required: true
         default: true
         type: boolean
@@ -22,20 +32,24 @@ permissions:
 
 jobs:
   post:
-    name: Post ${{ inputs.tag }}
+    name: Telegram ${{ inputs.mode }}
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the tag
+      - name: Check out with tags
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.tag }}
-      - name: Post to the channel
+          fetch-depth: 0
+      - name: Post
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+          MODE: ${{ inputs.mode }}
           TAG: ${{ inputs.tag }}
+          MESSAGE_ID: ${{ inputs.message_id }}
         run: |
-          # The script lives on main; an older tag may not have it yet.
-          git fetch --no-tags --depth=1 origin main
-          git show origin/main:tools/telegram-post.sh > "$RUNNER_TEMP/telegram-post.sh"
-          bash "$RUNNER_TEMP/telegram-post.sh" "$TAG"
+          case "$MODE" in
+            release) tools/telegram-post.sh "$TAG" ;;
+            history) tools/telegram-post.sh --history ;;
+            delete)  tools/telegram-post.sh --delete "$MESSAGE_ID" ;;
+            photo)   tools/telegram-post.sh --set-photo ;;
+          esac
