@@ -482,6 +482,27 @@
       "soft": "#EFE5EF",
       "added": "2026-10-17",
       "files": []
+    },
+    {
+      "id": "blackjack",
+      "name": {
+        "fa": "بیست‌ویک",
+        "en": "Blackjack",
+        "zh": "二十一点",
+        "de": "Blackjack"
+      },
+      "summary": {
+        "fa": "به ۲۱ نزدیک‌تر از دیلر برس؛ مسابقه‌ی ده‌دستی، بدون شرط‌بندی.",
+        "en": "Get closer to 21 than the dealer: a ten-hand match, with no betting.",
+        "zh": "比庄家更接近 21：十手一场，没有下注。",
+        "de": "Komm näher an 21 als der Croupier: eine Partie aus zehn Händen, ohne Einsätze."
+      },
+      "path": "games/blackjack/index.html",
+      "icon": "games/blackjack/icon.svg",
+      "color": "#2E7D5B",
+      "soft": "#DDEEE5",
+      "added": "2026-10-17",
+      "files": []
     }
   ]
 }
