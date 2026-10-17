@@ -22,11 +22,16 @@
   canvas { border-radius: var(--r-md); box-shadow: var(--sh-2); touch-action: manipulation; display: block; }
   .td-bottom { width: 100%; max-width: 520px; display: flex; align-items: center; gap: var(--s-2); }
   .td-auto--on { background: var(--game); color: #fff; }
+  /* Label on its own line and the enemy chips wrapping under it (#249): beside the Auto,
+     speed and wave buttons a single scrolling row broke the label onto three lines and
+     cut the last chip off on a phone. */
   .td-preview {
-    flex: 1; display: flex; align-items: center; gap: 6px; background: var(--c-surface);
-    border-radius: var(--r-md); padding: 6px 10px; box-shadow: var(--sh-1); min-height: 48px;
-    overflow-x: auto;
+    flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px;
+    background: var(--c-surface); border-radius: var(--r-md); padding: 5px 10px; box-shadow: var(--sh-1);
+    min-height: 48px;
   }
+  .td-pvhead { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .td-pvs { display: flex; flex-wrap: wrap; align-items: center; gap: 1px 8px; }
   .td-pv { display: flex; align-items: center; gap: 3px; font-size: var(--fs-xs); font-weight: 700; }
   .td-pv i { width: 13px; height: 13px; border-radius: 50%; display: block; }
   /* نوار دائمی برج‌ها. جای پنجره‌ی فروشگاه را گرفته: برج را انتخاب می‌کنی و
@@ -636,8 +641,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
   // هر برج یک شکل پایه‌ی جدا و یک نماد سفید دارد، روی دکمه و روی نقشه یکی.
   // قبلاً دکمه‌ها همه یک مربع رنگی بودند و با شکل برج روی نقشه نمی‌خواندند (#139).
   var ICON = {
-    archer: { base: 'M12 2L22.5 21H1.5Z', mark: 'M7 17L17 7M17 7h-6M17 7v6' },
-    cannon: { base: 'M12 1.5a10.5 10.5 0 1 0 0.01 0Z', mark: 'M5.5 14.5l9-5 1.8 3.2-9 5ZM9 18.6a2.2 2.2 0 1 0 0.01 0Z' },
+    archer: { base: 'M12 2L22.5 21H1.5Z', mark: 'M12 18.5V9.5M8.6 13L12 9.5L15.4 13' },
+    cannon: { base: 'M12 1.5a10.5 10.5 0 1 0 0.01 0Z', mark: 'M6.1 14.8a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0 -5 0M12.9 14.8a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0 -5 0M9.5 8.9a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0 -5 0' },
     frost: { base: 'M12 1.5L21.1 6.75V17.25L12 22.5L2.9 17.25V6.75Z', mark: 'M12 5v14M5.9 8.5l12.2 7M5.9 15.5l12.2-7' },
     tesla: { base: 'M5.5 1.5h13a2 2 0 0 1 2 2v17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-17a2 2 0 0 1 2-2Z', mark: 'M13.5 4L7 13h4.5l-1 7 6.5-9h-4.5Z' }
   };
@@ -893,11 +898,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
     preview.innerHTML = '';
     var next = S.wave + 1;
     if (S.over) { preview.appendChild(el('span', { class: 'ch-xs ch-dim', text: C.t('gameOver') })); return; }
-    preview.appendChild(el('span', { class: 'ch-xs ch-faint', text: C.t('nextWave') + ' ' + C.num(next) }));
+    preview.appendChild(el('span', { class: 'ch-xs ch-faint td-pvhead', text: C.t('nextWave') + ' ' + C.num(next) }));
+    var chips = el('div', { class: 'td-pvs' });
+    preview.appendChild(chips);
     // بذر همان چیزی که startWave استفاده می‌کند تا پیش‌نمایش دروغ نگوید
     var comp = E.waveComposition(next, C.rng('td|' + (S.mapId || '') + '|' + (S.date || '') + '|' + next));
     comp.forEach(function (c) {
-      preview.appendChild(el('span', { class: 'td-pv' }, [
+      chips.appendChild(el('span', { class: 'td-pv' }, [
         el('i', { style: { background: E.TYPES[c.type].color } }),
         el('span', { text: C.num(c.count) })
       ]));
