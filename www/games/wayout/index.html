@@ -24,17 +24,19 @@
   .wo-body { stroke: var(--game); stroke-width: 13; transition: stroke-dashoffset var(--t-slow) var(--ease), stroke var(--t-fast) var(--ease); }
   .wo-glow { stroke: transparent; stroke-width: 30; opacity: .45; transition: stroke-dashoffset var(--t-slow) var(--ease); }
   .wo-head { transition: transform var(--t-slow) var(--ease); }
-  .wo-head path { fill: var(--game); transition: fill var(--t-fast) var(--ease); }
+  /* The head is filled and stroked in the same colour with round joins, so its corners
+     are as round as the body's ends (#229) */
+  .wo-head path { fill: var(--game); stroke: var(--game); stroke-width: 8; stroke-linejoin: round; transition: fill var(--t-fast) var(--ease), stroke var(--t-fast) var(--ease); }
   .wo-arrow--in { animation: wo-in var(--t-mid) var(--ease-back) backwards; transform-box: fill-box; transform-origin: center; }
   @keyframes wo-in { from { opacity: 0; transform: scale(.6); } }
   /* an arrow already tapped while blocked keeps a red head and halo until it leaves */
-  .wo-arrow--struck .wo-head path { fill: var(--c-bad); }
+  .wo-arrow--struck .wo-head path { fill: var(--c-bad); stroke: var(--c-bad); }
   .wo-arrow--struck .wo-glow { stroke: var(--c-bad); opacity: .3; }
   .wo-arrow--bad .wo-body { stroke: var(--c-bad); }
-  .wo-arrow--bad .wo-head path { fill: var(--c-bad); }
+  .wo-arrow--bad .wo-head path { fill: var(--c-bad); stroke: var(--c-bad); }
   .wo-arrow--hint .wo-glow { stroke: var(--c-good); }
   .wo-arrow--chain .wo-body { stroke: var(--c-gold); }
-  .wo-arrow--chain .wo-head path { fill: var(--c-gold); }
+  .wo-arrow--chain .wo-head path { fill: var(--c-gold); stroke: var(--c-gold); }
   .wo-arrow--chain .wo-glow { stroke: var(--c-gold); }
   .wo-cur { fill: none; stroke: var(--game); stroke-width: 3; stroke-dasharray: 7 6; pointer-events: none; }
   .wo-guide { fill: none; stroke-width: 6; stroke-linecap: round; stroke-dasharray: 1 13; pointer-events: none; }
@@ -516,7 +518,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = WayOutEngi
   var ctx = C.game({
     id: 'wayout',
     name: { fa: 'راه دررو', en: 'Way Out', zh: '出路', de: 'Ausweg' },
-    accent: '#B34DAF',
+    accent: '#8E6390',
     mood: 'sudoku',
     strings: {
       fa: {
@@ -643,8 +645,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = WayOutEngi
     var body = sv('path', { class: 'wo-body', d: 'M' + pts.join(' L'), 'stroke-dasharray': dash });
     // the head is a triangle on the head cell, its tip a little ahead of the centre
     var px = -dy, py = dx;
-    var tri = 'M' + (hx + dx * 16) + ' ' + (hy + dy * 16) + ' L' + (hx - dx * 7 + px * 13) + ' ' + (hy - dy * 7 + py * 13) +
-      ' L' + (hx - dx * 7 - px * 13) + ' ' + (hy - dy * 7 - py * 13) + ' Z';
+    var tri = 'M' + (hx + dx * 13) + ' ' + (hy + dy * 13) + ' L' + (hx - dx * 5 + px * 10) + ' ' + (hy - dy * 5 + py * 10) +
+      ' L' + (hx - dx * 5 - px * 10) + ' ' + (hy - dy * 5 - py * 10) + ' Z';
     var head = sv('g', { class: 'wo-head' });
     head.appendChild(sv('path', { d: tri, 'stroke-linejoin': 'round' }));
     g.appendChild(glow); g.appendChild(body); g.appendChild(head);
@@ -948,6 +950,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = WayOutEngi
         g.lineTo(hp[0] - dx * cs * 0.18 + dy * cs * 0.33, hp[1] - dy * cs * 0.18 - dx * cs * 0.33);
         g.closePath();
         g.fill();
+        g.lineWidth = cs * 0.16;
+        g.stroke();
+        g.lineWidth = cs * 0.32;
       });
     };
   }
@@ -1011,7 +1016,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = WayOutEngi
   }
   function artArrow(x0, x1, y, col, head) {
     return '<path d="M' + x0 + ' ' + y + 'H' + x1 + '" stroke="' + col + '" stroke-width="9" stroke-linecap="round" fill="none"/>' +
-      (head ? '<path d="M' + (x1 + 12) + ' ' + y + 'l-16 -10v20z" fill="' + col + '"/>' : '');
+      (head ? '<path d="M' + (x1 + 10) + ' ' + y + 'l-13 -8v16z" fill="' + col + '" stroke="' + col + '" stroke-width="5" stroke-linejoin="round"/>' : '');
   }
   var TUT = [
     { title: C.t('tutTitle1'), text: C.t('tutText1'),
@@ -1019,7 +1024,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = WayOutEngi
         '<path d="M110 53H178" stroke="var(--c-good)" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 12"/></svg>' },
     { title: C.t('tutTitle2'), text: C.t('tutText2'),
       art: '<svg viewBox="0 0 200 110" width="100%">' + artCells(6) + artArrow(25, 55, 53, 'var(--c-bad)', true) +
-        '<path d="M145 30V80" stroke="var(--game)" stroke-width="9" stroke-linecap="round"/><path d="M145 18l-10 16h20z" fill="var(--game)"/>' +
+        '<path d="M145 30V80" stroke="var(--game)" stroke-width="9" stroke-linecap="round"/><path d="M145 20l-8 13h16z" fill="var(--game)" stroke="var(--game)" stroke-width="5" stroke-linejoin="round"/>' +
         '<path d="M80 53H132" stroke="var(--c-bad)" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 12"/></svg>' },
     { title: C.t('tutTitle3'), text: C.t('tutText3'),
       art: '<svg viewBox="0 0 200 110" width="100%">' + artCells(6) +
