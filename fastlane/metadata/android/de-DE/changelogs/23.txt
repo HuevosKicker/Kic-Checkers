@@ -1,0 +1,4 @@
+Neue Spiele: Go (9×9, mit automatischer Zählung) und Gomoku, jeweils gegen die KI in drei Stufen oder zu zweit, mit Tagesspiel.
+Menü: Spiele oben anheften, dazu eine Reihe „Zuletzt gespielt“.
+Pasur: Auf Leicht zeigt eine Tafel die schon genommenen Karten.
+Die Datenschutzseite hat eine Kopfleiste, und das Profil nennt die Wege zum Spielen: Web, Android und Telegram.

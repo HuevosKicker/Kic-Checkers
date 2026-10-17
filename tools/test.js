@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2672;
+const MIN_CHECKS = 2681;
 
 function ok(cond, msg) {
   checks++;
@@ -4231,6 +4231,20 @@ function testStoreMetadata() {
   ok(/options: \[check, upload, listing\]/.test(y) && /play-api\.sh listing fastlane\/metadata\/android/.test(y), 'play.yml can send the listing from the repo metadata');
 }
 
+/* ------------------------------------------------ Store text lists every game (0.5.0) */
+// Like the README in #188, the store descriptions stopped at chess: Hokm and
+// Block Drop shipped in 0.4.0 without a line, and the text still said eighteen.
+function testStoreGames() {
+  head('Store text lists every game');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  ok(games.length > 0, 'games.json lists games');
+  for (const [lang, key] of [['en-US', 'en'], ['fa', 'fa'], ['zh-CN', 'zh'], ['de-DE', 'de']]) {
+    const text = fs.readFileSync(path.join(ROOT, 'fastlane/metadata/android', lang, 'full_description.txt'), 'utf8');
+    const miss = games.filter((g) => text.indexOf('* ' + g.name[key].replace(/\u00ad/g, '') + ' ') < 0).map((g) => g.id);
+    ok(!miss.length, lang + ': every game has a line in the store description' + (miss.length ? ' (missing: ' + miss.join(', ') + ')' : ''));
+  }
+}
+
 /* ------------------------------------------------ README game tables */
 // #188: the README stopped at Breakout while five more games shipped, and nothing noticed.
 // Every game in games.json must have a row in both the English and the Persian table.
@@ -5112,6 +5126,7 @@ testEnglishCi();
 testPepkExport();
 testPrivacyPage();
 testReadme();
+testStoreGames();
 testMenuPins();
 testWaysToPlay();
 testPrivacyBar();
