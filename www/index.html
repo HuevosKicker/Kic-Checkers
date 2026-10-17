@@ -33,7 +33,7 @@
   C.strings({
     fa: {
       slogan: 'بازی‌های کوچک، تمام‌شدنی، بدون مزاحمت',
-      waysToPlay: 'راه‌های بازی', playWeb: 'وب', playAndroid: 'اندروید', playTelegram: 'تلگرام',
+      waysToPlay: 'راه‌های بازی', news: 'خبرها', playWeb: 'وب', playAndroid: 'اندروید', playTelegram: 'تلگرام',
       allGames: 'بازی‌ها', viewGrid: 'نمایش دو ستونه', privacy: 'حریم خصوصی', privacyNone: 'هیچ داده‌ای جمع نمی‌شود', viewList: 'نمایش یک ستونه', pickDay: 'یک روز را انتخاب کن',
       seasonTable: 'جدول فصل', myTier: 'رده‌ی تو',
       toNext: 'تا صعود', keepAbove: 'کف ماندن در رده',
@@ -57,7 +57,7 @@
     },
     en: {
       slogan: 'Small games you can actually finish',
-      waysToPlay: 'Ways to play', playWeb: 'Web', playAndroid: 'Android', playTelegram: 'Telegram',
+      waysToPlay: 'Ways to play', news: 'News', playWeb: 'Web', playAndroid: 'Android', playTelegram: 'Telegram',
       allGames: 'Games', viewGrid: 'Two-column view', privacy: 'Privacy', privacyNone: 'No data collected', viewList: 'One-column view', pickDay: 'Pick a day',
       seasonTable: 'Season table', myTier: 'Your tier',
       toNext: 'to promotion', keepAbove: 'stay above',
@@ -81,7 +81,7 @@
     },
     zh: {
       slogan: '小而能玩完的游戏，不打扰你',
-      waysToPlay: '游玩方式', playWeb: '网页', playAndroid: '安卓', playTelegram: 'Telegram',
+      waysToPlay: '游玩方式', news: '动态', playWeb: '网页', playAndroid: '安卓', playTelegram: 'Telegram',
       allGames: '游戏', viewGrid: '双列显示', privacy: '隐私', privacyNone: '不收集任何数据', viewList: '单列显示', pickDay: '选择一天',
       seasonTable: '赛季榜', myTier: '你的段位',
       toNext: '距晋级', keepAbove: '保级线',
@@ -105,7 +105,7 @@
     },
     de: {
       slogan: 'Kleine Spiele, die du wirklich zu Ende spielst',
-      waysToPlay: 'Spielen auf', playWeb: 'Web', playAndroid: 'Android', playTelegram: 'Telegram',
+      waysToPlay: 'Spielen auf', news: 'Neuigkeiten', playWeb: 'Web', playAndroid: 'Android', playTelegram: 'Telegram',
       allGames: 'Spiele', viewGrid: 'Zwei Spalten', privacy: 'Datenschutz', privacyNone: 'Keine Daten erfasst', viewList: 'Eine Spalte', pickDay: 'Tag wählen',
       seasonTable: 'Saisontabelle', myTier: 'Deine Stufe',
       toNext: 'bis zum Aufstieg', keepAbove: 'zum Halten',
@@ -129,7 +129,7 @@
     },
     es: {
       slogan: 'Juegos pequeños que de verdad puedes terminar',
-      waysToPlay: 'Formas de jugar', playWeb: 'Web', playAndroid: 'Android', playTelegram: 'Telegram',
+      waysToPlay: 'Formas de jugar', news: 'Novedades', playWeb: 'Web', playAndroid: 'Android', playTelegram: 'Telegram',
       allGames: 'Juegos', viewGrid: 'Dos columnas', privacy: 'Privacidad', privacyNone: 'No se recogen datos', viewList: 'Una columna', pickDay: 'Elige un día',
       seasonTable: 'Tabla de la temporada', myTier: 'Tu nivel',
       toNext: 'para ascender', keepAbove: 'para mantenerte',
@@ -795,6 +795,11 @@
         ].map(function (w) {
           return el('a', { href: w[1], target: '_blank', rel: 'noopener', text: C.t(w[0]) });
         }))
+      ]),
+      // Release notes are posted to this channel by release.yml (#258, #261)
+      el('div', { class: 'ch-item' }, [
+        el('div', { class: 'ch-item__label', text: C.t('news') }),
+        el('a', { href: 'https://t.me/chogan_games', target: '_blank', rel: 'noopener', dir: 'ltr', text: '@chogan_games' })
       ]),
       el('div', { class: 'ch-item' }, [
         el('div', { class: 'ch-item__label', text: C.t('source') }),

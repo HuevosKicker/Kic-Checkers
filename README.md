@@ -8,6 +8,7 @@ Ways to play:
 - **Web:** [choganhq.github.io/chogan](https://choganhq.github.io/chogan/), installable as an app from the browser.
 - **Android:** [F-Droid](https://f-droid.org/packages/io.github.choganhq.chogan/), or the APK on the [Releases page](https://github.com/choganhq/chogan/releases).
 - **Telegram:** [@chogangamebot](https://t.me/chogangamebot) opens the web version inside Telegram.
+- **News:** every release is announced in the Telegram channel [@chogan_games](https://t.me/chogan_games).
 
 ### The games
 
@@ -97,6 +98,7 @@ MIT, see [LICENSE](LICENSE). The Vazirmatn font is under the OFL; its licence te
 - **وب:** [choganhq.github.io/chogan](https://choganhq.github.io/chogan/)، که از مرورگر مثل یک اپ نصب می‌شود.
 - **اندروید:** از [اف‌دروید](https://f-droid.org/packages/io.github.choganhq.chogan/)، یا فایل APK از بخش [Releases](https://github.com/choganhq/chogan/releases).
 - **تلگرام:** [@chogangamebot](https://t.me/chogangamebot) نسخه‌ی وب را داخل تلگرام باز می‌کند.
+- **خبرها:** هر نسخه‌ی تازه در کانال تلگرام [@chogan_games](https://t.me/chogan_games) (به انگلیسی) اعلام می‌شود.
 
 ### بازی‌ها
 
