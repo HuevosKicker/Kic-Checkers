@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2903;
+const MIN_CHECKS = 2907;
 
 function ok(cond, msg) {
   checks++;
@@ -2687,6 +2687,52 @@ function testTd() {
   const tdBases = towerKinds.map((k) => ((tdIcons.match(new RegExp(k + ": \\{ base: '([^']+)'")) || [])[1]));
   ok(new Set(tdBases).size === 4, 'شکل پایه‌ی چهار برج با هم فرق دارد');
   ok(/iconSvg\(k, def\.color\)/.test(tdPage) && /iconPath\(t\.kind, 'mark'\)/.test(tdPage), 'دکمه و نقشه از یک جدول نماد می‌خوانند');
+
+  // Each white mark must sit inside its base shape with room for its stroke (#249): the
+  // archer's diagonal arrow ran out of the triangle and looked broken on a phone.
+  // Marks use M/L/H/V (either case) and half-circle arcs only, so their points can be
+  // read exactly; anything else fails as unreadable rather than passing unchecked.
+  const markPoints = (d) => {
+    const toks = d.match(/[A-Za-z]|-?\d*\.?\d+(?:e-?\d+)?/g) || [];
+    const pts = [];
+    let i = 0, cmd = '', x = 0, y = 0, sx = 0, sy = 0;
+    const num = () => parseFloat(toks[i++]);
+    while (i < toks.length) {
+      if (/[A-Za-z]/.test(toks[i])) cmd = toks[i++];
+      const rel = cmd === cmd.toLowerCase(), C = cmd.toUpperCase();
+      if (C === 'Z') { x = sx; y = sy; continue; }
+      if (C === 'M' || C === 'L') { const a = num(), b = num(); x = rel ? x + a : a; y = rel ? y + b : b; if (C === 'M') { sx = x; sy = y; cmd = rel ? 'l' : 'L'; } pts.push([x, y]); }
+      else if (C === 'H') { const a = num(); x = rel ? x + a : a; pts.push([x, y]); }
+      else if (C === 'V') { const a = num(); y = rel ? y + a : a; pts.push([x, y]); }
+      else if (C === 'A') {
+        const r = num(); num(); num(); num(); num(); const a = num(), b = num();
+        const ex = rel ? x + a : a, ey = rel ? y + b : b;
+        if (Math.abs(Math.hypot(ex - x, ey - y) - 2 * r) > 0.01) return null;
+        const cx = (x + ex) / 2, cy = (y + ey) / 2;
+        pts.push([cx - r, cy], [cx + r, cy], [cx, cy - r], [cx, cy + r]);
+        x = ex; y = ey;
+      } else return null;
+    }
+    return pts;
+  };
+  const PAD = 1.2;   // half the 2.2 stroke, plus a little air
+  const inPoly = (poly, p) => poly.every((a, k) => {
+    const b = poly[(k + 1) % poly.length];
+    const cross = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+    return cross / Math.hypot(b[0] - a[0], b[1] - a[1]) >= PAD;
+  });
+  const inside = {
+    archer: (p) => inPoly([[12, 2], [22.5, 21], [1.5, 21]], p),
+    cannon: (p) => Math.hypot(p[0] - 12, p[1] - 12) <= 10.5 - PAD,
+    frost: (p) => inPoly([[12, 1.5], [21.1, 6.75], [21.1, 17.25], [12, 22.5], [2.9, 17.25], [2.9, 6.75]], p),
+    tesla: (p) => p[0] >= 3.5 + PAD && p[0] <= 20.5 - PAD && p[1] >= 1.5 + PAD && p[1] <= 22.5 - PAD
+  };
+  for (const k of towerKinds) {
+    const mark = (tdIcons.match(new RegExp(k + ": \\{ base: '[^']+', mark: '([^']+)'")) || [])[1] || '';
+    const pts = markPoints(mark);
+    const out = pts ? pts.filter((p) => !inside[k](p)) : null;
+    ok(pts && pts.length > 0 && out.length === 0, k + ': the icon mark stays inside its shape (' + (pts ? out.length + ' of ' + pts.length + ' points outside' : 'unreadable path') + ')');
+  }
   ok(!/C\.ui\.toast\(\{ icon: 'coin', title: C\.t\('noMoney'\)/.test(tdPage), 'کم‌پولی دیگر اعلان بالای صفحه نیست');
   ok(/C\.num\(S\.money\) \+ ' \/ ' \+ C\.num\(cost\)/.test(tdPage), 'برجی که پولش نمی‌رسد «طلا / قیمت» نشان می‌دهد');
   const tdToasts = (tdPage.match(/C\.ui\.toast\(\{[^}]*\}/g) || []).filter((t) => t.indexOf("'dailyDone'") < 0);
