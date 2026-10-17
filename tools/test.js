@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2882;
+const MIN_CHECKS = 2887;
 
 function ok(cond, msg) {
   checks++;
@@ -4027,6 +4027,18 @@ function testTdAutoWaves() {
   ok(!miss.length, 'auto-wave strings in all four languages' + (miss.length ? ' (' + miss.join(', ') + ')' : ''));
 }
 
+// #245: shots were a one-frame line a tester could not follow
+function testTdShots() {
+  head('Tower defence visible shots');
+  const page = fs.readFileSync(path.join(ROOT, 'www/games/tower-defence/index.html'), 'utf8');
+  const ms = page.match(/var SHOT_MS = \{ archer: (\d+), cannon: (\d+), frost: (\d+), tesla: (\d+) \};/);
+  ok(!!ms && ms.slice(1, 4).every((x) => +x >= 200), 'archer, cannon and frost shots travel for at least 200 ms (' + (ms ? ms.slice(1).join('/') : 'none') + ')');
+  ok(/function takeShots\(now\)/.test(page) && /takeShots\(now\);\n\s+hudTick\(\);/.test(page) && /drawShots\(g, performance\.now\(\)\);/.test(page), 'every frame turns the engine\'s shots into flying projectiles and draws them');
+  ok(/if \(f\.kind === 'archer'\)/.test(page) && /\} else if \(f\.kind === 'cannon'\) \{/.test(page) && /impacts\.push\(/.test(page), 'arrows, cannonballs and frost shards each have their own look, and cannon and frost land with a burst');
+  ok(/dur: C\.ui\.reduceMotion\(\) \? 90 :/.test(page), 'reduced motion keeps shots short and plain');
+  ok(/shotsLive = \[\]; impacts = \[\];/.test(page), 'a new game clears shots still in flight');
+}
+
 /* ------------------------------------------------------------- پاسور */
 function testPasur() {
   head('پاسور');
@@ -5690,6 +5702,7 @@ testAwardToasts();
 testPasurLead();
 testModalButtons();
 testTdAutoWaves();
+testTdShots();
 testTd();
 testVersionStamp();
 testDeployGate();
