@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2809;
+const MIN_CHECKS = 2810;
 
 function ok(cond, msg) {
   checks++;
@@ -3842,11 +3842,15 @@ function testWayOutLook() {
   head('Way Out look');
   const page = fs.readFileSync(path.join(ROOT, 'www/games/wayout/index.html'), 'utf8');
   const icon = fs.readFileSync(path.join(ROOT, 'www/games/wayout/icon.svg'), 'utf8');
-  ok(/\.wo-head path \{[^}]*stroke: var\(--game\);[^}]*stroke-linejoin: round;/.test(page), 'board heads are stroked with round joins');
+  ok(/\.wo-head path \{[^}]*stroke: var\(--game\); stroke-width: [1-4]; stroke-linejoin: round;/.test(page), 'board heads have only slightly rounded corners (a stroke of at most 4)');
+  // A fully rounded, narrow head on a short straight arrow stopped reading as an arrow:
+  // the head must be clearly wider than the 13-unit body and wider than it is long
+  const tri = page.match(/var tri = 'M' \+ \(hx \+ dx \* (\d+)\)[^\n]*\(hx - dx \* (\d+) \+ px \* (\d+)\)/);
+  ok(!!tri && 2 * +tri[3] >= 2 * 13 && 2 * +tri[3] > +tri[1] + +tri[2], 'the head is wide and flat (' + (tri ? 'width ' + 2 * tri[3] + ', length ' + (+tri[1] + +tri[2]) : 'not found') + ')');
   ok(['struck', 'bad', 'chain'].every((k) => new RegExp('\\.wo-arrow--' + k + ' \\.wo-head path \\{ fill: ([^;]+); stroke: \\1; \\}').test(page)), 'coloured heads change fill and stroke together');
   const heads = icon.match(/<path d="M[^"]*z"[^>]*>/g) || [];
   ok(heads.length === 3 && heads.every((h) => /stroke-linejoin="round"/.test(h)), 'the icon\'s three heads have round corners');
-  ok((page.match(/l-1[0-9] -?[0-9]+v[0-9]+z" fill="' \+ col \+ '" stroke="' \+ col \+ '"[^>]*stroke-linejoin="round"/g) || []).length === 1, 'tutorial heads are drawn with round joins');
+  ok((page.match(/l-1?[0-9] -?[0-9]+v[0-9]+z" fill="' \+ col \+ '" stroke="' \+ col \+ '"[^>]*stroke-linejoin="round"/g) || []).length === 1, 'tutorial heads are drawn with round joins');
   const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
   const sat = (hex) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255); const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; return mx === mn ? 0 : (mx - mn) / (1 - Math.abs(2 * l - 1)); };
   const wo = games.find((g) => g.id === 'wayout');
