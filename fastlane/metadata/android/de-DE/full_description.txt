@@ -2,7 +2,7 @@ Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich z
 
 Die Spiele:
 
-* Turmverteidigung — vier Türme, drei feste Karten plus eine Tageskarte, zwanzig Wellen und ein Endlosmodus
+* Turmverteidigung — vier Türme, sechs feste Karten plus eine Tageskarte, zwanzig Wellen und ein Endlosmodus
 * Sudoku — vier Schwierigkeitsstufen mit garantiert eindeutiger Lösung, Notizen, Tipps und ein Tagesrätsel
 * Minesweeper — ohne Raten erzeugt, vier Größen, Akkorde und Flaggen
 * Käsekästchen — zu zweit an einem Handy oder gegen drei Stufen Computer

@@ -13,7 +13,7 @@ Ways to play:
 
 | Game | About |
 | --- | --- |
-| Tower Defence | Four towers, three fixed maps plus a daily map, twenty waves and an endless mode |
+| Tower Defence | Four towers, six fixed maps plus a daily map, twenty waves and an endless mode |
 | Sudoku | Four difficulties with a guaranteed unique solution, notes, hints and a daily challenge |
 | Minesweeper | No-guess generation, four sizes, chording and flags, daily challenge |
 | Dots and Boxes | Two players on one phone, or three levels of AI |
@@ -100,7 +100,7 @@ MIT, see [LICENSE](LICENSE). The Vazirmatn font is under the OFL; its licence te
 
 | بازی | توضیح |
 | --- | --- |
-| دفاع از برج | چهار برج، سه نقشه‌ی ثابت به‌علاوه‌ی نقشه‌ی روزانه، بیست موج و حالت بی‌پایان |
+| دفاع از برج | چهار برج، شش نقشه‌ی ثابت به‌علاوه‌ی نقشه‌ی روزانه، بیست موج و حالت بی‌پایان |
 | سودوکو | چهار سختی با جواب یکتای تضمین‌شده، یادداشت، راهنمایی و چالش روزانه |
 | مین‌روب | تولید بدون حدس، چهار اندازه، کورد و پرچم، چالش روزانه |
 | نقطه‌بازی | دو نفره روی یک گوشی یا مقابل هوش مصنوعی با سه سطح |

@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2681;
+const MIN_CHECKS = 2701;
 
 function ok(cond, msg) {
   checks++;
@@ -3273,7 +3273,7 @@ function testLocales() {
   // نام نقشه‌های دفاع از برج فقط فارسی و انگلیسی داشت و چینی و آلمانی انگلیسی می‌دیدند (#121)
   const tdSrc = fs.readFileSync(path.join(ROOT, 'www/games/tower-defence/index.html'), 'utf8');
   const maps = tdSrc.match(/\{ id: 'm\d', seed: \d+,[^\n]*\}/g) || [];
-  ok(maps.length === 3, 'سه نقشه‌ی ثابت دفاع از برج خوانده شد (' + maps.length + ')');
+  ok(maps.length === 6, 'six fixed tower defence maps were read (' + maps.length + ')');
   ok(maps.every((m) => LOCALE_CODES.every((c) => new RegExp('\\b' + c + ": '[^']+'").test(m))), 'هر نقشه در هر زبان نام دارد');
   ok(!/lang === 'fa' \?/.test(tdSrc), 'نام نقشه با یک انتخاب دوزبانه گرفته نمی‌شود');
 
@@ -4231,6 +4231,67 @@ function testStoreMetadata() {
   ok(/options: \[check, upload, listing\]/.test(y) && /play-api\.sh listing fastlane\/metadata\/android/.test(y), 'play.yml can send the listing from the repo metadata');
 }
 
+/* ------------------------------------------------ Tower defence: six maps (#221) */
+// A player asked for more maps. The three new ones change the path's shape through
+// genPath's run lengths; the first three must stay exactly as players know them.
+function testTdMaps() {
+  head('Tower defence maps');
+  const E = loadEngine('tower-defence', 'TdEngineFactory');
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/tower-defence/index.html'), 'utf8');
+  const lines = src.match(/\{ id: 'm\d', seed: \d+,[^\n]*\}/g) || [];
+  const maps = lines.map((l) => ({ id: l.match(/id: '(m\d)'/)[1], seed: +l.match(/seed: (\d+)/)[1],
+    opts: Object.assign({ minTurns: 5 }, l.indexOf('opts:') > 0 ? Function('return ' + l.match(/opts: (\{[^}]*\})/)[1])() : {}) }));
+  ok(maps.length === 6, 'six maps listed (' + maps.length + ')');
+  const pathOf = (m) => E.genPath(rng(m.seed), m.opts);
+  const sig = (p) => { let h = 0; for (const ch of p.map((q) => q.r + '.' + q.c).join(' ')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return p.length + ':' + h; };
+  // Fingerprints of m1–m3 taken before #221 changed genPath
+  const known = { m1: '50:2024945734', m2: '46:711043971', m3: '46:1661566532' };
+  for (const id of Object.keys(known)) {
+    const m = maps.find((x) => x.id === id);
+    ok(!!m && sig(pathOf(m)) === known[id], id + ' is the same path as before (' + (m ? sig(pathOf(m)) : 'missing') + ')');
+  }
+  const sigs = new Set();
+  for (const m of maps) {
+    const p = pathOf(m);
+    ok(E.validatePath(p) === null, m.id + ': the path is valid (' + (E.validatePath(p) || 'ok') + ')');
+    sigs.add(sig(p));
+  }
+  ok(sigs.size === 6, 'all six paths differ');
+  const len = (id) => pathOf(maps.find((x) => x.id === id)).length;
+  ok(len('m5') < 32 && len('m5') < Math.min(len('m1'), len('m2'), len('m3')), 'Slope is the short path (' + len('m5') + ')');
+  ok(len('m6') > 55, 'Canyon sweeps the width of the board (' + len('m6') + ')');
+
+  // Every map can be won: a plain greedy player (best-covering spot, then upgrades)
+  // clears all twenty waves on each one
+  const play = (p) => {
+    const S = E.createGame({ path: p, money: 200, lives: 20, lastWave: 20 }), r = rng(77), mix = ['cannon', 'tesla', 'archer'];
+    const cover = (rr, cc, range) => p.filter((q) => Math.hypot(q.r - rr, q.c - cc) <= range).length;
+    let n = 0;
+    while (!S.over) {
+      for (let g = 0; g < 40; g++) {
+        const kind = mix[n % mix.length];
+        if (S.towers.length < 16 && S.money >= E.TOWERS[kind].cost) {
+          let best = null, bc = -1;
+          for (let rr = 0; rr < E.GH; rr++) for (let cc = 0; cc < E.GW; cc++) if (E.canBuild(S, rr, cc)) { const v = cover(rr, cc, E.TOWERS[kind].range); if (v > bc) { bc = v; best = [rr, cc]; } }
+          if (best && E.build(S, best[0], best[1], kind)) { n++; continue; }
+        }
+        const t = S.towers.filter((x) => x.level < 2).sort((a, b) => a.level - b.level)[0];
+        if (t && E.upgrade(S, t)) continue;
+        break;
+      }
+      E.startWave(S, r);
+      let g = 0;
+      while (S.waveActive && !S.over && g++ < 100000) E.step(S, 0.05, r);
+    }
+    return S;
+  };
+  for (const m of maps) {
+    const S = play(pathOf(m));
+    ok(S.won && S.wave === 20, m.id + ': a greedy player wins all twenty waves (' + (S.won ? 'won, ' + S.lives + ' lives' : 'lost at wave ' + S.wave) + ')');
+  }
+  ok(/function pickMap\(\)/.test(src) && /MAPS\.map\(function \(m\) \{\n      return el\('button'/.test(src), 'maps are picked from a list, not a six-wide segmented row');
+}
+
 /* ------------------------------------------------ Store text lists every game (0.5.0) */
 // Like the README in #188, the store descriptions stopped at chess: Hokm and
 // Block Drop shipped in 0.4.0 without a line, and the text still said eighteen.
@@ -5127,6 +5188,7 @@ testPepkExport();
 testPrivacyPage();
 testReadme();
 testStoreGames();
+testTdMaps();
 testMenuPins();
 testWaysToPlay();
 testPrivacyBar();

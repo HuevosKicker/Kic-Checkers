@@ -57,6 +57,9 @@
   .ch-gamebar__stat.td-flash b { animation: td-flash 900ms var(--ease); }
   @keyframes td-flash { 0%, 100% { color: inherit; transform: none; } 25%, 60% { color: var(--c-bad); transform: scale(1.18); } }
   .td-stars { display: flex; gap: 2px; }
+  .td-mapbtn { display: inline-flex; align-items: center; gap: 6px; }
+  .td-mapitem { width: 100%; border: 0; background: none; font: inherit; color: inherit; text-align: start; cursor: pointer; border-radius: var(--r-md); }
+  .td-mapitem--on { background: var(--c-surface-2); box-shadow: inset 0 0 0 2px var(--game); }
 </style>
 </head>
 <body>
@@ -76,6 +79,10 @@ function TdEngineFactory() {
     opts = opts || {};
     var minTurns = opts.minTurns || 4;
     var w = opts.w || GW, h = opts.h || GH;
+    // Run lengths shape a map (#221): long sideways runs make a winding path with
+    // more time to shoot, long downward runs a short and hard one. The defaults
+    // are the original [1,2] and [2,5], so the first three maps stay the same.
+    var down = opts.down || [1, 2], span = opts.span || [2, 5], minLen = opts.minLen || h + 6;
     for (var attempt = 0; attempt < 40; attempt++) {
       var path = [];
       var c = 1 + Math.floor(rnd() * (w - 2));
@@ -86,21 +93,21 @@ function TdEngineFactory() {
       var guard = 0;
       while (r < h - 1 && guard++ < 500) {
         // چند خانه پایین
-        var down = 1 + Math.floor(rnd() * 2);
-        for (var d = 0; d < down && r < h - 1; d++) {
+        var dn = down[0] + Math.floor(rnd() * (down[1] - down[0] + 1));
+        for (var d = 0; d < dn && r < h - 1; d++) {
           r++;
           path.push({ r: r, c: c });
         }
         if (r >= h - 1) break;
         // یک حرکت افقی. جهت را عوض می‌کنیم تا مسیر مثل مار کل عرض تخته را
         // بگیرد، نه اینکه یک طرف نقشه خالی بماند.
-        var span = 2 + Math.floor(rnd() * 4);
+        var sp = span[0] + Math.floor(rnd() * (span[1] - span[0] + 1));
         var dir = lastDir === 0 ? (rnd() < 0.5 ? -1 : 1) : -lastDir;
-        if (c + dir * span < 0 || c + dir * span > w - 1) {
-          if (c - dir * span >= 0 && c - dir * span <= w - 1) dir = -dir;
+        if (c + dir * sp < 0 || c + dir * sp > w - 1) {
+          if (c - dir * sp >= 0 && c - dir * sp <= w - 1) dir = -dir;
         }
         var moved = 0;
-        for (var s = 0; s < span; s++) {
+        for (var s = 0; s < sp; s++) {
           var nc = c + dir;
           if (nc < 0 || nc > w - 1) break;
           c = nc;
@@ -110,7 +117,7 @@ function TdEngineFactory() {
         if (moved > 0) { turns++; lastDir = dir; }
       }
       while (r < h - 1) { r++; path.push({ r: r, c: c }); }
-      if (turns >= minTurns && path.length >= h + 6) return path;
+      if (turns >= minTurns && path.length >= minLen) return path;
     }
     // در بدترین حالت یک مسیر مستقیم که همیشه معتبر است
     var straight = [];
@@ -498,7 +505,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
   var MAPS = [
     { id: 'm1', seed: 101, fa: 'دره', en: 'Valley', zh: '山谷', de: 'Tal' },
     { id: 'm2', seed: 202, fa: 'گذرگاه', en: 'Pass', zh: '山口', de: 'Pass' },
-    { id: 'm3', seed: 303, fa: 'مرداب', en: 'Marsh', zh: '沼泽', de: 'Sumpf' }
+    { id: 'm3', seed: 303, fa: 'مرداب', en: 'Marsh', zh: '沼泽', de: 'Sumpf' },
+    // Three more shapes (#221): a snake with long sideways runs, a short steep path
+    // that gives towers little time, and wide sweeps from edge to edge
+    { id: 'm4', seed: 404, opts: { down: [2, 2], span: [6, 8], minTurns: 6 }, fa: 'مارپیچ', en: 'Serpent', zh: '蛇径', de: 'Schlange' },
+    { id: 'm5', seed: 505, opts: { down: [2, 3], span: [2, 3], minTurns: 4, minLen: 26 }, fa: 'سراشیب', en: 'Slope', zh: '陡坡', de: 'Steilhang' },
+    { id: 'm6', seed: 606, opts: { down: [2, 3], span: [7, 9], minTurns: 4, minLen: 40 }, fa: 'تنگه', en: 'Canyon', zh: '峡谷', de: 'Schlucht' }
   ];
   var KINDS = ['archer', 'cannon', 'frost', 'tesla'];
 
@@ -760,7 +772,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
   function pathFor(id, date) {
     if (id === 'daily') return E.genPath(C.daily('tower-defence', date).rng, { minTurns: 5 });
     var m = MAPS.filter(function (x) { return x.id === id; })[0] || MAPS[0];
-    return E.genPath(seedRng(m.seed), { minTurns: 5 });
+    var o = { minTurns: 5 };
+    for (var k in m.opts || {}) o[k] = m.opts[k];
+    return E.genPath(seedRng(m.seed), o);
   }
   function seedRng(n) { return C.rng(n); }
 
@@ -786,23 +800,44 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
       top.appendChild(el('span', { class: 'ch-badge ch-badge--accent' },
         [C.icon('calendar', 14), el('span', { text: C.t('dailyMap') + ' — ' + C.num(S.date) })]));
     } else {
-      top.appendChild(C.ui.segmented(MAPS.map(function (m) {
-        return { value: m.id, label: m[C.state.settings.lang] || m.en };
-      }), mapId, function (v) {
-        askSwitch(v);
-      }));
-      var st = starsBook[mapId] || 0;
-      var sr = el('span', { class: 'ch-badge td-stars' });
-      for (var i = 1; i <= 3; i++) {
-        var ic = C.icon('star', 13);
-        ic.style.color = i <= st ? 'var(--c-gold)' : 'var(--c-text-faint)';
-        if (i > st) ic.style.opacity = '.4';
-        if (i <= st) ic.setAttribute('fill', 'currentColor');
-        sr.appendChild(ic);
-      }
-      top.appendChild(sr);
+      // Six maps no longer fit a segmented row on a phone, so the map is a button
+      // that opens a list with each map's stars
+      top.appendChild(el('button', {
+        class: 'ch-btn ch-btn--soft ch-btn--sm td-mapbtn', type: 'button',
+        'aria-label': C.t('pickMap') + ': ' + mapName(mapId), onclick: pickMap
+      }, [el('span', { text: C.t('pickMap') + ' · ' + mapName(mapId) }), C.icon('list', 16)]));
+      top.appendChild(starRow(starsBook[mapId] || 0));
     }
     updateHud();
+  }
+
+  function mapName(id) {
+    var m = MAPS.filter(function (x) { return x.id === id; })[0] || MAPS[0];
+    return m[C.state.settings.lang] || m.en;
+  }
+
+  function starRow(n) {
+    var sr = el('span', { class: 'ch-badge td-stars' });
+    for (var i = 1; i <= 3; i++) {
+      var ic = C.icon('star', 13);
+      ic.style.color = i <= n ? 'var(--c-gold)' : 'var(--c-text-faint)';
+      if (i > n) ic.style.opacity = '.4';
+      if (i <= n) ic.setAttribute('fill', 'currentColor');
+      sr.appendChild(ic);
+    }
+    return sr;
+  }
+
+  function pickMap() {
+    C.feedback('tap');
+    var dlg = null;
+    var list = el('div', { class: 'ch-list' }, MAPS.map(function (m) {
+      return el('button', {
+        class: 'ch-item ch-tap td-mapitem' + (m.id === mapId ? ' td-mapitem--on' : ''), type: 'button',
+        onclick: function () { if (dlg) dlg.close(); if (m.id !== mapId) askSwitch(m.id); }
+      }, [el('div', { class: 'ch-item__label', text: m[C.state.settings.lang] || m.en }), starRow(starsBook[m.id] || 0)]);
+    }));
+    dlg = C.ui.modal({ title: C.t('pickMap'), body: [list], actions: [{ label: C.t('close') }] });
   }
 
   function askSwitch(v) {

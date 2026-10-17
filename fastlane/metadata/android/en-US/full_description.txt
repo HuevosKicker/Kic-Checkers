@@ -2,7 +2,7 @@ Chogan is a collection of small, finishable games in a single app. It ships with
 
 The games:
 
-* Tower Defence — four towers, three fixed maps plus a daily map, twenty waves and an endless mode
+* Tower Defence — four towers, six fixed maps plus a daily map, twenty waves and an endless mode
 * Sudoku — four difficulties with a guaranteed unique solution, notes, hints and a daily challenge
 * Minesweeper — no-guess generation, four sizes, chording and flags
 * Dots and Boxes — two players on one phone, or three levels of AI
