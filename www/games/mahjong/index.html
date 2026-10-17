@@ -21,6 +21,10 @@
   /* above every tile: tiles stack at layer * 1000 + row * 10 + column */
   .mj-spark { position: absolute; z-index: 100000; pointer-events: none; animation: mj-spark 380ms var(--ease) forwards; }
   .mj-spark svg { display: block; }
+  /* The matched pair flies to the middle of the view and strikes there (#272); fixed to the
+     viewport, so the zoomed and panned board cannot clip or shift it */
+  .mj-fly { position: fixed; z-index: 100000; pointer-events: none; margin: 0; }
+  .mj-fly .mj-tile { position: absolute; inset: 0; transition: none; }
   @keyframes mj-spark { from { opacity: 1; transform: scale(.4); } 60% { opacity: 1; } to { opacity: 0; transform: scale(1.25); } }
   .mj-tile {
     position: absolute; padding: 0; border: 0; cursor: pointer; border-radius: 6px;
@@ -770,10 +774,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
     if (hint && hint.indexOf(i) < 0) hint = null;
     if (sel < 0 || sel === i) { sel = sel === i ? -1 : i; C.feedback(sel < 0 ? 'tap' : 'select'); paint(); return; }
     if (E.matches(S.faces[sel], S.faces[i])) {
-      spark(sel, i);
+      clash(sel, i);
       E.remove(S, sel, i);
       sel = -1; hint = null;
-      C.feedback('clack');
       save();
       paint();
       if (S.done) { finish(); return; }
@@ -786,25 +789,64 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
     paint();
   }
 
-  // A matched pair strikes like flint: a small burst of gold sparks where the two tiles
-  // were, gone in a third of a second (#227). Skipped when the system asks for less motion.
-  function spark(a, b) {
-    if (C.ui.reduceMotion()) return;
-    [a, b].forEach(function (k) {
-      var t = nodes[k];
-      if (!t) return;
-      var x = t.offsetLeft + t.offsetWidth / 2, y = t.offsetTop + t.offsetHeight / 2, r = Math.max(14, t.offsetWidth * 0.7);
-      var s = '<svg viewBox="-20 -20 40 40" width="' + (r * 2) + '" height="' + (r * 2) + '"><circle r="5" fill="#FFF6D8"/>';
-      for (var q = 0; q < 8; q++) {
-        var ang = (q * 45 + 22) * Math.PI / 180, l = q % 2 ? 16 : 19;
-        s += '<line x1="' + (Math.cos(ang) * 7).toFixed(1) + '" y1="' + (Math.sin(ang) * 7).toFixed(1) + '" x2="' + (Math.cos(ang) * l).toFixed(1) + '" y2="' + (Math.sin(ang) * l).toFixed(1) +
-          '" stroke="' + (q % 2 ? '#F2C14E' : '#E8913A') + '" stroke-width="2.4" stroke-linecap="round"/>';
-      }
-      var fx = el('div', { class: 'mj-spark', html: s + '</svg>' });
-      fx.style.left = (x - r) + 'px'; fx.style.top = (y - r) + 'px';
-      board.appendChild(fx);
-      setTimeout(function () { fx.remove(); }, 400);
+  // A matched pair strikes like flint (#227). The tiles used to spark where they lay,
+  // which the reporter found artificial (#272): now both fly in from their places,
+  // grow on the way, meet side by side in the middle of the view, strike with a flint
+  // sound and throw sparks from the seam, then fade. The game state has already moved
+  // on, so play is never held up. With reduced motion: the sound only.
+  var FLY_MS = 360, HOLD_MS = 220;
+  function clash(a, b) {
+    var ta = nodes[a], tb = nodes[b];
+    if (C.ui.reduceMotion() || !ta || !tb || !ta.getBoundingClientRect) { C.feedback('flint'); return; }
+    var ra = ta.getBoundingClientRect(), rb = tb.getBoundingClientRect(), rv = view.getBoundingClientRect();
+    // Grow to a size that reads on a phone, but never past a fifth of the view's width
+    var w = Math.min(Math.max(ra.width * 1.8, 44), rv.width / 5, 96), h = w * ra.height / ra.width;
+    var cx = rv.left + rv.width / 2, cy = rv.top + rv.height / 2;
+    // The tile that sits further left lands on the left, so the paths do not cross
+    var pair = ra.left <= rb.left ? [[ta, ra], [tb, rb]] : [[tb, rb], [ta, ra]];
+    pair.forEach(function (p, k) {
+      var r = p[1], fly = el('div', { class: 'mj-fly' });
+      var copy = p[0].cloneNode(true);
+      // The board places tiles with inline left/top/z-index; the copy fills its own box instead
+      copy.removeAttribute('style');
+      copy.className = 'mj-tile';
+      fly.appendChild(copy);
+      fly.style.left = r.left + 'px'; fly.style.top = r.top + 'px';
+      fly.style.width = r.width + 'px'; fly.style.height = r.height + 'px';
+      document.body.appendChild(fly);
+      var tx = (k ? cx : cx - w) - r.left, ty = cy - h / 2 - r.top, sc = w / r.width;
+      // Each tile stops a little short, then snaps the last few pixels into the other: the knock
+      var back = (k ? 1 : -1) * w * 0.12;
+      var anim = fly.animate([
+        { transform: 'translate(0,0) scale(1)', transformOrigin: '0 0', offset: 0 },
+        { transform: 'translate(' + (tx + back) + 'px,' + ty + 'px) scale(' + sc + ')', transformOrigin: '0 0', offset: 0.78 },
+        { transform: 'translate(' + tx + 'px,' + ty + 'px) scale(' + sc + ')', transformOrigin: '0 0', offset: 1 }
+      ], { duration: FLY_MS, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' });
+      anim.onfinish = function () {
+        fly.animate([{ opacity: 1 }, { opacity: 1, offset: 0.5 }, { opacity: 0 }], { duration: HOLD_MS + 160, fill: 'forwards' })
+          .onfinish = function () { fly.remove(); };
+      };
     });
+    setTimeout(function () {
+      C.feedback('flint');
+      burst(cx, cy, h);
+    }, FLY_MS);
+  }
+
+  // Gold sparks from the seam between the two tiles, gone in a third of a second
+  function burst(x, y, h) {
+    var r = Math.max(28, h * 0.9);
+    var s = '<svg viewBox="-20 -20 40 40" width="' + (r * 2) + '" height="' + (r * 2) + '"><circle r="4" fill="#FFF6D8"/>';
+    for (var q = 0; q < 10; q++) {
+      var ang = (q * 36 + 18) * Math.PI / 180, l = q % 2 ? 15 : 19;
+      s += '<line x1="' + (Math.cos(ang) * 6).toFixed(1) + '" y1="' + (Math.sin(ang) * 6).toFixed(1) + '" x2="' + (Math.cos(ang) * l).toFixed(1) + '" y2="' + (Math.sin(ang) * l).toFixed(1) +
+        '" stroke="' + (q % 2 ? '#F2C14E' : '#E8913A') + '" stroke-width="2.2" stroke-linecap="round"/>';
+    }
+    var fx = el('div', { class: 'mj-spark', html: s + '</svg>' });
+    fx.style.position = 'fixed';
+    fx.style.left = (x - r) + 'px'; fx.style.top = (y - r) + 'px';
+    document.body.appendChild(fx);
+    setTimeout(function () { fx.remove(); }, 400);
   }
 
   function stuck() {

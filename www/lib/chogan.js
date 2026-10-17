@@ -707,6 +707,16 @@
       }
       noise({ freq: 1800, to: 600, dur: 0.08, gain: 0.08, at: b + 0.6 });
     },
+    // Flint on steel for a mahjong pair meeting in the middle (#272): the same two-tile
+    // knock, then a short bright crackle of sparks fading upward
+    flint: function () {
+      var b = now();
+      noise({ freq: 3400, to: 2000, dur: 0.03, gain: 0.24, at: b });
+      tone({ freq: 1600, to: 1200, dur: 0.05, gain: 0.1, type: 'triangle', at: b });
+      for (var i = 0; i < 6; i++) {
+        noise({ freq: 6500 + i * 300, to: 8000, dur: 0.012, gain: 0.07 * (1 - i / 7), at: b + 0.03 + i * 0.022 });
+      }
+    },
     clack: function () {
       var b = now();
       [[0, 3200, 1500], [0.055, 2600, 1250]].forEach(function (k) {
@@ -849,7 +859,7 @@
   // بازخورد استاندارد یک لمس: صدا + لرزش با هم
   Chogan.feedback = function (kind) {
     var map = { tap: ['tap', 'tap'], select: ['select', 'select'], good: ['good', 'success'],
-      bad: ['bad', 'error'], win: ['win', 'win'], coin: ['coin', 'success'], place: ['place', 'tap'], clack: ['clack', 'tap'] };
+      bad: ['bad', 'error'], win: ['win', 'win'], coin: ['coin', 'success'], place: ['place', 'tap'], clack: ['clack', 'tap'], flint: ['flint', 'tap'] };
     var m = map[kind] || map.tap;
     audioApi.sfx(m[0]);
     Chogan.haptic(m[1]);
