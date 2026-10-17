@@ -260,7 +260,7 @@
   // فایل. کلید ترجمه‌نشده به انگلیسی برمی‌گردد، پس رشته‌ی تازه منتظر مترجم نمی‌ماند
   // و زبان کم‌ترجمه‌شده هم قابل استفاده می‌ماند.
   var LOCALES = [
-    { code: 'fa', label: 'فارسی',    dir: 'rtl', tag: 'fa',      date: 'fa-IR-u-ca-gregory' },
+    { code: 'fa', label: 'فارسی',    dir: 'rtl', tag: 'fa',      date: 'fa-IR-u-ca-persian' },
     { code: 'en', label: 'English',  dir: 'ltr', tag: 'en',      date: 'en-US' },
     { code: 'zh', label: '中文', dir: 'ltr', tag: 'zh-Hans', date: 'zh-CN' },
     { code: 'de', label: 'Deutsch',  dir: 'ltr', tag: 'de',      date: 'de-DE' }
