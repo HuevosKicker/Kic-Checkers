@@ -1,64 +1,145 @@
 #!/usr/bin/env bash
-# Posts a release's English changelog to the Telegram channel (#258).
+# Posts releases to the Telegram channel (#258, #263).
 #
-#   tools/telegram-post.sh v0.5.2
+#   tools/telegram-post.sh v0.5.2        one release
+#   tools/telegram-post.sh --history     every release, oldest first
+#   tools/telegram-post.sh --delete <message-id>
+#   tools/telegram-post.sh --set-photo   channel photo = www/icon-512.png
 #
-# Reads the version code from www/version.js at the checked-out commit, so run
-# it on the tag being announced. Needs TELEGRAM_BOT_TOKEN in the environment.
-# DRY_RUN=1 prints the message and sends nothing.
-# Exit 0: posted (or printed). 1: Telegram refused the message. 2: cannot post
-# (bad tag, missing changelog or token).
+# Everything about a release is read from git at its tag (version, changelog,
+# date, games added since the previous release), so it runs from any checkout
+# with the tags fetched. A release that added games goes out as an album with a
+# picture of each new game (tools/game-shots.sh), the post itself follows with
+# its links as buttons. Needs TELEGRAM_BOT_TOKEN.
+# DRY_RUN=1 prints what would be sent and sends nothing.
+# Exit 0: done. 1: Telegram refused. 2: cannot post (bad tag, no changelog, no token).
 set -euo pipefail
+cd "$(dirname "$0")/.."
 
 CHANNEL="${TELEGRAM_CHANNEL:-@chogan_games}"
-TAG="${1:-}"
-VERSION=$(sed -n "s/^self\.APP_VERSION *= *'\([^']*\)'.*/\1/p" www/version.js)
-CODE=$(sed -n "s/^self\.APP_VERSION_CODE *= *\([0-9]*\).*/\1/p" www/version.js)
+DRY="${DRY_RUN:-0}"
+SHOTS="${SHOTS_DIR:-$(mktemp -d)}"
 
-if [ -z "$TAG" ] || [ "$TAG" != "v$VERSION" ]; then
-  echo "Tag '$TAG' does not match www/version.js (v$VERSION); check out the tag first." >&2
-  exit 2
-fi
-NOTES="fastlane/metadata/android/en-US/changelogs/$CODE.txt"
-if [ ! -s "$NOTES" ]; then
-  echo "No English changelog at $NOTES" >&2
-  exit 2
-fi
+releases() { git tag -l 'v*' --sort=v:refname | grep -v -- '-test$' || true; }
+prev_of() { releases | awk -v t="$1" '$0 == t { print p; exit } { p = $0 }'; }
+field() { git show "$1:www/version.js" | sed -n "s/^self\.$2 *= *'\{0,1\}\([^';]*\)'\{0,1\};.*/\1/p"; }
+game_ids() { git show "$1:www/games.json" | python3 -c 'import json,sys; d=json.load(sys.stdin); d=d["games"] if isinstance(d,dict) else d; print("\n".join(g["id"] for g in d))'; }
+game_name() { git show "$1:www/games.json" | python3 -c 'import json,sys; d=json.load(sys.stdin); d=d["games"] if isinstance(d,dict) else d; print({g["id"]: g["name"]["en"] for g in d}[sys.argv[1]].replace("­",""))' "$2"; }
+# Games in this release that the previous one did not have; the first release introduces all of them
+new_games() {
+  local prev; prev=$(prev_of "$1")
+  if [ -z "$prev" ]; then game_ids "$1"; else comm -13 <(game_ids "$prev" | sort) <(game_ids "$1" | sort); fi
+}
 
-# Plain text, no parse_mode: changelog lines may hold characters Markdown or
-# HTML would treat as markup, and a rejected post is worse than an unstyled one.
-TEXT="Chogan $VERSION is out
+api() {  # api <method> [curl args...]; prints Telegram's JSON, never the token
+  local method="$1"; shift
+  local r
+  for attempt in 1 2 3; do
+    r=$(curl -s --max-time 120 "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/$method" "$@") || r='{"ok":false,"description":"could not reach Telegram"}'
+    # Channels take about 20 posts a minute; on 429 wait as long as Telegram asks
+    local wait; wait=$(printf '%s' "$r" | sed -n 's/.*"retry_after":\([0-9]*\).*/\1/p')
+    if [ -n "$wait" ]; then sleep $((wait + 1)); continue; fi
+    break
+  done
+  printf '%s' "$r"
+}
+check() {  # check <what> <json>
+  if printf '%s' "$2" | grep -q '"ok":true'; then return 0; fi
+  echo "Telegram refused $1: $(printf '%s' "$2" | sed -n 's/.*"description":"\([^"]*\)".*/\1/p')" >&2
+  exit 1
+}
 
-$(cat "$NOTES")
+text_for() {
+  local tag="$1" version code notes day games names=""
+  version=$(field "$tag" APP_VERSION); code=$(field "$tag" APP_VERSION_CODE)
+  notes=$(git show "$tag:fastlane/metadata/android/en-US/changelogs/$code.txt" 2>/dev/null) \
+    || { echo "No English changelog for $tag (version code $code)" >&2; exit 2; }
+  # One changelog line is one feature; the owner wants them as bullets in the channel
+  notes=$(printf '%s\n' "$notes" | sed -e 's/^[[:space:]]*[-*•][[:space:]]*//' -e '/^[[:space:]]*$/d' -e 's/^/• /')
+  day=$(LC_ALL=C date -u -d "$(git log -1 --format=%cI "$tag")" '+%-d %B %Y')
+  games=$(new_games "$tag")
+  if [ -n "$games" ]; then
+    while read -r id; do names="${names:+$names, }$(game_name "$tag" "$id")"; done <<< "$games"
+    names="
+New games: $names"
+  fi
+  # Plain text, no parse_mode: a changelog character taken as markup would get the post refused
+  printf '%s' "Chogan $version · $day$names
 
-Play in the browser: https://choganhq.github.io/chogan/
-Android: https://github.com/choganhq/chogan/releases/tag/$TAG
-F-Droid (usually a few days later): https://f-droid.org/packages/io.github.choganhq.chogan/"
+$notes"
+}
+# The links are buttons under the post (owner's wish); an album cannot carry
+# buttons, so a release with new games sends its pictures first and this after
+# The cover is GitHub's own card for the release (version, changelog, org
+# avatar), shown large above the text as the link preview (owner's wish)
+cover_for() {
+  printf '%s' "{\"url\":\"https://github.com/choganhq/chogan/releases/tag/$1\",\"prefer_large_media\":true,\"show_above_text\":true}"
+}
+buttons_for() {
+  printf '%s' "{\"inline_keyboard\":[[{\"text\":\"Play in the browser\",\"url\":\"https://choganhq.github.io/chogan/\"}],[{\"text\":\"Android APK\",\"url\":\"https://github.com/choganhq/chogan/releases/tag/$1\"},{\"text\":\"F-Droid\",\"url\":\"https://f-droid.org/packages/io.github.choganhq.chogan/\"}]]}"
+}
 
-if [ "${DRY_RUN:-0}" = "1" ]; then
-  echo "To $CHANNEL:"
-  printf '%s\n' "$TEXT"
-  exit 0
-fi
+post() {
+  local tag="$1" text games buttons
+  releases | grep -qx -- "$tag" || { echo "No release tag $tag" >&2; exit 2; }
+  text=$(text_for "$tag")
+  games=$(new_games "$tag")
+  buttons=$(buttons_for "$tag")
+  if [ "$DRY" = "1" ]; then
+    echo "=== $tag to $CHANNEL${games:+ with pictures: $(echo $games)}"
+    printf '%s\n' "$text"
+    echo "[cover] $(cover_for "$tag")"
+    echo "[buttons] $buttons"
+    return
+  fi
+  if [ -n "$games" ]; then
+    # shellcheck disable=SC2086
+    tools/game-shots.sh "$SHOTS" $games >/dev/null
+    local ids=(); mapfile -t ids <<< "$games"
+    if [ "${#ids[@]}" -eq 1 ]; then
+      # An album needs at least two pictures
+      check "$tag" "$(api sendPhoto -F "chat_id=$CHANNEL" -F "photo=@$SHOTS/${ids[0]}.png" -F "caption=$(game_name "$tag" "${ids[0]}")")"
+    else
+      # An album takes 2 to 10 pictures, so eleven games go out as 6 + 5, not 10 + 1
+      local n=${#ids[@]} i=0 size
+      size=$(( (n + (n + 9) / 10 - 1) / ((n + 9) / 10) ))
+      while [ "$i" -lt "$n" ]; do
+        local media="[" files=() j cap
+        for ((j = i; j < i + size && j < n; j++)); do
+          cap=$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$(game_name "$tag" "${ids[$j]}")")
+          [ "$j" -gt "$i" ] && media="$media,"
+          media="$media{\"type\":\"photo\",\"media\":\"attach://p$j\",\"caption\":$cap}"
+          files+=(-F "p$j=@$SHOTS/${ids[$j]}.png")
+        done
+        check "$tag" "$(api sendMediaGroup -F "chat_id=$CHANNEL" -F "media=$media]" "${files[@]}")"
+        i=$((i + size))
+      done
+    fi
+  fi
+  check "$tag" "$(api sendMessage --data-urlencode "chat_id=$CHANNEL" --data-urlencode "text=$text" \
+    --data-urlencode "link_preview_options=$(cover_for "$tag")" --data-urlencode "reply_markup=$buttons")"
+  echo "Posted $tag${games:+ with pictures}"
+}
 
-if [ -z "${TELEGRAM_BOT_TOKEN:-}" ]; then
+if [ "$DRY" != "1" ] && [ -z "${TELEGRAM_BOT_TOKEN:-}" ]; then
   echo "Secret TELEGRAM_BOT_TOKEN is not set. The owner adds it with:" >&2
   echo "  gh secret set TELEGRAM_BOT_TOKEN -R choganhq/chogan" >&2
   exit 2
 fi
 
-# The token goes in the URL, so curl must not print it: -s hides progress and
-# errors, and the response body carries only Telegram's verdict.
-RESPONSE=$(curl -s --max-time 30 "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-  --data-urlencode "chat_id=$CHANNEL" \
-  --data-urlencode "text=$TEXT" \
-  --data-urlencode "disable_web_page_preview=true") || { echo "Could not reach Telegram" >&2; exit 1; }
-
-if printf '%s' "$RESPONSE" | grep -q '"ok":true'; then
-  ID=$(printf '%s' "$RESPONSE" | sed -n 's/.*"message_id":\([0-9]*\).*/\1/p')
-  echo "Posted to $CHANNEL as message $ID: https://t.me/${CHANNEL#@}/$ID"
-else
-  echo "Telegram refused the message: $(printf '%s' "$RESPONSE" | sed -n 's/.*"description":"\([^"]*\)".*/\1/p')" >&2
-  echo "Check that the bot is an admin of $CHANNEL with permission to post." >&2
-  exit 1
-fi
+case "${1:-}" in
+  --history)
+    [ -n "$(releases)" ] || { echo "No release tags; fetch them first" >&2; exit 2; }
+    for t in $(releases); do post "$t"; [ "$DRY" = "1" ] || sleep 4; done ;;
+  --delete)
+    [ -n "${2:-}" ] || { echo "Usage: --delete <message-id>" >&2; exit 2; }
+    [ "$DRY" = "1" ] && { echo "Would delete message $2"; exit 0; }
+    check "the delete" "$(api deleteMessage --data-urlencode "chat_id=$CHANNEL" --data-urlencode "message_id=$2")"
+    echo "Deleted message $2" ;;
+  --set-photo)
+    [ "$DRY" = "1" ] && { echo "Would set the channel photo to www/icon-512.png"; exit 0; }
+    check "the channel photo (the bot needs the 'Change channel info' right)" "$(api setChatPhoto -F "chat_id=$CHANNEL" -F "photo=@www/icon-512.png")"
+    echo "Channel photo set" ;;
+  v*) post "$1" ;;
+  *) echo "Usage: tools/telegram-post.sh <tag> | --history | --delete <id> | --set-photo" >&2; exit 2 ;;
+esac
