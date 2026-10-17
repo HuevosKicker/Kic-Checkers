@@ -2221,6 +2221,7 @@
   /* ================================================ ناوبری و چرخه‌ی عمر */
 
   var NAV_KEY = 'chogan.nav';
+  var SHORTCUT_KEY = 'chogan.shortcut';
   function ss(key, val) {
     try {
       if (val === undefined) return global.sessionStorage.getItem(key);
@@ -2230,7 +2231,8 @@
   }
 
   // منو قبل از رفتن به بازی این را می‌گذارد تا بازگشت بداند تاریخچه دارد.
-  Chogan.markNav = function () { ss(NAV_KEY, 'menu'); };
+  // A game opened from the menu afterwards is part of the app again, not a shortcut (#214)
+  Chogan.markNav = function () { ss(NAV_KEY, 'menu'); ss(SHORTCUT_KEY, ''); };
 
   Chogan.back = function () {
     audioApi.stopMusic(0.2);
@@ -2283,6 +2285,15 @@
       } catch (e) { return 'session'; }
     })();
 
+    // Opened from a home-screen shortcut, the game stands alone like its own app:
+    // the reporter pinned single games and the back button pulled them into the
+    // whole menu (#214). The flag lives for the tab, so a reload keeps it; the
+    // system back button still closes the game.
+    var standalone = (function () {
+      try { if (new URLSearchParams(location.search).get('from') === 'shortcut') ss(SHORTCUT_KEY, cfg.id); } catch (e) { /* no URL API: never standalone */ }
+      return ss(SHORTCUT_KEY) === cfg.id;
+    })();
+
     var title = el('div', { class: 'ch-gamebar__title ch-grow', text: cfg.name[state.settings.lang] || cfg.name.en || cfg.name.fa });
     // بازگشت در راست‌چین رو به راست است، مثل پیکان‌های منو (#107)
     var backBtn = el('button', { class: 'ch-iconbtn ch-iconbtn--plain', type: 'button', 'aria-label': Chogan.t('back') }, [Chogan.icon(Chogan.isRtl() ? 'forward' : 'back', 22)]);
@@ -2292,6 +2303,7 @@
     // so the check waits until every game listener has run and leaves the key
     // alone if one of them consumed it. An open dialog takes Escape for itself.
     global.addEventListener('keydown', function (e) {
+      if (standalone) return;
       if (e.key !== 'Escape' && e.key !== 'Backspace') return;
       if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.repeat) return;
       var tg = e.target, tag = tg && tg.tagName;
@@ -2302,7 +2314,7 @@
       }, 0);
     });
 
-    var bar = el('header', { class: 'ch-gamebar' }, [backBtn, title]);
+    var bar = el('header', { class: 'ch-gamebar' }, standalone ? [title] : [backBtn, title]);
     // در نوار بازی هم هست چون ناوبری بین منو و بازی تمام‌صفحه را می‌بندد
     var fsBtn = Chogan.fullscreen.button('ch-iconbtn--plain');
     var main = el('main', { class: 'ch-gamemain' + (cfg.scroll ? ' ch-gamemain--scroll' : '') });
@@ -2445,7 +2457,7 @@
             }
           });
         }
-        actions.push({ label: Chogan.t('menu'), onClick: function () { Chogan.back(); } });
+        if (!standalone) actions.push({ label: Chogan.t('menu'), onClick: function () { Chogan.back(); } });
         if (o.onAgain) actions.push({ label: Chogan.t('again'), kind: 'primary', onClick: o.onAgain });
 
         // بستن با ضربدر تخته را همان‌طور که تمام شد نشان می‌دهد؛ دکمه‌ی «نتیجه»

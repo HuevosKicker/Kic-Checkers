@@ -46,7 +46,8 @@ shortcuts = [{
         'zh-Hans': {'value': g['name']['zh'], 'lang': 'zh-Hans', 'dir': 'ltr'},
         'de': {'value': g['name']['de'], 'lang': 'de', 'dir': 'ltr'},
     },
-    'url': g['path'],
+    # The game hides its back button when opened this way (#214)
+    'url': g['path'] + '?from=shortcut',
     'icons': [{'src': 'games/%s/icon-192.png' % g['id'], 'sizes': '192x192', 'type': 'image/png'}],
 } for g in games]
 # Only the shortcuts section, the file's last key, is rewritten; the rest of the

@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2541;
+const MIN_CHECKS = 2548;
 
 function ok(cond, msg) {
   checks++;
@@ -4315,6 +4315,24 @@ function testPasurGone() {
   ok(!missing.length, 'panel strings exist in all four languages' + (missing.length ? ' (' + missing.join(', ') + ')' : ''));
 }
 
+/* ------------------------------------------------ Games opened from a shortcut (#214) */
+// A reporter pinned single games to the home screen; their back button led into
+// the whole menu. A shortcut-opened game now stands alone, until the menu opens a game.
+function testShortcutStandalone() {
+  head('Games opened from a shortcut');
+  const man = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/manifest.webmanifest'), 'utf8'));
+  const sc = man.shortcuts || [];
+  ok(sc.length > 0 && sc.every((x) => /\?from=shortcut$/.test(x.url)), 'every shortcut URL says it comes from a shortcut');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const sw = fs.readFileSync(path.join(ROOT, 'www/sw.js'), 'utf8');
+  ok(/ignoreSearch: true/.test(sw), 'the service worker serves the query URL from the cache');
+  ok(/get\('from'\) === 'shortcut'\) ss\(SHORTCUT_KEY, cfg\.id\)/.test(core), 'a game remembers it was opened from its shortcut');
+  ok(/standalone \? \[title\] : \[backBtn, title\]/.test(core), 'the top bar has no back button then');
+  ok(/if \(standalone\) return;/.test(core), 'Escape and Backspace do not leave the game then');
+  ok(/if \(!standalone\) actions\.push\(\{ label: Chogan\.t\('menu'\)/.test(core), 'the result dialog has no Menu button then');
+  ok(/Chogan\.markNav = function \(\) \{ ss\(NAV_KEY, 'menu'\); ss\(SHORTCUT_KEY, ''\); \}/.test(core), 'opening a game from the menu clears the shortcut mark');
+}
+
 /* ------------------------------------------------ Privacy page top bar (#207) */
 // The page had only a small text link back and its title bar stayed light in dark
 // mode, because its theme-color meta was fixed while the app changes it on theme.
@@ -4674,7 +4692,7 @@ function testShortcuts() {
       'zh-Hans': { value: g.name.zh, lang: 'zh-Hans', dir: 'ltr' },
       de: { value: g.name.de, lang: 'de', dir: 'ltr' }
     },
-    url: g.path,
+    url: g.path + '?from=shortcut',
     icons: [{ src: 'games/' + g.id + '/icon-192.png', sizes: '192x192', type: 'image/png' }]
   }));
   // آیکون بازی‌ای که میان‌بر ندارد فقط حجم APK را بالا می‌برد
@@ -4682,7 +4700,7 @@ function testShortcuts() {
   firstTen.forEach((g, i) => {
     ok(JSON.stringify(sc[i]) === JSON.stringify(want[i]), g.id + ': میان‌بر شماره‌ی ' + (i + 1) + ' با games.json می‌خواند (tools/shortcuts.sh را اجرا کن)');
     // آدرس نسبی و داخل scope، وگرنه مرورگر میان‌بر را نادیده می‌گیرد
-    ok(sc[i] && !/^(\/|\.\.|[a-z]+:)/i.test(sc[i].url) && fs.existsSync(path.join(ROOT, 'www', sc[i].url)), g.id + ': آدرس میان‌بر داخل اپ است و فایلش هست');
+    ok(sc[i] && !/^(\/|\.\.|[a-z]+:)/i.test(sc[i].url) && fs.existsSync(path.join(ROOT, 'www', sc[i].url.split('?')[0])), g.id + ': آدرس میان‌بر داخل اپ است و فایلش هست');
     const png = path.join(ROOT, 'www/games', g.id, 'icon-192.png');
     let w = 0, h = 0, sig = '';
     try {
@@ -4882,6 +4900,7 @@ testReadme();
 testMenuPins();
 testWaysToPlay();
 testPrivacyBar();
+testShortcutStandalone();
 testPasurGone();
 testStoreMetadata();
 testAndroidShare();

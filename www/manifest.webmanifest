@@ -49,7 +49,7 @@
         "zh-Hans": { "value": "塔防", "lang": "zh-Hans", "dir": "ltr" },
         "de": { "value": "Turm­verteidigung", "lang": "de", "dir": "ltr" }
       },
-      "url": "games/tower-defence/index.html",
+      "url": "games/tower-defence/index.html?from=shortcut",
       "icons": [
         { "src": "games/tower-defence/icon-192.png", "sizes": "192x192", "type": "image/png" }
       ]
@@ -61,7 +61,7 @@
         "zh-Hans": { "value": "数独", "lang": "zh-Hans", "dir": "ltr" },
         "de": { "value": "Sudoku", "lang": "de", "dir": "ltr" }
       },
-      "url": "games/sudoku/index.html",
+      "url": "games/sudoku/index.html?from=shortcut",
       "icons": [{ "src": "games/sudoku/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
@@ -71,7 +71,7 @@
         "zh-Hans": { "value": "扫雷", "lang": "zh-Hans", "dir": "ltr" },
         "de": { "value": "Minesweeper", "lang": "de", "dir": "ltr" }
       },
-      "url": "games/minesweeper/index.html",
+      "url": "games/minesweeper/index.html?from=shortcut",
       "icons": [
         { "src": "games/minesweeper/icon-192.png", "sizes": "192x192", "type": "image/png" }
       ]
@@ -83,7 +83,7 @@
         "zh-Hans": { "value": "点格棋", "lang": "zh-Hans", "dir": "ltr" },
         "de": { "value": "Käsekästchen", "lang": "de", "dir": "ltr" }
       },
-      "url": "games/dots/index.html",
+      "url": "games/dots/index.html?from=shortcut",
       "icons": [{ "src": "games/dots/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
@@ -93,7 +93,7 @@
         "zh-Hans": { "value": "数织", "lang": "zh-Hans", "dir": "ltr" },
         "de": { "value": "Nonogramm", "lang": "de", "dir": "ltr" }
       },
-      "url": "games/nonogram/index.html",
+      "url": "games/nonogram/index.html?from=shortcut",
       "icons": [{ "src": "games/nonogram/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
@@ -103,7 +103,7 @@
         "zh-Hans": { "value": "播棋", "lang": "zh-Hans", "dir": "ltr" },
         "de": { "value": "Mancala", "lang": "de", "dir": "ltr" }
       },
-      "url": "games/mancala/index.html",
+      "url": "games/mancala/index.html?from=shortcut",
       "icons": [{ "src": "games/mancala/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
@@ -113,7 +113,7 @@
         "zh-Hans": { "value": "空当接龙", "lang": "zh-Hans", "dir": "ltr" },
         "de": { "value": "FreeCell", "lang": "de", "dir": "ltr" }
       },
-      "url": "games/freecell/index.html",
+      "url": "games/freecell/index.html?from=shortcut",
       "icons": [{ "src": "games/freecell/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
@@ -123,7 +123,7 @@
         "zh-Hans": { "value": "孔明棋", "lang": "zh-Hans", "dir": "ltr" },
         "de": { "value": "Solitär", "lang": "de", "dir": "ltr" }
       },
-      "url": "games/peg/index.html",
+      "url": "games/peg/index.html?from=shortcut",
       "icons": [{ "src": "games/peg/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
@@ -133,7 +133,7 @@
         "zh-Hans": { "value": "黑白棋", "lang": "zh-Hans", "dir": "ltr" },
         "de": { "value": "Reversi", "lang": "de", "dir": "ltr" }
       },
-      "url": "games/reversi/index.html",
+      "url": "games/reversi/index.html?from=shortcut",
       "icons": [{ "src": "games/reversi/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
@@ -143,7 +143,7 @@
         "zh-Hans": { "value": "双陆棋", "lang": "zh-Hans", "dir": "ltr" },
         "de": { "value": "Backgammon", "lang": "de", "dir": "ltr" }
       },
-      "url": "games/backgammon/index.html",
+      "url": "games/backgammon/index.html?from=shortcut",
       "icons": [{ "src": "games/backgammon/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
