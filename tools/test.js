@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3076;
+const MIN_CHECKS = 3079;
 
 function ok(cond, msg) {
   checks++;
@@ -4971,6 +4971,12 @@ function testWaysToPlay() {
   const short = keys.filter((k) => (home.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < LOCALE_CODES.length);
   ok(!short.length, 'ways-to-play strings exist in every language' + (short.length ? ' (' + short.join(', ') + ')' : ''));
   ok(!/telegram-web-app\.js/.test(home), 'no Telegram script is loaded (owner decision 2026-10-15)');
+  // Release posts go to @chogan_games (#258); the app and README point there (#261)
+  ok(/el\('a', \{ href: 'https:\/\/t\.me\/chogan_games'/.test(home) && (home.match(/[ ,{]news: '/g) || []).length === LOCALE_CODES.length, 'the About card links the news channel, labelled in every language');
+  // Without dir=ltr the Persian card showed «chogan_games@»
+  ok(/href: 'https:\/\/t\.me\/chogan_games'[^}]*dir: 'ltr'/.test(home), 'the channel name keeps its @ in front in Persian');
+  const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+  ok((readme.match(/https:\/\/t\.me\/chogan_games/g) || []).length >= 2, 'both halves of the README link the news channel');
   const fa = md.indexOf('## فارسی');
   ok(fa > 0, 'README has a Persian section');
   for (const [name, sec] of [['English', md.slice(0, fa)], ['Persian', md.slice(fa)]]) {
