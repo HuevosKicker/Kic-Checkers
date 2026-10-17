@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2827;
+const MIN_CHECKS = 2865;
 
 function ok(cond, msg) {
   checks++;
@@ -3922,6 +3922,62 @@ function testMahjongTimed() {
   ok(!miss.length, 'timed-mode strings in all four languages' + (miss.length ? ' (' + miss.join(', ') + ')' : ''));
 }
 
+/* ------------------------------------------------------------ Blackjack (#226) */
+// The owner accepted blackjack only without betting: a ten-hand match against the dealer.
+function testBlackjack() {
+  head('Blackjack');
+  const E = loadEngine('blackjack', 'BlackjackEngineFactory');
+  const C = (r, s) => r * 4 + (s || 0);           // rank 0 = ace … 12 = king
+  const A = 0, K = 12, Q = 11, T = 9;
+  const V = (n) => C(n - 1);                     // the number card n, 2 … 10
+  const tv = (h) => { const t = E.total(h); return t.value + (t.soft ? 's' : ''); };
+  ok(tv([C(A), C(K)]) === '21s' && E.isBlackjack([C(A), C(K)]), 'ace and king are a soft 21 and a blackjack');
+  ok(tv([C(A), V(6)]) === '17s' && tv([C(A), V(6), C(K)]) === '17' && tv([C(A), C(A), V(9)]) === '21s' && tv([C(K), C(Q), V(2)]) === '22', 'aces count 11 until that busts, then 1');
+  ok(!E.isBlackjack([V(5), V(6), V(10)]) && E.total([V(5), V(6), V(10)]).value === 21, 'three cards making 21 are not a blackjack');
+  const d = E.shuffled(rng(5));
+  ok(d.length === 52 && new Set(d).size === 52 && E.shuffled(rng(5)).join() === d.join(), 'a deck is the 52 cards, the same for the same seed');
+  // deck.pop() takes from the end, so the next card is the last in the array
+  const hand = (player, dealer, deck) => ({ player, dealer, deck: deck || [], done: false, result: null });
+  let H = hand([C(K), V(7)], [V(10), V(6)], [V(3)]);
+  E.stand(H);
+  ok(H.dealer.length === 3 && E.total(H.dealer).value === 19 && H.result === 'lose', 'the dealer draws on 16 (16 + 3 = 19 beats 17)');
+  H = hand([C(K), V(7)], [C(A), V(6)], [V(9)]);
+  E.stand(H);
+  ok(H.dealer.length === 2 && H.result === 'push', 'the dealer stands on soft 17');
+  H = hand([C(K), V(8)], [C(K), V(6)], [C(K)]);
+  E.stand(H);
+  ok(H.result === 'win' && E.total(H.dealer).value === 26, 'a dealer bust is a win');
+  H = hand([C(K), V(5)], [C(K), V(7)], [C(K)]);
+  E.hit(H);
+  ok(H.done && H.result === 'bust' && H.dealer.length === 2, 'a bust ends the hand without the dealer drawing');
+  H = hand([C(K), V(5)], [C(K), V(7)], [V(6)]);
+  E.hit(H);
+  ok(H.done && E.total(H.player).value === 21 && H.result === 'win', 'reaching 21 stands by itself (21 against 17)');
+  ok(E.settle(hand([C(A), C(K)], [C(A), C(Q)])) === 'push' && E.settle(hand([C(A), C(K)], [C(K), V(9)])) === 'blackjack' && E.settle(hand([C(K), V(9)], [C(A), C(Q)])) === 'lose', 'naturals: both push, yours wins, the dealer\'s wins');
+  // Basic strategy, hit or stand only: the printed table
+  const adv = (p, up) => E.advice(p, C(up));
+  ok(adv([C(T), C(5)], T) === 'hit' && adv([C(T), C(5)], 5) === 'stand' && adv([C(T), C(1)], 2) === 'hit' && adv([C(T), C(1)], 3) === 'stand' &&
+    adv([C(A), C(6)], 8) === 'hit' && adv([C(A), C(6)], 7) === 'stand' && adv([C(A), C(5)], 5) === 'hit' && adv([C(T), C(6)], A) === 'stand' && adv([C(8), C(1)], 5) === 'hit',
+    'advice matches the basic-strategy table (16 v 10 hit, 16 v 6 stand, 12 v 3 hit, 12 v 4 stand, soft 18 v 9 hit, v 8 stand, soft 17 hit, 17 stand, 11 hit)');
+  // Played by the advice over many hands, the results look like real blackjack
+  let w = 0, l = 0, p = 0, bj = 0, n = 0;
+  const r = rng(2026);
+  for (let k = 0; k < 20000; k++) {
+    const G = E.deal(r);
+    let guard = 0;
+    while (!G.done && guard++ < 12) { if (E.advice(G.player, G.dealer[0]) === 'hit') E.hit(G); else E.stand(G); }
+    n++; if (E.won(G.result)) w++; else if (E.lost(G.result)) l++; else p++;
+    if (G.result === 'blackjack') bj++;
+  }
+  ok(n === 20000 && w / n > 0.4 && w / n < 0.46 && l / n > 0.45 && l / n < 0.52 && bj / n > 0.04 && bj / n < 0.055,
+    'over 20000 hands: about 43% won, 48% lost, 4.7% blackjacks (' + [w, l, p, bj].map((x) => (100 * x / n).toFixed(1) + '%').join(' / ') + ')');
+  const page = fs.readFileSync(path.join(ROOT, 'www/games/blackjack/index.html'), 'utf8');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(!/coins\.spend|bet|wager|chip/i.test(page.replace(/Chogan\.cards|C\.cards|Einsätze|betting|no bet/gi, '')), 'there is no betting anywhere in the game');
+  ok(/C\.daily\('blackjack', S\.daily \+ '\|' \+ S\.n\)\.rng/.test(page) && /C\.stats\.daily\('blackjack', S\.daily/.test(page), 'the daily deals the same ten hands to everyone and is recorded');
+  ok(/id: 'bj-win'/.test(core) && /id: 'bj-21'/.test(core) && /unlock\('bj-win'\)/.test(page) && /unlock\('bj-21'\)/.test(page), 'both blackjack awards exist and are unlocked');
+}
+
 /* ------------------------------------------------------------- پاسور */
 function testPasur() {
   head('پاسور');
@@ -5580,6 +5636,7 @@ testContextMenu();
 testMahjongArt();
 testMahjongClack();
 testMahjongTimed();
+testBlackjack();
 testTd();
 testVersionStamp();
 testDeployGate();

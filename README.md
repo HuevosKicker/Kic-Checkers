@@ -36,6 +36,7 @@ Ways to play:
 | Gomoku | Five in a row on a 9, 13 or 15 board, two players or three levels of AI, and a daily game |
 | Go | Go on a 9×9 board with area scoring and automatic dead-stone counting, two players or three levels of AI, and a daily game |
 | Way Out | Send every arrow off the board in a working order, three hearts a level, levels without end |
+| Blackjack | Closer to 21 than the dealer: ten-hand matches with no betting, hit/stand advice and a daily game |
 
 Around the games: a daily challenge that is identical on every device with no server at all, a weekly offline league with five tiers, over eighty awards, a shared coin that is only ever spent on hints and cosmetics, stats and a profile, and a Persian, English, Simplified Chinese and German interface with light and dark themes.
 
@@ -124,6 +125,7 @@ MIT, see [LICENSE](LICENSE). The Vazirmatn font is under the OFL; its licence te
 | گوموکو | پنج در یک خط روی تخته‌ی ۹، ۱۳ یا ۱۵، دو نفره یا مقابل ربات با سه سطح، و بازی روزانه |
 | گو | گوی ۹×۹ با شمارش زمین و تشخیص خودکار سنگ‌های مرده، دو نفره یا مقابل ربات با سه سطح، و بازی روزانه |
 | راه دررو | همه‌ی پیکان‌ها را به ترتیب درست از تخته بیرون بفرست، سه جان در هر مرحله، مرحله‌های بی‌پایان |
+| بیست‌ویک | نزدیک‌تر از دیلر به ۲۱: مسابقه‌ی ده‌دستی بدون شرط‌بندی، با پیشنهاد حرکت و بازی روزانه |
 
 بیرون از بازی‌ها: چالش روزانه‌ی مشترک برای همه‌ی دستگاه‌ها بدون هیچ سروری، لیگ هفتگی آفلاین با پنج رده، بیش از هشتاد دستاورد، سکه‌ی مشترک که فقط خرج راهنمایی و تزئینات می‌شود، آمار و پروفایل، و رابط فارسی، انگلیسی، چینی ساده‌شده و آلمانی با تم روشن و تاریک.
 
