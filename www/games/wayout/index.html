@@ -24,9 +24,9 @@
   .wo-body { stroke: var(--game); stroke-width: 13; transition: stroke-dashoffset var(--t-slow) var(--ease), stroke var(--t-fast) var(--ease); }
   .wo-glow { stroke: transparent; stroke-width: 30; opacity: .45; transition: stroke-dashoffset var(--t-slow) var(--ease); }
   .wo-head { transition: transform var(--t-slow) var(--ease); }
-  /* The head is filled and stroked in the same colour with round joins, so its corners
-     are as round as the body's ends (#229) */
-  .wo-head path { fill: var(--game); stroke: var(--game); stroke-width: 8; stroke-linejoin: round; transition: fill var(--t-fast) var(--ease), stroke var(--t-fast) var(--ease); }
+  /* A wide, flat head with only slightly rounded corners (#229): a fully rounded head
+     on a short straight arrow stopped reading as an arrow */
+  .wo-head path { fill: var(--game); stroke: var(--game); stroke-width: 3; stroke-linejoin: round; transition: fill var(--t-fast) var(--ease), stroke var(--t-fast) var(--ease); }
   .wo-arrow--in { animation: wo-in var(--t-mid) var(--ease-back) backwards; transform-box: fill-box; transform-origin: center; }
   @keyframes wo-in { from { opacity: 0; transform: scale(.6); } }
   /* an arrow already tapped while blocked keeps a red head and halo until it leaves */
@@ -645,8 +645,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = WayOutEngi
     var body = sv('path', { class: 'wo-body', d: 'M' + pts.join(' L'), 'stroke-dasharray': dash });
     // the head is a triangle on the head cell, its tip a little ahead of the centre
     var px = -dy, py = dx;
-    var tri = 'M' + (hx + dx * 13) + ' ' + (hy + dy * 13) + ' L' + (hx - dx * 5 + px * 10) + ' ' + (hy - dy * 5 + py * 10) +
-      ' L' + (hx - dx * 5 - px * 10) + ' ' + (hy - dy * 5 - py * 10) + ' Z';
+    var tri = 'M' + (hx + dx * 12) + ' ' + (hy + dy * 12) + ' L' + (hx - dx * 6 + px * 15) + ' ' + (hy - dy * 6 + py * 15) +
+      ' L' + (hx - dx * 6 - px * 15) + ' ' + (hy - dy * 6 - py * 15) + ' Z';
     var head = sv('g', { class: 'wo-head' });
     head.appendChild(sv('path', { d: tri, 'stroke-linejoin': 'round' }));
     g.appendChild(glow); g.appendChild(body); g.appendChild(head);
@@ -945,12 +945,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = WayOutEngi
         g.stroke();
         var hp = mid(A.c[0]), dx = E.DX[A.d], dy = E.DY[A.d];
         g.beginPath();
-        g.moveTo(hp[0] + dx * cs * 0.4, hp[1] + dy * cs * 0.4);
-        g.lineTo(hp[0] - dx * cs * 0.18 - dy * cs * 0.33, hp[1] - dy * cs * 0.18 + dx * cs * 0.33);
-        g.lineTo(hp[0] - dx * cs * 0.18 + dy * cs * 0.33, hp[1] - dy * cs * 0.18 - dx * cs * 0.33);
+        g.moveTo(hp[0] + dx * cs * 0.3, hp[1] + dy * cs * 0.3);
+        g.lineTo(hp[0] - dx * cs * 0.15 - dy * cs * 0.37, hp[1] - dy * cs * 0.15 + dx * cs * 0.37);
+        g.lineTo(hp[0] - dx * cs * 0.15 + dy * cs * 0.37, hp[1] - dy * cs * 0.15 - dx * cs * 0.37);
         g.closePath();
         g.fill();
-        g.lineWidth = cs * 0.16;
+        g.lineWidth = cs * 0.06;
         g.stroke();
         g.lineWidth = cs * 0.32;
       });
@@ -1016,7 +1016,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = WayOutEngi
   }
   function artArrow(x0, x1, y, col, head) {
     return '<path d="M' + x0 + ' ' + y + 'H' + x1 + '" stroke="' + col + '" stroke-width="9" stroke-linecap="round" fill="none"/>' +
-      (head ? '<path d="M' + (x1 + 10) + ' ' + y + 'l-13 -8v16z" fill="' + col + '" stroke="' + col + '" stroke-width="5" stroke-linejoin="round"/>' : '');
+      (head ? '<path d="M' + (x1 + 10) + ' ' + y + 'l-10 -11v22z" fill="' + col + '" stroke="' + col + '" stroke-width="2" stroke-linejoin="round"/>' : '');
   }
   var TUT = [
     { title: C.t('tutTitle1'), text: C.t('tutText1'),
@@ -1024,7 +1024,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = WayOutEngi
         '<path d="M110 53H178" stroke="var(--c-good)" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 12"/></svg>' },
     { title: C.t('tutTitle2'), text: C.t('tutText2'),
       art: '<svg viewBox="0 0 200 110" width="100%">' + artCells(6) + artArrow(25, 55, 53, 'var(--c-bad)', true) +
-        '<path d="M145 30V80" stroke="var(--game)" stroke-width="9" stroke-linecap="round"/><path d="M145 20l-8 13h16z" fill="var(--game)" stroke="var(--game)" stroke-width="5" stroke-linejoin="round"/>' +
+        '<path d="M145 30V80" stroke="var(--game)" stroke-width="9" stroke-linecap="round"/><path d="M145 20l-11 10h22z" fill="var(--game)" stroke="var(--game)" stroke-width="2" stroke-linejoin="round"/>' +
         '<path d="M80 53H132" stroke="var(--c-bad)" stroke-width="5" stroke-linecap="round" stroke-dasharray="1 12"/></svg>' },
     { title: C.t('tutTitle3'), text: C.t('tutText3'),
       art: '<svg viewBox="0 0 200 110" width="100%">' + artCells(6) +
