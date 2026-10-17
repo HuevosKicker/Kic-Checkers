@@ -222,7 +222,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Codebreake
   C.boot({});
   var ctx = C.game({
     id: 'mastermind',
-    name: { fa: 'رمزشکن', en: 'Code Breaker', zh: '猜密码', de: 'Codeknacker' },
+    name: { fa: 'رمزشکن', en: 'Code Breaker', zh: '猜密码', de: 'Codeknacker', es: 'Descifra el código' },
     accent: '#5E60CE',
     mood: 'sudoku',
     scroll: true,
@@ -282,6 +282,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Codebreake
         tutTitle1: 'Finde den Code', tutText1: 'Ein Code aus vier Farben ist versteckt. Du hast zehn Versuche, ihn zu finden.',
         tutTitle2: 'Die Stifte', tutText2: 'Nach jedem Versuch steht jeder volle Stift für eine Farbe am richtigen Platz und jeder leere Ring für eine richtige Farbe am falschen Platz. Die Stifte stehen nicht in der Reihenfolge der Felder.',
         tutTitle3: 'Farbe und Form', tutText3: 'Jede Farbe hat auch ihre eigene Form, so kannst du spielen, ohne Farben zu unterscheiden. Ändere die Reihe, so oft du willst, bevor du sie abschickst; ein abgeschickter Versuch bleibt.'
+      },
+      es: {
+        normal: 'Normal', submit: 'Enviar', erase: 'Borrar', newCode: 'Nuevo código',
+        dailyCode: 'Código diario', secret: 'Código', level: 'Nivel', guesses: 'Intentos',
+        ofTen: '{n} de {m}', left: 'Quedan {n} intentos', incomplete: 'Rellena primero todas las casillas',
+        cracked: 'Código descifrado', notCracked: 'Código no descifrado', slot: 'Casilla {n}', empty: 'vacía',
+        moveSlot: 'Casilla anterior y siguiente', putColor: 'Poner color', exactPin: 'Color correcto, lugar correcto',
+        nearPin: 'Color correcto, lugar incorrecto', noRepeat: 'En fácil, ningún color se repite en el código.',
+        levelsText: 'Fácil: 4 casillas, 6 colores, sin repetir. Normal: 4 casillas, 6 colores, con repetición. Difícil: 5 casillas, 8 colores, con repetición.',
+        col0: 'círculo rojo', col1: 'cuadrado azul', col2: 'triángulo naranja', col3: 'rombo verde',
+        col4: 'cruz rosa', col5: 'estrella celeste', col6: 'aspa amarilla', col7: 'igual gris',
+        tutTitle1: 'Descubre el código', tutText1: 'Hay un código de cuatro colores escondido. Tienes diez intentos para encontrarlo.',
+        tutTitle2: 'Las fichas', tutText2: 'Tras cada intento, cada ficha llena indica un color en el lugar correcto y cada anillo hueco un color correcto en el lugar equivocado. Las fichas no siguen el orden de las casillas.',
+        tutTitle3: 'Color y forma', tutText3: 'Cada color tiene también su propia forma, así que puedes jugar sin distinguir colores. Cambia la fila todo lo que quieras antes de enviarla; un intento enviado no se puede cambiar.'
       }
     }
   });

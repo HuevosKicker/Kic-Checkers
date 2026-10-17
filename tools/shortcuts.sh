@@ -45,6 +45,7 @@ shortcuts = [{
         'fa': {'value': g['name']['fa'], 'lang': 'fa', 'dir': 'rtl'},
         'zh-Hans': {'value': g['name']['zh'], 'lang': 'zh-Hans', 'dir': 'ltr'},
         'de': {'value': g['name']['de'], 'lang': 'de', 'dir': 'ltr'},
+        'es': {'value': g['name']['es'], 'lang': 'es', 'dir': 'ltr'},
     },
     # The game hides its back button when opened this way (#214)
     'url': g['path'] + '?from=shortcut',

@@ -23,6 +23,13 @@
   var C = window.Chogan;
   var el = C.el;
 
+  // Shared by the profile and the welcome screen, so both wrap the same way (#256)
+  function langPicker(value, onChange) {
+    var seg = C.ui.segmented(C.locales().map(function (L) { return { value: L.code, label: L.label }; }), value, onChange);
+    seg.classList.add('ch-seg--wrap');
+    return seg;
+  }
+
   C.strings({
     fa: {
       slogan: 'بازی‌های کوچک، تمام‌شدنی، بدون مزاحمت',
@@ -119,6 +126,30 @@
       yourName: 'Dein Name', pickChar: 'Wähl eine Figur', charFree: 'Den Rest kannst du später mit Münzen freischalten.',
       prefsTitle: 'Stell es dir ein, wie du magst', prefsSub: 'Das alles kannst du später in den Einstellungen ändern.',
       showWelcome: 'Begrüßung nochmal zeigen'
+    },
+    es: {
+      slogan: 'Juegos pequeños que de verdad puedes terminar',
+      waysToPlay: 'Formas de jugar', playWeb: 'Web', playAndroid: 'Android', playTelegram: 'Telegram',
+      allGames: 'Juegos', viewGrid: 'Dos columnas', privacy: 'Privacidad', privacyNone: 'No se recogen datos', viewList: 'Una columna', pickDay: 'Elige un día',
+      seasonTable: 'Tabla de la temporada', myTier: 'Tu nivel',
+      toNext: 'para ascender', keepAbove: 'para mantenerte',
+      unlockAsk: '¿Desbloquear por {n} monedas?', mascot: 'Personaje', palette: 'Colores del menú',
+      statsTitle: 'Tus estadísticas', perGame: 'Por juego',
+      dangerZone: 'Borrar datos', wipeAll: 'Borrar todo',
+      wipeAllAsk: '¿Borrar todos los datos de la app? Monedas, logros, liga y todos los juegos.',
+      installed: 'Instalada en el dispositivo', playedTimes: 'jugado {n} veces', pinned: 'Fijados', recent: 'Jugados hace poco', pin: 'Fijar', unpin: 'Soltar',
+      noneYet: 'Aún nada', dailyOf: 'Retos del {d}',
+      noGames: 'Aún no hay juegos', noGamesSub: 'Muy pronto', loadFailed: 'No se pudo cargar la lista de juegos',
+      loadFailedSub: 'Revisa tu conexión y vuelve a abrir la página',
+      wave: 'Oleada', wins: 'Victorias', solved: 'Resueltos', cleared: 'Superados',
+      defaultPalette: 'Predeterminado', sea: 'Mar', sunset: 'Atardecer', forest: 'Bosque',
+      fox: 'Zorro', owl: 'Búho', cat: 'Gato', bear: 'Oso',
+      seasonResult: 'Temporada anterior',
+      welcomeTitle: 'Bienvenido a Chogan', welcomeSub: 'Unos cuantos juegos pequeños que de verdad puedes terminar. Sin anuncios, sin rastreadores, sin internet.',
+      youTitle: 'Cuéntanos de ti', youSub: 'El nombre es opcional y nunca sale de este dispositivo.',
+      yourName: 'Tu nombre', pickChar: 'Elige un personaje', charFree: 'El resto lo puedes desbloquear luego con monedas.',
+      prefsTitle: 'Ajústalo a tu gusto', prefsSub: 'Puedes cambiar todo esto luego en Ajustes.',
+      showWelcome: 'Ver la bienvenida otra vez'
     }
   });
 
@@ -877,9 +908,7 @@
     card.appendChild(el('div', { class: 'ch-item' }, [
       C.icon('globe', 20),
       el('div', { class: 'ch-item__label', text: C.t('language') }),
-      C.ui.segmented(C.locales().map(function (L) { return { value: L.code, label: L.label }; }), s.lang, function (v) {
-        C.setLang(v); render();
-      })
+      langPicker(s.lang, function (v) { C.setLang(v); render(); })
     ]));
 
     card.appendChild(el('div', { class: 'ch-item' }, [
@@ -918,8 +947,7 @@
     ]);
     // زبان همین اول، تا بقیه‌ی گام‌ها به زبان خودش باشد
     box.appendChild(el('div', { class: 'ch-row', style: { 'justify-content': 'center' } }, [
-      C.ui.segmented(C.locales().map(function (L) { return { value: L.code, label: L.label }; }),
-        C.state.settings.lang, function (v) { C.setLang(v); applyPalette(); drawWelcome(); })
+      langPicker(C.state.settings.lang, function (v) { C.setLang(v); applyPalette(); drawWelcome(); })
     ]));
     return box;
   }

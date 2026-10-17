@@ -290,7 +290,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MancalaEng
   C.boot({});
   var ctx = C.game({
     id: 'mancala',
-    name: { fa: 'منقله', en: 'Mancala', zh: '播棋', de: 'Mancala' },
+    name: { fa: 'منقله', en: 'Mancala', zh: '播棋', de: 'Mancala', es: 'Mancala' },
     accent: '#B5838D',
     mood: 'menu',
     strings: {
@@ -345,6 +345,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MancalaEng
         tutTitle1: 'Säen', tutText1: 'Tippe auf eine Mulde in der unteren Reihe. Ihre Steine wandern einzeln gegen den Uhrzeigersinn in die nächsten Mulden und in dein Haus. Das Haus des Gegners wird übersprungen.',
         tutTitle2: 'Nochmal und schlagen', tutText2: 'Landet dein letzter Stein in deinem Haus, bist du nochmal dran. Landet er in einer leeren Mulde von dir und gegenüber liegen Steine, kommen beide in dein Haus.',
         tutTitle3: 'Das Ende', tutText3: 'Ist eine Reihe leer, kommen die übrigen Steine der anderen Reihe ins Haus ihres Besitzers. Wer die meisten Steine im Haus hat, gewinnt.'
+      },
+      es: {
+        twoPlayers: 'Dos jugadores', vsAi: 'Contra la IA',
+        you: 'Tú', rival: 'Rival', player2: 'Jugador 2', renameP2: 'Nombre del jugador 2',
+        thinking: 'Pensando…', yourTurn: 'Tu turno', turnOf: 'Turno de {n}',
+        extraTurn: 'Última semilla en el almacén: otro turno para {n}', captured: '{n} semillas capturadas',
+        draw: 'Empate', playerWon: 'Gana: {n}', seeds: 'Semillas', board: 'Tablero de mancala',
+        newMatch: 'Nueva partida', undoMove: 'Deshacer', move: 'Mover',
+        pickPit: 'Hoyo desde la izquierda', skipSow: 'Saltar siembra',
+        dailyMc: 'Mancala diario', vsHard: 'contra la IA difícil',
+        tutTitle1: 'Siembra', tutText1: 'Toca un hoyo de la fila de abajo. Sus semillas van una a una, en sentido antihorario, a los hoyos siguientes y a tu almacén. El almacén del rival se salta.',
+        tutTitle2: 'Repetir y capturar', tutText2: 'Si tu última semilla cae en tu almacén, vuelves a jugar. Si cae en un hoyo tuyo vacío y el hoyo de enfrente tiene semillas, todas van a tu almacén.',
+        tutTitle3: 'El final', tutText3: 'Cuando una fila queda vacía, las semillas que quedan en la otra van al almacén de su dueño. Gana quien tenga más semillas en su almacén.'
       }
     }
   });

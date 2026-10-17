@@ -247,7 +247,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GomokuEngi
   C.boot({});
   var ctx = C.game({
     id: 'gomoku',
-    name: { fa: 'گوموکو', en: 'Gomoku', zh: '五子棋', de: 'Gomoku' },
+    name: { fa: 'گوموکو', en: 'Gomoku', zh: '五子棋', de: 'Gomoku', es: 'Gomoku' },
     accent: '#C45C26',
     // A thinking game, like reversi: the calm sudoku music
     mood: 'sudoku',
@@ -315,6 +315,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GomokuEngi
         tutTitle1: 'Fünf in einer Reihe', tutText1: 'Wer zuerst fünf Steine derselben Farbe in einer geraden Reihe hat, gewinnt – waagerecht, senkrecht oder diagonal.',
         tutTitle2: 'Rechtzeitig blocken', tutText2: 'Hat dein Gegner drei in einer Reihe mit zwei offenen Enden, schließ ein Ende. Sonst entsteht eine offene Vier, und die ist nicht mehr aufzuhalten.',
         tutTitle3: 'Zurücknehmen', tutText3: 'Anders überlegt? Der Zurück-Knopf oder U / Ctrl+Z nimmt deinen letzten Zug zurück.'
+      },
+      es: {
+        twoPlayers: 'Dos jugadores', vsAi: 'Contra la IA',
+        you: 'Tú', rival: 'Rival', player2: 'Jugador dos', renameP2: 'Nombre del jugador dos',
+        black: 'Negras', white: 'Blancas', toMove: 'Turno: {c}', playerWon: 'Gana: {n}', draw: 'Empate',
+        newMatch: 'Nueva partida', undoMove: 'Deshacer jugada',
+        boardLabel: 'Tablero de gomoku', stones: 'piedras', placed: 'Piedras colocadas',
+        size9: '9×9', size13: '13×13', size15: '15×15',
+        playBlack: 'Con negras', playWhite: 'Con blancas',
+        dailyGomoku: 'Gomoku diario', vsMedium: 'contra la IA media',
+        resetWarn: 'Esto termina la partida actual. ¿Seguir?',
+        rules: 'Por turnos, cada jugador coloca una piedra en un cruce de líneas. Empiezan las negras. Gana quien consiga primero cinco piedras de su color seguidas en línea, horizontal, vertical o diagonal.',
+        keyboard: 'Teclado', moveCursor: 'Mover el cursor', place: 'Colocar una piedra',
+        tutTitle1: 'Cinco en línea', tutText1: 'Gana quien alinee primero cinco piedras del mismo color en línea recta: horizontal, vertical o diagonal.',
+        tutTitle2: 'Bloquea a tiempo', tutText2: 'Cuando tu rival tenga tres en línea con los dos extremos libres, cierra uno. Si no, hará un cuatro abierto, y eso ya no se puede parar.',
+        tutTitle3: 'Deshacer', tutText3: '¿Cambiaste de idea? El botón de deshacer o U / Ctrl+Z retira tu última jugada.'
       }
     }
   });

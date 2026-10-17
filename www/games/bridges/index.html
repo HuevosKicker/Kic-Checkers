@@ -328,7 +328,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BridgesEng
   C.boot({});
   var ctx = C.game({
     id: 'bridges',
-    name: { fa: 'پل‌ها', en: 'Bridges', zh: '数桥', de: 'Brücken' },
+    name: { fa: 'پل‌ها', en: 'Bridges', zh: '数桥', de: 'Brücken', es: 'Puentes' },
     accent: '#D46A9E',
     mood: 'sudoku',
     strings: {
@@ -383,6 +383,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BridgesEng
         tutText2: 'Die Zahl einer Insel sagt, wie viele Brücken zu ihr führen. Zwei Inseln können eine oder zwei Brücken teilen: Beim zweiten Tippen wird sie doppelt, beim dritten verschwindet sie.',
         tutTitle3: 'Alles verbunden',
         tutText3: 'Brücken dürfen sich nicht kreuzen. Am Ende muss jede Insel Teil eines einzigen zusammenhängenden Netzes sein.'
+      },
+      es: {
+        size: 'Tamaño', islands: 'Islas', newPuzzle: 'Nuevo puzle', undoMove: 'Deshacer',
+        dailyBridges: 'Puentes diarios', solvedIn: 'Resuelto en {t}',
+        notLinked: 'Los números encajan, pero todas las islas deben estar conectadas',
+        crossing: 'Los puentes no pueden cruzarse', noNeighbour: 'No hay ninguna isla en esa dirección',
+        moveIsland: 'Ir a la siguiente isla', toggleBridge: 'Puente en esa dirección',
+        tutTitle1: 'Conecta las islas',
+        tutText1: 'Construye puentes entre islas de la misma fila o columna: toca el hueco entre ellas o arrastra de una isla hacia otra.',
+        tutTitle2: 'Cada número',
+        tutText2: 'El número de una isla indica cuántos puentes llegan a ella. Dos islas pueden compartir uno o dos puentes: un segundo toque lo hace doble y un tercero lo quita.',
+        tutTitle3: 'Todo unido',
+        tutText3: 'Los puentes no pueden cruzarse. Al terminar, todas las islas deben formar una sola red conectada.'
       }
     }
   });

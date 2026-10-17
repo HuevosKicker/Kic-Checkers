@@ -395,7 +395,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
   C.boot({});
   var ctx = C.game({
     id: 'pasur',
-    name: { fa: 'پاسور', en: 'Pasur', zh: '帕苏尔', de: 'Pasur' },
+    name: { fa: 'پاسور', en: 'Pasur', zh: '帕苏尔', de: 'Pasur', es: 'Pasur' },
     accent: '#4A7C59',
     mood: 'menu',
     // The easy level's played-cards panel makes the page taller; centred with overflow
@@ -457,6 +457,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
         tutTitle1: 'Elf machen', tutText1: 'Spiel eine Zahlenkarte, die mit Tischkarten zusammen 11 ergibt, und du nimmst sie alle. Gibt es mehrere Wege, wählst du die Tischkarten selbst.',
         tutTitle2: 'Bube, Dame, König', tutText2: 'Ein Bube räumt alles vom Tisch außer Königen und Damen. Eine Dame nimmt eine Dame, ein König einen König.',
         tutTitle3: 'Sur und Punkte', tutText3: 'Leerst du den Tisch, ist das ein Sur: fünf Punkte. Am Ende bringen die meisten Kreuz 7, Karo 10 drei, Kreuz 2 zwei und jedes Ass und jeder Bube 1 Punkt.'
+      },
+      es: {
+        you: 'Tú', rival: 'Rival', thinking: 'Pensando…', yourTurn: 'Tu turno, juega una carta', youStart: 'Esta partida empiezas tú', rivalStarts: 'Esta partida empieza tu rival',
+        deck: 'Mazo', taken: 'Cartas', clubs: 'Tréboles', surs: 'Surs', sur: '¡Sur!', gone: 'Cartas jugadas', goneSub: 'Las cartas atenuadas ya se han llevado',
+        newDeal: 'Nueva partida', undoMove: 'Deshacer', pickTake: 'Elige las cartas de la mesa que te llevas',
+        cancelPick: 'Cancelar', rivalTook: 'El rival jugó {c} y se llevó {n} cartas', rivalPut: 'El rival dejó {c} en la mesa',
+        lastSweep: 'Las cartas que quedaban en la mesa fueron para la última captura', draw: 'Empate', dailyPs: 'Pasur diario', vsHard: 'contra la IA difícil',
+        table: 'Mesa', hand: 'Tu mano', rivalHand: 'Mano del rival', playN: 'Carta número', pointsLine: 'Puntos',
+        clubsPts: 'Más tréboles', tenD: '10 de diamantes', twoC: '2 de tréboles', acesJacks: 'Ases y jotas',
+        rules: 'Una carta numérica se lleva las cartas de la mesa que suman 11 con ella (el as vale 1). Una jota se lleva todo lo de la mesa salvo reyes y reinas. Una reina se lleva una reina y un rey un rey. Si tu carta puede llevarse algo, debe hacerlo; si no, va a la mesa. Vaciar la mesa es un sur y vale cinco puntos, pero no con una jota. Al final: más tréboles 7, el 10 de diamantes 3, el 2 de tréboles 2, cada as y cada jota 1. Las cartas que quedan en la mesa son para quien se llevó cartas por última vez.',
+        move: 'Moverse entre las cartas de la mesa', toggle: 'Elegir una carta de la mesa', cancelKey: 'Cancelar la selección',
+        tutTitle1: 'Suma once', tutText1: 'Juega una carta numérica que sume 11 con cartas de la mesa y te las llevas todas. Si hay varias formas, tú eliges las cartas de la mesa.',
+        tutTitle2: 'Jota, reina, rey', tutText2: 'Una jota barre todo lo de la mesa salvo reyes y reinas. Una reina se lleva una reina y un rey se lleva un rey.',
+        tutTitle3: 'Sur y puntos', tutText3: 'Si vacías la mesa, haces un sur: cinco puntos. Al final, tener más tréboles vale 7, el 10 de diamantes 3, el 2 de tréboles 2, y cada as y cada jota 1.'
       }
     }
   });

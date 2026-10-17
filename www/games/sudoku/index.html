@@ -343,7 +343,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
   C.boot({});
   var ctx = C.game({
     id: 'sudoku',
-    name: { fa: 'سودوکو', en: 'Sudoku', zh: '数独', de: 'Sudoku' },
+    name: { fa: 'سودوکو', en: 'Sudoku', zh: '数独', de: 'Sudoku', es: 'Sudoku' },
     accent: '#6A8CBF',
     mood: 'sudoku',
     strings: {
@@ -382,6 +382,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
         tutTitle1: 'Die Regel', tutText1: 'Jede Zeile, jede Spalte und jeder 3x3-Block muss jede Ziffer von eins bis neun genau einmal enthalten.',
         tutTitle2: 'Notizen', tutText2: 'Im Notizmodus schreibst du kleine Bleistiftzahlen in ein Feld, wenn du dir noch nicht sicher bist.',
         tutTitle3: 'Tipps', tutText3: 'Ein Tipp füllt ein Feld richtig aus und kostet zehn Münzen. Münzen bekommst du beim Spielen.'
+      },
+      es: {
+        mistakes: 'Errores', hints: 'Pistas', notes: 'Notas', erase: 'Borrar', move: 'Mover',
+        autoNotes: 'Notas auto', showErrors: 'Ver errores', newPuzzle: 'Nuevo sudoku',
+        solvedIn: 'Resuelto en {t}', noMoreEmpty: 'No quedan casillas vacías',
+        dailySudoku: 'Sudoku diario', clues: 'pistas',
+        tutTitle1: 'La regla', tutText1: 'Cada fila, cada columna y cada bloque de 3x3 debe contener cada número del uno al nueve exactamente una vez.',
+        tutTitle2: 'Notas', tutText2: 'El modo notas escribe pequeñas marcas a lápiz dentro de una casilla, para cuando aún no estás seguro.',
+        tutTitle3: 'Pistas', tutText3: 'Una pista rellena bien una casilla y cuesta diez monedas. Las monedas se ganan jugando.'
       }
     }
   });

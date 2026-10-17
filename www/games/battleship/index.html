@@ -356,7 +356,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
   var N = E.N;
 
   C.boot({});
-  var NAME = { fa: 'نبرد دریایی', en: 'Battleship', zh: '海战棋', de: 'Schiffe versenken' };
+  var NAME = { fa: 'نبرد دریایی', en: 'Battleship', zh: '海战棋', de: 'Schiffe versenken', es: 'Batalla naval' };
   var ctx = C.game({
     id: 'battleship',
     name: NAME,
@@ -422,6 +422,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
         tutTitle1: 'Flotte aufstellen', tutText1: 'Du hast fünf Schiffe: 5, 4, 3, 3 und 2 Felder. Keine zwei Schiffe berühren sich, nicht mal an einer Ecke. Es gibt auch einen Zufallsknopf.',
         tutTitle2: 'Abwechselnd feuern', tutText2: 'Ein Schuss pro Zug: Wasser, Treffer oder versenkt. Wer zuerst die ganze gegnerische Flotte versenkt, gewinnt.',
         tutTitle3: 'Um ein Wrack ist Wasser', tutText3: 'Schiffe berühren sich nie, also werden die Felder um ein versenktes Schiff markiert und du musst nie dorthin schießen.'
+      },
+      es: {
+        placeTitle: 'Coloca tu flota', placeHint: 'Elige un barco y toca el mar. Tócalo otra vez para girarlo.',
+        placeDone: 'Flota lista', rotate: 'Girar', randomFleet: 'Al azar', startBattle: 'Empezar batalla',
+        notHere: 'No cabe aquí; los barcos nunca se tocan',
+        yourFleet: 'Tu flota', foeSea: 'Aguas del rival',
+        yourTurn: 'Tu turno, dispara', aiming: 'El rival apunta…',
+        shotYou: 'Tu disparo', shotAi: 'Disparo rival', miss: 'Agua', hit: 'Tocado', sunk: 'Hundido',
+        shots: 'Disparos', accuracy: 'Precisión', shipsLeft: 'Tus barcos a flote', rival: 'Rival',
+        newMatch: 'Nueva partida', dailyBs: 'Batalla naval diaria', vsMedium: 'contra la IA media',
+        ship: 'Barco de {n} casillas', move: 'Mover', fireKey: 'Disparar o colocar barco', pickShip: 'Elegir barco',
+        wonIn: 'Ganaste en {n} disparos',
+        tutTitle1: 'Coloca tu flota', tutText1: 'Tienes cinco barcos: de 5, 4, 3, 3 y 2 casillas. Dos barcos nunca se tocan, ni siquiera en una esquina. También hay un botón para colocarlos al azar.',
+        tutTitle2: 'Disparos por turnos', tutText2: 'Un disparo por turno: agua, tocado o hundido. Gana quien hunda primero toda la flota rival.',
+        tutTitle3: 'Alrededor de un naufragio hay agua', tutText3: 'Los barcos nunca se tocan, así que las casillas alrededor de un barco hundido se marcan y nunca necesitas disparar ahí.'
       }
     }
   });

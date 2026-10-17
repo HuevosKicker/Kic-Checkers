@@ -289,7 +289,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
   C.boot({});
   var ctx = C.game({
     id: 'hokm',
-    name: { fa: 'حکم', en: 'Hokm', zh: '霍克姆', de: 'Hokm' },
+    name: { fa: 'حکم', en: 'Hokm', zh: '霍克姆', de: 'Hokm', es: 'Hokm' },
     accent: '#9C3D54',
     mood: 'menu',
     // The trump picker makes the page taller; centred with overflow hidden, a 800px-high
@@ -347,6 +347,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
         tutTitle1: 'Zwei Teams', tutText1: 'Du und dein Partner gegenüber seid ein Team, die Spieler rechts und links das andere. Jeder legt pro Stich eine Karte, die beste Karte holt alle vier für ihr Team.',
         tutTitle2: 'Trumpf', tutText2: 'Der Hakem wählt Trumpf aus den ersten fünf Karten. Du musst Farbe bekennen; hast du die Farbe nicht, darfst du trumpfen, und Trumpf schlägt jede andere Karte.',
         tutTitle3: 'Sieben Stiche und Kot', tutText3: 'Das Team mit zuerst sieben Stichen punktet. Sieben zu null ist ein Kot und zählt zwei Punkte; geht das Team des Hakem leer aus, sind es drei.'
+      },
+      es: {
+        you: 'Tú', partner: 'Pareja', right: 'Derecha', left: 'Izquierda', us: 'Nosotros', them: 'Rivales',
+        trump: 'Triunfo', hakem: 'Hakem', chooseTrump: 'Elige el triunfo', chooseSub: 'Eres el hakem. Con estas cinco cartas, elige el palo de triunfo.',
+        yourTurn: 'Tu turno', thinking: 'Turno de {n}…', trumpBy: 'Triunfo: {s} (hakem: {n})',
+        handUs: 'Esta mano es nuestra', handThem: 'Esta mano es de los rivales', kot: '¡Kot!', hakemKot: '¡Kot al hakem!',
+        nextHand: 'Siguiente mano', matchTo: 'A {n}', newMatch: 'Nueva partida', dailyHk: 'Hokm diario', vsHard: 'Contra la IA difícil',
+        tricks: 'Bazas', points: 'Puntos', handN: 'Mano {n}', hand: 'Tu mano', table: 'Mesa',
+        mustFollow: 'Debes seguir el palo', playKey: 'Jugar la carta elegida', moveKey: 'Moverse entre cartas', suitKey: 'Elegir triunfo',
+        rules: 'Cuatro jugadores en dos equipos; tu pareja se sienta enfrente. El hakem ve las cinco primeras cartas, elige el palo de triunfo y sale en la primera baza. Hay que seguir el palo de salida; si no tienes, puedes jugar cualquier carta, también triunfo. El triunfo más alto, o si no la carta más alta del palo de salida, gana la baza; el as es la más alta. El primer equipo en ganar siete bazas puntúa: un punto, dos por un kot (siete a cero) y tres si el equipo del propio hakem se queda en cero. Si pierde el equipo del hakem, el siguiente jugador pasa a ser hakem.',
+        tutTitle1: 'Dos equipos', tutText1: 'Juegas en equipo con tu pareja de enfrente; los jugadores de tu derecha e izquierda forman el otro. En cada baza todos juegan una carta y la mejor se lleva las cuatro para su equipo.',
+        tutTitle2: 'Triunfo', tutText2: 'El hakem elige el palo de triunfo con las cinco primeras cartas. Debes seguir el palo; si no lo tienes, puedes jugar triunfo, y el triunfo gana a cualquier otra carta.',
+        tutTitle3: 'Siete bazas y kot', tutText3: 'El primer equipo en llegar a siete bazas puntúa. Siete a cero es un kot y vale dos puntos; dejar en cero al equipo del hakem vale tres.'
       }
     }
   });

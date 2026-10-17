@@ -296,7 +296,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
   C.boot({});
   var ctx = C.game({
     id: 'minesweeper',
-    name: { fa: 'مین‌روب', en: 'Minesweeper', zh: '扫雷', de: 'Minesweeper' },
+    name: { fa: 'مین‌روب', en: 'Minesweeper', zh: '扫雷', de: 'Minesweeper', es: 'Buscaminas' },
     accent: '#E4A853',
     mood: 'minesweeper',
     strings: {
@@ -347,6 +347,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
         tutTitle1: 'Das Ziel', tutText1: 'Deck alle Felder ohne Mine auf. Jede Zahl sagt dir, wie viele Minen das Feld berühren.',
         tutTitle2: 'Flaggen', tutText2: 'Markier ein Feld, bei dem du sicher bist: mit dem Flaggenmodus oder lange drücken.',
         tutTitle3: 'Ohne Raten', tutText3: 'Die Bretter sind so erzeugt, dass sie immer allein durch Logik lösbar sind.'
+      },
+      es: {
+        small: 'Pequeño', medium: 'Mediano', large: 'Grande', custom: 'Personal',
+        minesLeft: 'Minas', flagMode: 'Banderas', noGuess: 'Sin adivinar',
+        guessy: 'Este tablero puede requerir adivinar', boom: 'Pisaste una mina',
+        rows: 'Filas', cols: 'Columnas', mineCount: 'Minas', newBoard: 'Nuevo tablero',
+        chordHint: 'Toca un número abierto para despejar a su alrededor', move: 'Mover',
+        longPress: 'Mantén pulsado para poner bandera', safeShown: 'Se reveló una casilla segura',
+        dailyMines: 'Buscaminas diario',
+        tutTitle1: 'El objetivo', tutText1: 'Abre todas las casillas sin mina. Cada número indica cuántas minas tocan esa casilla.',
+        tutTitle2: 'Banderas', tutText2: 'Marca una casilla de la que estés seguro: con el modo bandera o manteniendo pulsado.',
+        tutTitle3: 'Sin adivinar', tutText3: 'Los tableros se generan para que siempre se puedan resolver solo con lógica.'
       }
     }
   });

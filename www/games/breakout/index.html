@@ -418,7 +418,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BreakoutEn
   C.boot({});
   var ctx = C.game({
     id: 'breakout',
-    name: { fa: 'آجرشکن', en: 'Breakout', zh: '打砖块', de: 'Breakout' },
+    name: { fa: 'آجرشکن', en: 'Breakout', zh: '打砖块', de: 'Breakout', es: 'Rompeladrillos' },
     accent: '#3FA7D6',
     mood: 'dots',
     strings: {
@@ -465,6 +465,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BreakoutEn
         tutTitle1: 'Zieh den Schläger', tutText1: 'Zieh einen Finger irgendwo über den Bildschirm, und der Schläger folgt. Tipp einmal, um den Ball zu starten.',
         tutTitle2: 'Du wählst den Winkel', tutText2: 'Trifft der Ball die Mitte des Schlägers, fliegt er gerade nach oben; nah am Rand fliegt er schräg weg.',
         tutTitle3: 'Jeder Stein', tutText3: 'Du hast drei Bälle pro Level. Dunklere Steine brauchen mehr Treffer, graue Steine gehen nie kaputt.'
+      },
+      es: {
+        level: 'Nivel', lives: 'Bolas', chooseLevel: 'Elige un nivel', levelN: 'Nivel {n}',
+        tapLaunch: 'Toca para lanzar', tapResume: 'Pausa — toca para seguir',
+        levelClear: 'Nivel superado', allClear: '¡Los doce niveles superados!', outOfBalls: 'Sin bolas',
+        nextLevel: 'Siguiente nivel', nextUp: 'Siguiente: nivel {n}', ballsLeft: 'Bolas restantes',
+        dailyBreakout: 'Rompeladrillos diario', movePaddle: 'Mover la pala', launchKey: 'Lanzar o seguir',
+        pauseKey: 'Pausa', levelsKey: 'Elige un nivel', lockedLevel: 'Supera primero el nivel anterior',
+        tutTitle1: 'Arrastra la pala', tutText1: 'Arrastra un dedo por cualquier parte de la pantalla y la pala lo sigue. Toca una vez para lanzar la bola.',
+        tutTitle2: 'Tú eliges el ángulo', tutText2: 'Si la bola da en el centro de la pala, sube recta; cerca del borde sale en diagonal.',
+        tutTitle3: 'Todos los ladrillos', tutText3: 'Tienes tres bolas por nivel. Los ladrillos más oscuros necesitan más golpes y los grises nunca se rompen.'
       }
     }
   });

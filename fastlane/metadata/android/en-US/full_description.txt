@@ -33,7 +33,7 @@ Around the games:
 * A weekly offline league with five tiers
 * Over eighty awards
 * Stats and a profile
-* Persian, English, Simplified Chinese and German interface with light and dark themes
+* Persian, English, Simplified Chinese, German and Spanish interface with light and dark themes
 
 On privacy:
 

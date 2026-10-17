@@ -643,6 +643,16 @@ a  { color: var(--c-accent); text-decoration: none; }
 @media (max-width: 360px) {
   .ch-seg button { padding-inline: 9px; }
 }
+/* With five languages the picker ran past the card at 390px and the whole page
+   scrolled sideways (#256). The language picker wraps onto a second row instead,
+   with the buttons sharing each row, so a sixth language needs no new rule. */
+.ch-seg--wrap {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  border-radius: 22px;
+}
+.ch-seg--wrap button { flex: 1 1 auto; }
 
 /* ------------------------------------------------------------ پیمایه */
 .ch-bar {

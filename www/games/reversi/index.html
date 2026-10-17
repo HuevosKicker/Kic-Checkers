@@ -306,7 +306,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = ReversiEng
   C.boot({});
   var ctx = C.game({
     id: 'reversi',
-    name: { fa: 'ریورسی', en: 'Reversi', zh: '黑白棋', de: 'Reversi' },
+    name: { fa: 'ریورسی', en: 'Reversi', zh: '黑白棋', de: 'Reversi', es: 'Reversi' },
     accent: '#2F8F6B',
     // آهنگ آرام سودوکو؛ ریورسی هم بازی فکر کردن است، نه سرعت
     mood: 'sudoku',
@@ -358,6 +358,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = ReversiEng
         tutTitle1: 'Einschließen', tutText1: 'Setz einen Stein so, dass eine Reihe gegnerischer Steine zwischen ihm und einem deiner Steine eingeschlossen ist. Sie nehmen alle deine Farbe an.',
         tutTitle2: 'Gültige Züge', tutText2: 'Du darfst nur dort setzen, wo mindestens ein Stein umgedreht wird; die kleinen Punkte zeigen diese Felder. Ohne Zug passt du.',
         tutTitle3: 'Ecken', tutText3: 'Ein Stein in der Ecke kann nie umgedreht werden. Kann keiner mehr ziehen, endet das Spiel, und wer mehr Steine hat, gewinnt.'
+      },
+      es: {
+        twoPlayers: 'Dos jugadores', vsAi: 'Contra la IA',
+        you: 'Tú', rival: 'Rival', player2: 'Jugador 2', renameP2: 'Nombre del jugador 2',
+        draw: 'Empate', playerWon: 'Victoria: {n}', move: 'Mover', discs: 'Fichas',
+        newMatch: 'Nueva partida', undoMove: 'Deshacer',
+        dailyReversi: 'Reversi diario', vsHard: 'contra la IA difícil',
+        passNote: '{n}: sin movimiento, pasa turno',
+        boardLabel: 'Tablero de Reversi',
+        tutTitle1: 'Encierra', tutText1: 'Coloca una ficha de modo que una línea de fichas del rival quede atrapada entre ella y una de las tuyas. Todas pasan a tu color.',
+        tutTitle2: 'Jugadas válidas', tutText2: 'Solo puedes jugar donde al menos una ficha se voltee; los puntitos marcan esas casillas. Si no tienes jugada, pasas.',
+        tutTitle3: 'Esquinas', tutText3: 'Una ficha en una esquina nunca se voltea. Cuando nadie puede mover, la partida termina y gana quien tenga más fichas.'
       }
     }
   });

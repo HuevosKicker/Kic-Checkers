@@ -444,7 +444,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
   C.boot({});
   var ctx = C.game({
     id: 'backgammon',
-    name: { fa: 'تخته‌نرد', en: 'Backgammon', zh: '双陆棋', de: 'Backgammon' },
+    name: { fa: 'تخته‌نرد', en: 'Backgammon', zh: '双陆棋', de: 'Backgammon', es: 'Backgammon' },
     accent: '#A47551',
     mood: 'menu',
     strings: {
@@ -511,6 +511,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
         tutTitle1: 'Mit den Würfeln ziehen', tutText1: 'Die hellen Steine gehören dir und laufen ums Brett in dein Heimfeld unten rechts. Jeder Würfel zieht einen Stein um so viele Felder. Ein Pasch gibt vier Züge.',
         tutTitle2: 'Schlagen und blocken', tutText2: 'Ein Feld mit zwei gegnerischen Steinen ist gesperrt. Landest du auf einem einzelnen gegnerischen Stein, kommt er auf die Bar und muss zuerst wieder ins Spiel, bevor sonst etwas zieht.',
         tutTitle3: 'Abtragen', tutText3: 'Sind alle fünfzehn zu Hause, trägst du sie ab. Wer zuerst alle abgetragen hat, gewinnt. Dein Zug endet mit Fertig, und bis dahin lässt sich jeder Zug zurücknehmen.'
+      },
+      es: {
+        twoPlayers: 'Dos jugadores',
+        you: 'Tú', rival: 'Rival', player2: 'Jugador 2', renameP2: 'Nombre del jugador 2',
+        thinking: 'El rival piensa…', rivalNoMoves: 'El rival no puede mover con esta tirada',
+        pickChecker: 'Elige una ficha', pickDest: 'Toca el destino',
+        pressDone: 'Dados usados, toca Listo', noMoves: 'Sin movimiento con esta tirada, toca Listo',
+        turnOf: 'Turno de {n}', endTurn: 'Listo', undoMove: 'Deshacer', newMatch: 'Nueva partida',
+        pips: 'puntos', starts: 'Empieza: {n}', youStart: 'Empiezas tú', openingRoll: 'Tirada: {a} {x}, {b} {y}',
+        single: 'Victoria simple', gammon: 'Gammon', backgammon: 'Backgammon', winType: 'Victoria', borneOff: 'Sacadas',
+        playerWon: 'Victoria: {n}', dailyBg: 'Backgammon diario', vsHard: 'contra la IA difícil',
+        kChoose: 'Elegir ficha o destino', kMove: 'Mover', kCancel: 'Cancelar selección', kDone: 'Terminar turno',
+        rules: 'Si puedes jugar los dos dados, debes jugar los dos; si solo puedes uno, el mayor. Los dobles dan cuatro movimientos. Un dado mayor de lo necesario solo saca fichas desde la casilla ocupada más alta. Si el perdedor no ha sacado ninguna ficha es un gammon y el premio se duplica; si además tiene una ficha en la barra o en tu cuadrante final es un backgammon y el premio se triplica.',
+        tutTitle1: 'Avanza con los dados', tutText1: 'Las fichas claras son tuyas y dan la vuelta al tablero hasta tu casa, abajo a la derecha. Cada dado mueve una ficha ese número de casillas. Los dobles dan cuatro movimientos.',
+        tutTitle2: 'Golpea y bloquea', tutText2: 'Una casilla con dos fichas del rival está cerrada. Si caes sobre una ficha suelta del rival, va a la barra y debe volver a entrar antes de mover nada más.',
+        tutTitle3: 'Saca las fichas', tutText3: 'Cuando las quince estén en casa, sácalas. Gana quien saque todas primero. Tu turno termina con Listo, y hasta entonces puedes deshacer cada movimiento.'
       }
     }
   });
