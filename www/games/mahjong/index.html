@@ -323,6 +323,111 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
   var CJK = 'Noto Serif CJK SC, Noto Sans CJK SC, PingFang SC, Microsoft YaHei, serif';
   var faceCache = {};
 
+  /* ---------------------------------------- flowers and seasons (#227) */
+  // Own ink-painting art, drawn for this game: the four gentlemen of Chinese painting
+  // (plum, orchid, chrysanthemum, bamboo) and a scene for each season, with the
+  // tile's number and character in the corners. Replaces a plain flower and sun.
+  var INK = '#2B2622';
+  function leaf(x1, y1, x2, y2, w, bend, col) {
+    // a tapered blade from (x1,y1) to (x2,y2), widest in the middle, bent to one side
+    var mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, L = Math.sqrt(dx * dx + dy * dy) || 1;
+    var nx = -dy / L, ny = dx / L, bx = mx + nx * bend, by = my + ny * bend;
+    var f = function (v) { return v.toFixed(1); };
+    return '<path d="M' + f(x1) + ' ' + f(y1) + ' Q' + f(bx + nx * w) + ' ' + f(by + ny * w) + ' ' + f(x2) + ' ' + f(y2) +
+      ' Q' + f(bx - nx * w) + ' ' + f(by - ny * w) + ' ' + f(x1) + ' ' + f(y1) + 'Z" fill="' + col + '"/>';
+  }
+  function blossom(x, y, r, col, eye) {
+    var s = '';
+    for (var a = 0; a < 5; a++) {
+      var t = (a * 72 - 90) * Math.PI / 180;
+      s += '<circle cx="' + (x + Math.cos(t) * r * 0.62).toFixed(1) + '" cy="' + (y + Math.sin(t) * r * 0.62).toFixed(1) + '" r="' + (r * 0.5).toFixed(1) + '" fill="' + col + '"/>';
+    }
+    return s + '<circle cx="' + x + '" cy="' + y + '" r="' + (r * 0.28).toFixed(1) + '" fill="' + (eye || '#F2C14E') + '"/>';
+  }
+  function stroke(d, w, col, op) {
+    return '<path d="' + d + '" fill="none" stroke="' + (col || INK) + '" stroke-width="' + w + '" stroke-linecap="round" stroke-linejoin="round"' + (op ? ' opacity="' + op + '"' : '') + '/>';
+  }
+  function corner(n, ch, col) {
+    return '<text x="6" y="10" font-family="Vazirmatn, sans-serif" font-size="8" font-weight="700" fill="' + col + '">' + n + '</text>' +
+      '<text x="34" y="11" text-anchor="end" font-family="Noto Serif CJK SC, Noto Sans CJK SC, PingFang SC, Microsoft YaHei, serif" font-size="9" font-weight="700" fill="' + INK + '">' + ch + '</text>';
+  }
+  var ART = [
+    // 1 plum 梅: a dark crooked branch with red blossoms
+    function () {
+      return stroke('M6 46 C12 40 14 36 13 30 C12 25 16 21 22 19 C26 18 28 16 30 16', 2.6) + stroke('M14 32 C19 32 23 35 27 39', 1.6) +
+        blossom(22, 19, 7, '#D24D57') + blossom(30, 18, 5, '#E07A82') + blossom(26, 38, 6, '#D24D57') + blossom(12, 27, 4.5, '#E07A82') +
+        '<circle cx="17" cy="36" r="1.4" fill="#D24D57"/><circle cx="34" cy="24" r="1.2" fill="#D24D57"/>' + corner(1, '梅', '#B8323C');
+    },
+    // 2 orchid 蘭: long arching leaves and a small violet flower
+    function () {
+      return leaf(18, 47, 6, 18, 2.2, -6, INK) + leaf(19, 47, 34, 14, 2, 5, INK) + leaf(20, 47, 27, 22, 1.8, -3, '#3E3833') + leaf(17, 47, 12, 30, 1.5, 3, '#3E3833') +
+        leaf(25, 27, 31, 21, 2.6, 1, '#8A6BB8') + leaf(25, 27, 30, 31, 2.4, -1, '#A58ACB') + leaf(25, 27, 20, 22, 2.4, -1, '#8A6BB8') +
+        '<circle cx="25" cy="27" r="1.6" fill="#E8C35A"/>' + corner(2, '蘭', '#6A4C9C');
+    },
+    // 3 chrysanthemum 菊: a full yellow head of thin petals and two leaves
+    function () {
+      var s = stroke('M20 47 C19 41 21 36 20 30', 1.8) + leaf(20, 40, 9, 36, 3.4, 1, '#4E6B3A') + leaf(20, 37, 31, 34, 3, -1, '#5E7D45');
+      for (var a = 0; a < 18; a++) {
+        var t = a * 20 * Math.PI / 180;
+        s += '<line x1="20" y1="22" x2="' + (20 + Math.cos(t) * 10.5).toFixed(1) + '" y2="' + (22 + Math.sin(t) * 10.5).toFixed(1) + '" stroke="' + (a % 2 ? '#E8A33A' : '#F2C14E') + '" stroke-width="2.4" stroke-linecap="round"/>';
+      }
+      return s + '<circle cx="20" cy="22" r="3.6" fill="#C9752A"/>' + corner(3, '菊', '#B86A12');
+    },
+    // 4 bamboo 竹: two jointed stalks with blade leaves
+    function () {
+      var s = '';
+      [[14, 46, 12, 15], [25, 47, 27, 15]].forEach(function (b) {
+        s += stroke('M' + b[0] + ' ' + b[1] + ' L' + b[2] + ' ' + b[3], 3.4, '#3F6B3A');
+        for (var k = 1; k < 4; k++) {
+          var y = b[1] + (b[3] - b[1]) * k / 4, x = b[0] + (b[2] - b[0]) * k / 4;
+          s += stroke('M' + (x - 2.2) + ' ' + y + ' L' + (x + 2.2) + ' ' + y, 1.2, '#1F3A1E');
+        }
+      });
+      return s + leaf(13, 20, 3, 15, 2, 1, '#2F5A2C') + leaf(13, 21, 6, 27, 1.8, -1, '#3F6B3A') + leaf(26, 24, 36, 19, 2, -1, '#2F5A2C') +
+        leaf(26, 25, 35, 30, 1.8, 1, '#3F6B3A') + leaf(26, 16, 33, 9, 1.6, -1, '#2F5A2C') + corner(4, '竹', '#2F6B2A');
+    }
+  ];
+  var SEASONS = [
+    // 1 spring 春: drooping willow strands and a swallow
+    function () {
+      var s = stroke('M5 17 C14 15 26 15 35 19', 1.6, '#5B4636');
+      [11, 16, 21, 26, 31].forEach(function (x, k) {
+        s += stroke('M' + x + ' ' + (16 + k * 0.4) + ' C' + (x - 1) + ' ' + (24 + k) + ' ' + (x + 1) + ' ' + (32 + k * 2) + ' ' + (x - 1) + ' ' + (37 + k * 2), 1.1, '#6E9A4A');
+      });
+      s += '<path d="M12 44 L18 41 L24 44 L19 43.6 L18 47 L17 43.6 Z" fill="' + INK + '"/>';
+      return s + corner(1, '春', '#4E8A3A');
+    },
+    // 2 summer 夏: a pink lotus over a round leaf and water
+    function () {
+      return stroke('M6 44 C14 42 26 46 34 43', 1.1, '#5E8FA8') + '<ellipse cx="27" cy="38" rx="8" ry="3.4" fill="#4E7A3E"/>' + stroke('M20 46 L20 30', 1.6, '#4E7A3E') +
+        leaf(20, 30, 20, 14, 3.4, 0, '#E58AA6') + leaf(20, 30, 11, 18, 3.2, 1, '#EFA2B8') + leaf(20, 30, 29, 18, 3.2, -1, '#EFA2B8') +
+        leaf(20, 31, 9, 26, 2.6, 1, '#F3B9C9') + leaf(20, 31, 31, 26, 2.6, -1, '#F3B9C9') + corner(2, '夏', '#C2577A');
+    },
+    // 3 autumn 秋: a pale full moon and red maple leaves on a twig
+    function () {
+      function maple(x, y, r, col) {
+        var s = '';
+        [-90, -40, -140, 10, 170].forEach(function (d, k) {
+          var t = d * Math.PI / 180, l = k < 3 ? r : r * 0.7;
+          s += leaf(x, y, x + Math.cos(t) * l, y + Math.sin(t) * l, l * 0.32, 0, col);
+        });
+        return s;
+      }
+      return '<circle cx="25" cy="19" r="9" fill="#F4E3B5"/>' + stroke('M6 44 C12 38 18 36 26 35', 1.6, '#5B4636') +
+        maple(14, 39, 7, '#C8462E') + maple(25, 34, 6, '#D9682F') + maple(10, 27, 5, '#B8382A') + corner(3, '秋', '#B8462A');
+    },
+    // 4 winter 冬: a snowy pine on a white slope
+    function () {
+      var s = '<path d="M4 46 C14 40 26 42 36 46 Z" fill="#DCE6EE"/>' + stroke('M20 46 L20 38', 2.2, '#5B4636');
+      [[20, 12, 9], [20, 20, 11], [20, 28, 13]].forEach(function (t) {
+        s += '<path d="M' + t[0] + ' ' + t[1] + ' L' + (t[0] - t[2]) + ' ' + (t[1] + 10) + ' L' + (t[0] + t[2]) + ' ' + (t[1] + 10) + ' Z" fill="#2F5A3C"/>' +
+          '<path d="M' + t[0] + ' ' + t[1] + ' L' + (t[0] - t[2] * 0.5) + ' ' + (t[1] + 5) + ' Q' + t[0] + ' ' + (t[1] + 3) + ' ' + (t[0] + t[2] * 0.5) + ' ' + (t[1] + 5) + ' Z" fill="#F7FAFC"/>';
+      });
+      s += '<circle cx="8" cy="18" r="1.2" fill="#9FB4C4"/><circle cx="33" cy="15" r="1" fill="#9FB4C4"/><circle cx="31" cy="30" r="1.2" fill="#9FB4C4"/>';
+      return s + corner(4, '冬', '#3F6E8C');
+    }
+  ];
+
   function faceSvg(f) {
     if (faceCache[f]) return faceCache[f];
     var s = '<svg viewBox="0 0 40 52" xmlns="http://www.w3.org/2000/svg">';
@@ -356,20 +461,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
     } else if (f === 33) {
       s += '<rect x="8" y="10" width="24" height="32" rx="3" fill="none" stroke="#1F6FB2" stroke-width="3"/><rect x="13" y="15" width="14" height="22" rx="2" fill="none" stroke="#1F6FB2" stroke-width="1.5"/>';
     } else if (f < 38) {
-      // گل: پنج گلبرگ صورتی با عدد
-      for (var a = 0; a < 5; a++) {
-        var ang = a * 72 * Math.PI / 180;
-        s += '<circle cx="' + (20 + Math.cos(ang) * 7).toFixed(1) + '" cy="' + (22 + Math.sin(ang) * 7).toFixed(1) + '" r="5" fill="#E07AA0"/>';
-      }
-      s += '<circle cx="20" cy="22" r="3.5" fill="#F2C14E"/>' + txt(20, 46, 11, '#8A2D55', String(f - 33));
+      s += ART[f - 34]();
     } else {
-      // فصل: خورشید نارنجی با عدد
-      s += '<circle cx="20" cy="22" r="8" fill="#E8913A"/>';
-      for (var q = 0; q < 8; q++) {
-        var ag = q * 45 * Math.PI / 180;
-        s += '<line x1="' + (20 + Math.cos(ag) * 11).toFixed(1) + '" y1="' + (22 + Math.sin(ag) * 11).toFixed(1) + '" x2="' + (20 + Math.cos(ag) * 15).toFixed(1) + '" y2="' + (22 + Math.sin(ag) * 15).toFixed(1) + '" stroke="#E8913A" stroke-width="2.4" stroke-linecap="round"/>';
-      }
-      s += txt(20, 47, 11, '#8A4A12', String(f - 37));
+      s += SEASONS[f - 38]();
     }
     s += '</svg>';
     faceCache[f] = s;
@@ -382,7 +476,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
     if (f < 27) return NUM_ZH[f - 18] + '萬';
     if (f < 31) return ['東', '南', '西', '北'][f - 27];
     if (f < 34) return ['中', '發', '□'][f - 31];
-    return f < 38 ? '✿ ' + (f - 33) : '☀ ' + (f - 37);
+    return f < 38 ? ['梅', '蘭', '菊', '竹'][f - 34] + ' ' + (f - 33) : ['春', '夏', '秋', '冬'][f - 38] + ' ' + (f - 37);
   }
 
   /* --------------------------------------------------------- ساخت */

@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2810;
+const MIN_CHECKS = 2816;
 
 function ok(cond, msg) {
   checks++;
@@ -3875,6 +3875,24 @@ function testContextMenu() {
   ok(games.length > 0 && !noBoot.length, 'every game page calls boot' + (noBoot.length ? ' (not: ' + noBoot.join(', ') + ')' : ''));
 }
 
+// #227: flowers and seasons were a plain pink flower and an orange sun; they are now
+// our own ink-painting art, the four gentlemen and a scene per season
+function testMahjongArt() {
+  head('Mahjong flowers and seasons');
+  const page = fs.readFileSync(path.join(ROOT, 'www/games/mahjong/index.html'), 'utf8');
+  const a = page.indexOf('flowers and seasons (#227)'), b = page.indexOf('  function faceSvg(f) {');
+  ok(a > 0 && b > a, 'the art block sits before faceSvg');
+  let K = {};
+  try { K = new Function(page.slice(page.lastIndexOf('\n', a), b) + '; return { ART: ART, SEASONS: SEASONS };')(); } catch (e) { ok(false, 'the art block runs on its own (' + e.message + ')'); }
+  const all = (K.ART || []).concat(K.SEASONS || []).map((f) => f());
+  ok(all.length === 8, 'four flowers and four seasons (' + all.length + ')');
+  const chars = ['梅', '蘭', '菊', '竹', '春', '夏', '秋', '冬'];
+  ok(all.length === 8 && all.every((svg, i) => svg.indexOf('>' + chars[i] + '</text>') > 0 && svg.indexOf('>' + (i % 4 + 1) + '</text>') > 0), 'each tile carries its character and number');
+  ok(new Set(all).size === 8, 'all eight paintings differ');
+  ok(all.every((svg) => !/href|url\(|<image|<script/i.test(svg)), 'the art is drawn inline, with no images or links');
+  ok(/s \+= ART\[f - 34\]\(\);/.test(page) && /s \+= SEASONS\[f - 38\]\(\);/.test(page) && page.indexOf('#E8913A') < 0, 'faceSvg draws them, and the old sun is gone');
+}
+
 /* ------------------------------------------------------------- پاسور */
 function testPasur() {
   head('پاسور');
@@ -5530,6 +5548,7 @@ testWayOut();
 testWayOutPromises();
 testWayOutLook();
 testContextMenu();
+testMahjongArt();
 testTd();
 testVersionStamp();
 testDeployGate();
