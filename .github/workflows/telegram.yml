@@ -8,11 +8,11 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'release (one tag), history (all, oldest first), delete (a message) or photo (channel photo)'
+        description: 'release (one tag), history (all, oldest first), delete (a message), photo (channel photo) or bot-photo (the bot picture)'
         required: true
         default: release
         type: choice
-        options: [release, history, delete, photo]
+        options: [release, history, delete, photo, bot-photo]
       tag:
         description: 'For release: the tag, e.g. v0.5.2'
         required: false
@@ -52,4 +52,5 @@ jobs:
             history) tools/telegram-post.sh --history ;;
             delete)  tools/telegram-post.sh --delete "$MESSAGE_ID" ;;
             photo)   tools/telegram-post.sh --set-photo ;;
+            bot-photo) tools/telegram-post.sh --bot-photo ;;
           esac
