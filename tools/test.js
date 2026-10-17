@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3099;
+const MIN_CHECKS = 3167;
 
 function ok(cond, msg) {
   checks++;
@@ -4139,6 +4139,157 @@ function testTdShots() {
   ok(/shotsLive = \[\]; impacts = \[\];/.test(page), 'a new game clears shots still in flight');
 }
 
+/* ------------------------------------------------------------ 8-ball (#259) */
+// Table physics live in www/lib/cue.js so a snooker game can share them; the
+// 8-ball rules and AI sit in the game's engine block on top of it.
+function loadEightBall() {
+  const sandbox = { self: {}, module: { exports: {} }, console };
+  vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'www/lib/cue.js'), 'utf8'), sandbox, { filename: 'cue.js' });
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/eightball/index.html'), 'utf8');
+  const m = html.match(/\/\* ==== ENGINE START ==== \*\/([\s\S]*?)\/\* ==== ENGINE END ==== \*\//);
+  if (!m) throw new Error('eightball engine markers not found');
+  vm.runInContext(m[1], sandbox, { filename: 'eightball-engine.js' });
+  return { Cue: sandbox.self.ChoganCue, E: sandbox.EightBallEngineFactory(sandbox.self.ChoganCue), html };
+}
+function testEightBall() {
+  head('8-ball and the shared table physics');
+  const t0 = Date.now();
+  const { Cue, E, html } = loadEightBall();
+  ok(!!Cue && typeof Cue.simulate === 'function' && typeof Cue.tick === 'function', 'cue.js attaches ChoganCue to self');
+  const viaRequire = require(path.join(ROOT, 'www/lib/cue.js'));
+  ok(typeof viaRequire.simulate === 'function', 'cue.js also loads through module.exports');
+  const T = E.T, r = T.r;
+  ok(T.L === 2 * T.W && T.pockets.length === 6, 'the default table is 2:1 with six pockets');
+  const B = (id, x, y) => ({ id, x, y, vx: 0, vy: 0, inPlay: true });
+  const toward = (a, b) => Math.atan2(b.y - a.y, b.x - a.x);
+
+  // A straight shot pots the ball into the pocket it is aimed at: a corner and a middle pocket
+  let s = Cue.simulate(T, [B(0, 150, 50), B(1, 180, 80)], { angle: Math.PI / 4, power: 0.4 }, 0);
+  ok(s.ev.first === 1 && s.ev.potted.join() === '1' && s.ev.pockets.join() === '3', 'a straight shot down the diagonal pots ball 1 in the far corner (' + JSON.stringify(s.ev.potted) + ' in ' + JSON.stringify(s.ev.pockets) + ')');
+  s = Cue.simulate(T, [B(0, 100, 60), B(5, 100, 20)], { angle: -Math.PI / 2, power: 0.35 }, 0);
+  ok(s.ev.potted.join() === '5' && s.ev.pockets.join() === '4', 'a straight shot pots ball 5 in the middle pocket it faces');
+  s = Cue.simulate(T, [B(0, 40, 50), B(1, 80, 50)], { angle: 0.3, power: 0.4 }, 0);
+  ok(s.ev.first === null && s.ev.potted.indexOf(1) < 0, 'aimed well wide, the white misses the ball');
+
+  // Two balls: momentum is kept through the collision, the paths split at about
+  // 90° as with equal masses, and both end at rest
+  let st = Cue.start(T, [B(0, 60, 40), B(1, 100, 44)], { angle: 0, power: 0.5 }, 0);
+  let before = null, after = null, guard = 0;
+  while (Cue.tick(st) && guard++ < 20000) {
+    const [c, o] = st.balls;
+    if (!before && st.ev.contacts === 0) before = { px: c.vx + o.vx, py: c.vy + o.vy };
+    if (st.ev.contacts === 1 && !after) { after = { px: c.vx + o.vx, py: c.vy + o.vy, c: [c.vx, c.vy], o: [o.vx, o.vy] }; }
+    if (st.ev.contacts === 0) before = { px: c.vx + o.vx, py: c.vy + o.vy };
+  }
+  ok(!!before && !!after, 'the white reached the object ball');
+  const pBefore = Math.hypot(before.px, before.py), pAfter = after ? Math.hypot(after.px, after.py) : 0;
+  ok(after && Math.abs(pAfter - pBefore) / pBefore < 0.01 && Math.abs(after.py - before.py) < pBefore * 0.01, 'momentum through the collision is kept within 1% (' + (after ? (100 * (pAfter - pBefore) / pBefore).toFixed(3) : '?') + '%)');
+  const dot = after ? (after.c[0] * after.o[0] + after.c[1] * after.o[1]) / (Math.hypot(...after.c) * Math.hypot(...after.o)) : 1;
+  ok(Math.abs(Math.acos(dot) * 180 / Math.PI - 90) < 6, 'a cut sends the two balls off at about 90° (' + (Math.acos(dot) * 180 / Math.PI).toFixed(1) + '°)');
+  ok(!st.moving && st.balls.every((b) => b.vx === 0 && b.vy === 0) && st.ticks < Cue.MAX_TICKS, 'both balls come to rest by friction (' + st.ticks + ' steps)');
+
+  // A cushion reflects: the speed across it turns round, the speed along it stays
+  st = Cue.start(T, [B(0, 40, 60)], { angle: Math.atan2(1, 0.5), power: 0.3 }, 0);
+  let flip = null;
+  while (Cue.tick(st)) if (!flip && st.ev.cushions === 1) flip = { vx: st.balls[0].vx, vy: st.balls[0].vy, y: st.balls[0].y };
+  ok(!!flip && flip.vy < 0 && flip.vx > 0 && flip.y <= T.W - r + 1e-9, 'a ball off the bottom cushion comes back up and keeps going the same way along it');
+
+  // Deterministic: the same shot from the same table gives the same table, and the
+  // page's step-by-step animation lands exactly where simulate() said
+  const rack = E.rack(rng(9));
+  const shot = { angle: 0.01, power: 1 };
+  const a1 = Cue.simulate(T, rack, shot, 0), a2 = Cue.simulate(T, rack, shot, 0);
+  ok(JSON.stringify(a1.balls) === JSON.stringify(a2.balls) && JSON.stringify(a1.ev) === JSON.stringify(a2.ev) && a1.ticks === a2.ticks, 'simulate() is deterministic: same input, identical result');
+  const st2 = Cue.start(T, rack, shot, 0);
+  while (Cue.tick(st2)) { /* the page's loop */ }
+  ok(JSON.stringify(st2.balls) === JSON.stringify(a1.balls), 'stepping tick() by hand ends exactly where simulate() ends');
+  ok(rack.every((b) => b.vx === 0) && rack[0].x === E.HEAD * 0.8, 'simulate() does not touch the balls it is given');
+
+  // The rack: fifteen balls in a triangle, the 8 in the middle, one of each group in the back corners
+  const ids = rack.map((b) => b.id).sort((x, y) => x - y).join();
+  ok(ids === '0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15', 'the rack holds the white and balls 1 to 15');
+  const objs = rack.filter((b) => b.id);
+  const xs = [...new Set(objs.map((b) => b.x.toFixed(3)))].sort((x, y) => x - y);
+  const row = (k) => objs.filter((b) => b.x.toFixed(3) === xs[k]).sort((p, q) => p.y - q.y);
+  ok(xs.length === 5 && row(2)[1].id === 8 && Math.abs(row(0)[0].x - E.FOOT.x) < 1e-9, 'apex on the foot spot, the 8 in the middle of the third row');
+  ok(E.group(row(4)[0].id) !== E.group(row(4)[4].id), 'the back corners hold one solid and one stripe');
+  let overlap = 0;
+  for (let i = 0; i < rack.length; i++) for (let j = i + 1; j < rack.length; j++) if (Math.hypot(rack[i].x - rack[j].x, rack[i].y - rack[j].y) < 2 * r) overlap++;
+  ok(overlap === 0 && JSON.stringify(E.rack(rng(9))) === JSON.stringify(rack), 'no two racked balls overlap, and a seed always racks the same');
+
+  // Rules, judged from what the physics saw
+  const frame = (balls, o) => Object.assign(E.newFrame({ rnd: rng(1) }), { balls, isBreak: false, kitchen: false, inHand: false }, o || {});
+  let F = frame([B(0, 150, 50), B(3, 180, 80), B(11, 60, 20), B(8, 60, 80)]);
+  let out = E.shoot(F, { angle: Math.PI / 4, power: 0.4 });
+  ok(out.res.assigned === 'solid' && out.F.groups.join() === 'solid,stripe' && out.res.continues && out.F.turn === 0 && !out.res.foul, 'open table: potting a solid gives the solids, the other player the stripes, and the shooter goes again');
+  F = frame([B(0, 150, 50), B(3, 30, 20), B(11, 60, 20), B(8, 60, 80)]);
+  out = E.shoot(F, { angle: Math.PI / 4, power: 0.5 });
+  ok(out.res.foul === 'scratch' && out.F.turn === 1 && out.F.inHand && E.ball(out.F, 0).inPlay && E.legalPlace(Object.assign({}, out.F, { balls: out.F.balls.filter((b) => b.id) }), E.ball(out.F, 0).x, E.ball(out.F, 0).y), 'a potted white is a foul: the opponent gets ball in hand with the white back on a free spot');
+  F = frame([B(0, 40, 50), B(3, 30, 20), B(11, 80, 50), B(8, 60, 80)], { groups: ['solid', 'stripe'] });
+  out = E.shoot(F, { angle: 0, power: 0.3 });
+  ok(out.res.first === 11 && out.res.foul === 'wrongFirst' && out.F.turn === 1 && out.F.inHand && out.F.fouls[0] === 1, 'hitting the opponent\'s ball first is a foul with ball in hand');
+  F = frame([B(0, 40, 50), B(3, 30, 20), B(11, 80, 50), B(8, 60, 80)]);
+  out = E.shoot(F, { angle: toward({ x: 40, y: 50 }, { x: 60, y: 80 }), power: 0.2 });
+  ok(out.res.first === 8 && out.res.foul === 'wrongFirst', 'on an open table the 8 may not be hit first');
+  F = frame([B(0, 40, 50), B(3, 30, 20), B(11, 80, 50), B(8, 60, 80)]);
+  out = E.shoot(F, { angle: toward({ x: 40, y: 50 }, { x: 30, y: 20 }), power: 0.2 });
+  ok(out.res.first === 3 && !out.res.foul && !out.res.assigned && out.F.turn === 1 && !out.F.inHand, 'a legal hit with nothing potted passes the turn without ball in hand');
+  F = frame([B(0, 150, 50), B(8, 180, 80), B(3, 60, 20), B(11, 60, 80)], { groups: ['solid', 'stripe'] });
+  out = E.shoot(F, { angle: Math.PI / 4, power: 0.4 });
+  ok(out.res.lose && out.F.over && out.F.winner === 1, 'potting the 8 while your solids are still on the table loses the frame');
+  F = frame([B(0, 150, 50), B(8, 180, 80), B(11, 60, 80)], { groups: ['solid', 'stripe'] });
+  out = E.shoot(F, { angle: Math.PI / 4, power: 0.4 });
+  ok(out.res.win && out.F.over && out.F.winner === 0, 'potting the 8 cleanly once your group is cleared wins the frame');
+  F = frame([B(0, 150, 50), B(8, 180, 80), B(11, 60, 80)], { groups: ['solid', 'stripe'] });
+  out = E.shoot(F, { angle: Math.PI / 4, power: 1 });
+  ok(E.judge(F, { first: 8, potted: [8, 0] }).lose && !E.judge(F, { first: 8, potted: [8] }).lose, 'the 8 with a scratch loses even when your group is cleared');
+  ok(E.judge(F, { first: 11, potted: [] }).foul === 'wrongFirst', 'once your group is cleared the 8 must be hit first');
+  const brk = E.newFrame({ rnd: rng(3) });
+  const jb = E.judge(brk, { first: 1, potted: [8] });
+  ok(jb.respot && !jb.lose && !jb.foul, 'the 8 potted on the break goes back on its spot, no loss');
+  ok(E.judge(frame([B(0, 1, 1)]), { first: null, potted: [] }).foul === 'noHit', 'hitting nothing is a foul');
+  ok(E.legalPlace(brk, E.HEAD - 5, 50) && !E.legalPlace(brk, E.HEAD + 5, 50), 'on the break the white goes only behind the head string');
+
+  // The daily: the same layout for everyone, a few balls, all free
+  const D1 = E.newDaily(rng(77), '2026-10-18'), D2 = E.newDaily(rng(77), '2026-10-18');
+  const dOverlap = D1.balls.some((b, i) => D1.balls.some((o, j) => j > i && Math.hypot(b.x - o.x, b.y - o.y) < 2 * r));
+  ok(JSON.stringify(D1) === JSON.stringify(D2) && D1.balls.length === E.DAILY_BALLS + 1 && !dOverlap && D1.balls.every((b) => b.id !== 8), 'the daily table is the same for the same seed: ' + E.DAILY_BALLS + ' balls, none overlapping, no 8');
+  ok(/C\.daily\('eightball', o\.daily\)\.rng/.test(html) && /C\.stats\.daily\('eightball', F\.daily/.test(html), 'the page seeds the daily from C.daily and records it');
+  let Dd = E.copy(D1); Dd.balls = [B(0, 150, 50), B(3, 180, 80)];
+  out = E.shoot(Dd, { angle: Math.PI / 4, power: 0.4 });
+  ok(out.F.over && out.F.winner === 0 && out.F.shots === 1, 'potting the last daily ball clears the table');
+
+  // AI: medium beats easy most of the time, hard does at least as well against medium
+  const play = (l0, l1, seed) => {
+    const rr = rng(seed);
+    let G = E.newFrame({ mode: 'ai', rnd: rr, first: seed % 2 }), n = 0;
+    while (!G.over && n++ < 150) {
+      const sh = E.think(G, G.turn ? l1 : l0, rr);
+      if (sh.place && G.inHand) E.placeCue(G, sh.place.x, sh.place.y);
+      G = E.shoot(G, { angle: sh.angle, power: sh.power }).F;
+    }
+    return G.over ? G.winner : -1;
+  };
+  const N = 6;
+  let me = 0, hm = 0;
+  for (let i = 0; i < N; i++) { if (play('medium', 'easy', 500 + i) === 0) me++; }
+  for (let i = 0; i < N; i++) { if (play('hard', 'medium', 600 + i) === 0) hm++; }
+  ok(me >= 4, 'medium AI beats easy AI in most frames (' + me + ' of ' + N + ')');
+  ok(hm >= N / 2, 'hard AI wins at least half its frames against medium (' + hm + ' of ' + N + ')');
+  const pl = E.planner(E.copy(out.F.over ? frame([B(0, 40, 50), B(3, 30, 20), B(11, 80, 50), B(8, 60, 80)]) : out.F), 'hard', rng(4));
+  let slices = 0, worst = 0;
+  while (true) { const q = Date.now(); const d = pl.step(6); worst = Math.max(worst, Date.now() - q); slices++; if (d || slices > 400) break; }
+  ok(pl.total <= 200 && slices < 60 && worst < 60, 'the hard AI thinks in bounded slices (' + pl.total + ' shots, ' + slices + ' slices, slowest ' + worst + 'ms)');
+
+  // Wiring on the page
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8'), sw = fs.readFileSync(path.join(ROOT, 'www/sw.js'), 'utf8');
+  ok(html.indexOf('<script src="../../lib/cue.js"></script>') > 0 && /'\.\/lib\/cue\.js'/.test(sw), 'the page loads lib/cue.js and the service worker caches it');
+  ok(!/function tick\(|rollA:|cushionSlide:/.test(html) && /Cue\.tick\(run\)/.test(html) && /run = Cue\.start\(T, F\.balls, shot, 0\)/.test(html), 'the page has no physics of its own and animates with the shared tick()');
+  ok(['eb-win', 'eb-hard', 'eb-run'].every((id) => core.indexOf("id: '" + id + "'") > 0 && html.indexOf("unlock('" + id + "')") > 0), 'the three 8-ball awards exist and are unlocked');
+  ok(Date.now() - t0 < 5000, 'the 8-ball group runs in under five seconds (' + (Date.now() - t0) + 'ms)');
+}
+
 /* ------------------------------------------------------------- پاسور */
 function testPasur() {
   head('پاسور');
@@ -5914,6 +6065,7 @@ testMahjongArt();
 testMahjongClack();
 testMahjongTimed();
 testBlackjack();
+testEightBall();
 testAwardToasts();
 testPasurLead();
 testModalButtons();

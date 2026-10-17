@@ -1,4 +1,4 @@
-Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae veinticuatro juegos, y los nuevos llegan como actualizaciones de la misma app.
+Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae veinticinco juegos, y los nuevos llegan como actualizaciones de la misma app.
 
 Los juegos:
 
@@ -26,6 +26,7 @@ Los juegos:
 * Go — Go de 9×9 con recuento automático, contra tres niveles de IA o para dos
 * Salida — saca todas las flechas del tablero en un orden que funcione, tres corazones por nivel, niveles sin fin
 * Blackjack — acércate más a 21 que la banca, partidas de diez manos sin apuestas
+* Bola 8 — mete tu grupo y al final la 8, con física de mesa real, contra la IA en tres niveles o para dos
 
 Alrededor de los juegos:
 

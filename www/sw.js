@@ -22,6 +22,7 @@ const SHELL = [
   './icon-maskable-512.png',
   './lib/chogan.css',
   './lib/chogan.js',
+  './lib/cue.js',
   './fonts/vazirmatn-variable.woff2'
 ];
 

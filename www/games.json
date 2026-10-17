@@ -551,6 +551,29 @@
       "soft": "#DDEEE5",
       "added": "2026-10-17",
       "files": []
+    },
+    {
+      "id": "eightball",
+      "name": {
+        "fa": "بیلیارد",
+        "en": "8-Ball Pool",
+        "zh": "八球",
+        "de": "8-Ball",
+        "es": "Bola 8"
+      },
+      "summary": {
+        "fa": "بیلیارد هشت‌توپ: توپ‌های دسته‌ات را بینداز و آخر از همه توپ ۸ را؛ با ربات یا دو نفره.",
+        "en": "Pot your group, then the 8: eight-ball pool against the AI on three levels or two players.",
+        "zh": "先打进自己的一组球，最后打进 8 号球：对战三个难度的电脑或双人对战。",
+        "de": "Versenke deine Gruppe und zuletzt die 8: gegen die KI in drei Stufen oder zu zweit.",
+        "es": "Mete tu grupo y al final la 8: contra la IA en tres niveles o para dos."
+      },
+      "path": "games/eightball/index.html",
+      "icon": "games/eightball/icon.svg",
+      "color": "#1E7F74",
+      "soft": "#D8EEEA",
+      "added": "2026-10-18",
+      "files": []
     }
   ]
 }
