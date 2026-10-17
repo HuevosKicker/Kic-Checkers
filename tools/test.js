@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3167;
+const MIN_CHECKS = 3172;
 
 function ok(cond, msg) {
   checks++;
@@ -4004,9 +4004,18 @@ function testMahjongClack() {
   ok(at > 0 && (body.match(/noise\(/g) || []).length === 1 && /\[\[0, 3200, 1500\], \[0\.055,/.test(body), 'the core has a two-knock clack sound');
   ok(/clack: \['clack', 'tap'\]/.test(core), 'feedback knows clack, with a light vibration');
   const tapAt = page.indexOf('  function tap(i) {'), tapBody = page.slice(tapAt, page.indexOf('\n  }\n', tapAt));
-  ok(/spark\(sel, i\);\s+E\.remove\(S, sel, i\);/.test(tapBody) && /C\.feedback\('clack'\);/.test(tapBody) && !/C\.feedback\('place'\)/.test(tapBody), 'a match sparks before the tiles go and clacks');
-  ok(/function spark\(a, b\) \{\n\s+if \(C\.ui\.reduceMotion\(\)\) return;/.test(page) && /setTimeout\(function \(\) \{ fx\.remove\(\); \}, 400\);/.test(page), 'the spark respects reduced motion and removes itself');
-  ok(/\.mj-spark \{ position: absolute; z-index: 100000;/.test(page) && /zIndex = String\(p\[2\] \* 1000 \+ p\[1\] \* 10 \+ p\[0\]\)/.test(page), 'the spark draws above every tile layer');
+  // #272: sparking where the tiles lay looked artificial; the pair now flies to the middle and strikes there
+  ok(/clash\(sel, i\);\s+E\.remove\(S, sel, i\);/.test(tapBody) && !/spark\(sel, i\)/.test(tapBody) && !/C\.feedback\('(place|clack)'\)/.test(tapBody), 'a match starts the clash before the tiles go, with no sound of its own');
+  const clAt = page.indexOf('  function clash(a, b) {'), clBody = clAt > 0 ? page.slice(clAt, page.indexOf('\n  }\n', clAt)) : '';
+  ok(clAt > 0 && /var cx = rv\.left \+ rv\.width \/ 2, cy = rv\.top \+ rv\.height \/ 2;/.test(clBody) && /view\.getBoundingClientRect\(\)/.test(clBody), 'the pair meets in the middle of the visible view');
+  ok(/var tx = \(k \? cx : cx - w\) - r\.left/.test(clBody) && /scale\(' \+ sc \+ '\)/.test(clBody) && /Math\.min\(Math\.max\(ra\.width \* 1\.8, 44\), rv\.width \/ 5, 96\)/.test(clBody), 'the two tiles grow and land side by side, touching at the centre');
+  ok(/setTimeout\(function \(\) \{\s+C\.feedback\('flint'\);\s+burst\(cx, cy, h\);\s+\}, FLY_MS\);/.test(clBody), 'the flint sound and the sparks come when they meet, at the seam');
+  ok(/if \(C\.ui\.reduceMotion\(\) [^\n]*\) \{ C\.feedback\('flint'\); return; \}/.test(clBody), 'with reduced motion only the sound plays');
+  ok(/\.mj-fly \{ position: fixed; z-index: 100000;/.test(page) && /fly\.remove\(\)/.test(clBody) && /fx\.style\.position = 'fixed';/.test(page) && /fx\.remove\(\)/.test(page), 'the flying tiles and sparks sit above the zoomed board and remove themselves');
+  // The first try kept the tiles' inline board position on the copies, so they flew off-screen unseen
+  ok(/copy\.removeAttribute\('style'\);/.test(clBody) && /\.mj-fly \.mj-tile \{ position: absolute; inset: 0;/.test(page), 'the flying copy fills its own box, not its old board position');
+  const fAt = core.indexOf('    flint: function () {'), fBody = fAt > 0 ? core.slice(fAt, core.indexOf('\n    }', fAt)) : '';
+  ok(fAt > 0 && /noise\(\{ freq: 3400/.test(fBody) && /for \(var i = 0; i < 6; i\+\+\)/.test(fBody) && /flint: \['flint', 'tap'\]/.test(core), 'the core has a flint strike sound, with a light vibration');
 }
 
 // #227: an optional clock, off by default, that only ever adds a bonus
