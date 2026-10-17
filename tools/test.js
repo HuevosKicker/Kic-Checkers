@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2821;
+const MIN_CHECKS = 2827;
 
 function ok(cond, msg) {
   checks++;
@@ -3908,6 +3908,20 @@ function testMahjongClack() {
   ok(/\.mj-spark \{ position: absolute; z-index: 100000;/.test(page) && /zIndex = String\(p\[2\] \* 1000 \+ p\[1\] \* 10 \+ p\[0\]\)/.test(page), 'the spark draws above every tile layer');
 }
 
+// #227: an optional clock, off by default, that only ever adds a bonus
+function testMahjongTimed() {
+  head('Mahjong timed mode');
+  const page = fs.readFileSync(path.join(ROOT, 'www/games/mahjong/index.html'), 'utf8');
+  ok(/var TIME_LIMIT = \{ small: 5 \* 60000, medium: 9 \* 60000, turtle: 15 \* 60000 \};/.test(page), 'time limits are 5, 9 and 15 minutes (turtle 15, as asked)');
+  ok(/S\.timed = !daily && !!prefs\.timed;/.test(page) && !/timed: true/.test(page), 'the clock is off unless chosen, and never on the daily');
+  const tick = page.slice(page.indexOf('function tickClock()'), page.indexOf('\n  }\n', page.indexOf('function tickClock()')));
+  ok(tick.length > 0 && !/S\.done = true|finish\(\)/.test(tick) && /C\.ui\.toast\(/.test(tick), 'running out of time only shows a notice; the game goes on');
+  ok(/var spare = S\.timed \? Math\.max\(0, TIME_LIMIT\[S\.layout\] - elapsed\) : 0;/.test(page) && /points \+= bonus;/.test(page), 'only a timed game gets a speed bonus, never a penalty');
+  ok(/C\.onPause\(function \(\) \{ if \(!pausedAt\) pausedAt = Date\.now\(\); \}\);/.test(page) && /S\.startedAt \+= Date\.now\(\) - pausedAt;/.test(page), 'the clock stops while the app is in the background');
+  const miss = ['untimed', 'timed', 'timeUp', 'timeUpSub', 'speedBonus'].filter((k) => (page.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length < 4);
+  ok(!miss.length, 'timed-mode strings in all four languages' + (miss.length ? ' (' + miss.join(', ') + ')' : ''));
+}
+
 /* ------------------------------------------------------------- پاسور */
 function testPasur() {
   head('پاسور');
@@ -5565,6 +5579,7 @@ testWayOutLook();
 testContextMenu();
 testMahjongArt();
 testMahjongClack();
+testMahjongTimed();
 testTd();
 testVersionStamp();
 testDeployGate();
