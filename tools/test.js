@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2909;
+const MIN_CHECKS = 2913;
 
 function ok(cond, msg) {
   checks++;
@@ -4931,6 +4931,16 @@ function testMenuPins() {
 function testWaysToPlay() {
   head('Ways to play');
   const home = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
+  // Profile order (#253): the shop and settings used to sit below a row for every game
+  const at253 = (needle) => home.indexOf(needle);
+  const shopAt = at253("sectionHead(C.t('unlocks')), unlockShop()"), statsAt = at253("sectionHead(C.t('statsTitle'))");
+  const setAt = at253("sectionHead(C.t('settings')), settingsCard()"), perAt = at253("sectionHead(C.t('perGame')), per]");
+  ok([shopAt, statsAt, setAt, perAt].every((i) => i > 0), 'profile sections found (' + [shopAt, statsAt, setAt, perAt] + ')');
+  ok(shopAt < statsAt && shopAt < perAt, 'characters and palettes come first, under the profile card');
+  ok(setAt < perAt, 'settings come before the long per-game list');
+  const shopFn = (home.match(/function unlockShop\(\) \{[\s\S]*?\n  \}\n/) || [''])[0];
+  ok(shopFn.length > 0 && (shopFn.match(/'grid-template-columns': 'repeat\(4, minmax\(0, 1fr\)\)'/g) || []).length === 2 && !/width: '84px'/.test(shopFn),
+    'characters and palettes sit four to a row instead of fixed tiles that wrap three and one');
   const md = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
   const urls = ['https://choganhq.github.io/chogan/', 'https://f-droid.org/packages/io.github.choganhq.chogan/', 'https://t.me/chogangamebot'];
   const at = home.indexOf("C.t('waysToPlay')");

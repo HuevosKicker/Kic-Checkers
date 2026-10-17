@@ -670,6 +670,10 @@
       el('div', { class: 'ch-row' }, [nameInput, countryInput])
     ]));
 
+    // Characters and palettes right under the profile card that shows the character (#253):
+    // below a list with a row for every game, the owner had to scroll a long way to find them.
+    page.appendChild(el('div', { class: 'ch-section' }, [sectionHead(C.t('unlocks')), unlockShop()]));
+
     // آمار
     page.appendChild(el('div', { class: 'ch-section' }, [
       sectionHead(C.t('statsTitle')),
@@ -694,13 +698,9 @@
         el('span', { class: 'ch-badge', text: bestLine(g) || '—' })
       ]));
     });
-    page.appendChild(el('div', { class: 'ch-section' }, [sectionHead(C.t('perGame')), per]));
-
-    // فروشگاه تزئینی
-    page.appendChild(el('div', { class: 'ch-section' }, [sectionHead(C.t('unlocks')), unlockShop()]));
-
-    // تنظیمات
+    // Settings before the long per-game list, for the same reason (#253)
     page.appendChild(el('div', { class: 'ch-section' }, [sectionHead(C.t('settings')), settingsCard()]));
+    page.appendChild(el('div', { class: 'ch-section' }, [sectionHead(C.t('perGame')), per]));
 
     // پاک کردن داده
     var danger = el('div', { class: 'ch-card' });
@@ -791,17 +791,19 @@
 
   function unlockShop() {
     var card = el('div', { class: 'ch-card' });
-    var row = el('div', { class: 'ch-row ch-wrap', style: { 'margin-bottom': 'var(--s-4)' } });
+    // Four to a row on every width (#253): fixed 84px tiles wrapped three and one on a
+    // phone, leaving one tile alone under the others
+    var row = el('div', { style: { display: 'grid', 'grid-template-columns': 'repeat(4, minmax(0, 1fr))', gap: 'var(--s-2)', 'margin-bottom': 'var(--s-4)' } });
     Object.keys(MASCOTS).forEach(function (k) {
       var m = MASCOTS[k];
       var owned = m.cost === 0 || C.state.unlocks.indexOf('mascot.' + k) >= 0;
       var active = (C.state.settings.mascot || 'fox') === k;
       var b = el('button', {
         class: 'ch-card ch-card--tint ch-tap', type: 'button',
-        style: { padding: 'var(--s-2)', 'text-align': 'center', width: '84px',
+        style: { padding: 'var(--s-2) 2px', 'text-align': 'center', 'min-width': '0',
           'border-color': active ? 'var(--c-accent)' : 'var(--c-line)', 'border-width': '2px' }
       }, [
-        el('div', { html: C.mascot(k, 52), style: { filter: owned ? 'none' : 'grayscale(1)', opacity: owned ? '1' : '.45' } }),
+        el('div', { html: C.mascot(k, 52), style: { 'max-width': '52px', margin: '0 auto', filter: owned ? 'none' : 'grayscale(1)', opacity: owned ? '1' : '.45' } }),
         el('div', { class: 'ch-xs ch-bold', text: C.t(m.key) }),
         owned ? el('div', { class: 'ch-xs ch-faint', text: active ? C.t('apply') : C.t('owned') })
           : el('div', { class: 'ch-xs', style: { color: 'var(--c-gold)' }, text: C.num(m.cost) })
@@ -812,14 +814,14 @@
     card.appendChild(el('div', { class: 'ch-xs ch-faint', text: C.t('mascot') }));
     card.appendChild(row);
 
-    var row2 = el('div', { class: 'ch-row ch-wrap' });
+    var row2 = el('div', { style: { display: 'grid', 'grid-template-columns': 'repeat(4, minmax(0, 1fr))', gap: 'var(--s-2)' } });
     Object.keys(PALETTES).forEach(function (k) {
       var p = PALETTES[k];
       var owned = p.cost === 0 || C.state.unlocks.indexOf('palette.' + k) >= 0;
       var active = (C.state.settings.palette || 'default') === k;
       var b = el('button', {
         class: 'ch-card ch-card--tint ch-tap', type: 'button',
-        style: { padding: 'var(--s-2) var(--s-3)', 'text-align': 'center', width: '84px',
+        style: { padding: 'var(--s-2) 2px', 'text-align': 'center', 'min-width': '0',
           'border-color': active ? 'var(--c-accent)' : 'var(--c-line)', 'border-width': '2px' }
       }, [
         el('div', { style: { width: '34px', height: '34px', 'border-radius': '50%', margin: '0 auto 4px',
