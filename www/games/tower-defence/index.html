@@ -207,10 +207,14 @@ function TdEngineFactory() {
     tesla:  { cost: 155, range: 2.5, dps: 26, rate: 0.85, splash: 0,   slow: 0,   chain: 3, color: '#A57BD1' }
   };
 
+  // Two more upgrade levels (#245): a tester ended wave 18 with 4233 gold and nothing
+  // worth buying. Levels 4 and 5 cost more and keep the range growth small, so a
+  // mix of towers still matters against armour.
+  var MAX_LEVEL = 4;
   function towerStats(kind, level) {
     var b = TOWERS[kind];
-    var m = [1, 1.65, 2.6][level] || 1;
-    var rm = [1, 1.12, 1.26][level] || 1;
+    var m = [1, 1.65, 2.6, 3.7, 5.0][level] || 1;
+    var rm = [1, 1.12, 1.26, 1.33, 1.4][level] || 1;
     return {
       range: b.range * rm,
       dps: b.dps * m,
@@ -222,7 +226,7 @@ function TdEngineFactory() {
     };
   }
   function upgradeCost(kind, level) {
-    return Math.round(TOWERS[kind].cost * (level === 0 ? 0.9 : 1.7));
+    return Math.round(TOWERS[kind].cost * ([0.9, 1.7, 2.8, 4.2][level] || 4.2));
   }
 
 
@@ -298,7 +302,7 @@ function TdEngineFactory() {
     return t;
   }
   function upgrade(S, t) {
-    if (t.level >= 2) return false;
+    if (t.level >= MAX_LEVEL) return false;
     var cost = upgradeCost(t.kind, t.level);
     if (S.money < cost) return false;
     S.money -= cost;
@@ -482,7 +486,7 @@ function TdEngineFactory() {
   }
 
   var api = {
-    GW: GW, GH: GH, TYPES: TYPES, TOWERS: TOWERS,
+    GW: GW, GH: GH, TYPES: TYPES, TOWERS: TOWERS, MAX_LEVEL: MAX_LEVEL,
     genPath: genPath, validatePath: validatePath,
     waveComposition: waveComposition, waveScale: waveScale, waveBudget: waveBudget,
     towerStats: towerStats, upgradeCost: upgradeCost,
@@ -1128,7 +1132,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
     for (var l = 0; l < t.level; l++) {
       g.fillStyle = CO.gold;
       g.beginPath();
-      g.arc(x - s * 0.5 + l * s * 0.5, y + s * 1.15, cs * 0.055, 0, Math.PI * 2);
+      g.arc(x + (l - (t.level - 1) / 2) * s * 0.45, y + s * 1.15, cs * 0.055, 0, Math.PI * 2);
       g.fill();
     }
   }
@@ -1302,12 +1306,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
 
   function towerPanel(t) {
     var st = E.towerStats(t.kind, t.level);
-    var up = t.level < 2 ? E.upgradeCost(t.kind, t.level) : null;
+    var up = t.level < E.MAX_LEVEL ? E.upgradeCost(t.kind, t.level) : null;
+    // What the upgrade buys, before paying for it (#245): the panel showed only the
+    // price, so a tester could not tell whether a level was worth it.
+    var nx = up !== null ? E.towerStats(t.kind, t.level + 1) : null;
+    var arrow = document.documentElement.dir === 'rtl' ? ' ← ' : ' → ';
+    function grow(a, b) { return nx ? C.num(a) + arrow + C.num(b) : C.num(a); }
     var body = [
       el('div', { class: 'ch-list' }, [
-        line(C.t('level'), C.num(t.level + 1)),
-        line(C.t('dps'), C.num(Math.round(st.dps))),
-        line(C.t('range'), C.num(st.range.toFixed(1))),
+        line(C.t('level'), grow(t.level + 1, t.level + 2)),
+        line(C.t('dps'), grow(Math.round(st.dps), nx && Math.round(nx.dps))),
+        line(C.t('range'), grow(st.range.toFixed(1), nx && nx.range.toFixed(1))),
         line(C.t('kills'), C.num(t.kills))
       ])
     ];
