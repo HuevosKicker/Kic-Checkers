@@ -18,7 +18,9 @@
   .pv .ch-dim { color: var(--c-text-dim); }
   .pv hr { border: 0; border-top: 1px solid var(--c-line); margin: var(--s-6) 0; }
   .pv a { color: var(--c-accent); text-underline-offset: 3px; }
-  .pv__home { display: inline-block; margin-bottom: var(--s-4); }
+  body { margin: 0; }
+  .pv-bar { position: sticky; top: 0; }
+  .pv-bar a { text-decoration: none; }
 </style>
 <script>
   // Follows the theme chosen in the app; the page works without it too
@@ -26,11 +28,46 @@
     var s = JSON.parse(localStorage.getItem('chogan.app.settings') || '{}');
     if (s.theme === 'light' || s.theme === 'dark') document.documentElement.setAttribute('data-theme', s.theme);
   } catch (e) { /* private mode or blocked storage: keep the system theme */ }
+  // The title bar stayed light in dark mode: the meta was fixed to the light colour,
+  // while the app sets it in Chogan.applyTheme (#207). Same colours as there.
+  (function () {
+    var m = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+    function paint() {
+      var t = document.documentElement.getAttribute('data-theme');
+      var dark = t === 'dark' || (!t && !!m && m.matches);
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#15120E' : '#FBF6EF');
+    }
+    paint();
+    if (m && m.addEventListener) m.addEventListener('change', paint);
+  })();
 </script>
 </head>
 <body>
+<!-- Same top bar as the games, so there is a clear way back to the app (#207) -->
+<header class="ch-gamebar pv-bar" id="bar" dir="rtl">
+  <a class="ch-iconbtn ch-iconbtn--plain" id="back" href="./" aria-label="بازگشت / Back">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path id="backPath" d="M9 5l7 7-7 7"/></svg>
+  </a>
+  <div class="ch-gamebar__title ch-grow" id="barTitle">حریم خصوصی</div>
+</header>
+<script>
+  (function () {
+    var lang = 'fa';
+    try { lang = JSON.parse(localStorage.getItem('chogan.app.settings') || '{}').lang || 'fa'; } catch (e) { /* keep Persian */ }
+    var names = { fa: 'حریم خصوصی', en: 'Privacy', zh: '隐私', de: 'Datenschutz' };
+    if (lang !== 'fa') {
+      document.getElementById('bar').setAttribute('dir', 'ltr');
+      document.getElementById('backPath').setAttribute('d', 'M15 5l-7 7 7 7');
+    }
+    document.getElementById('barTitle').textContent = names[lang] || names.en;
+    // Coming from the app's profile, go back there instead of reloading the menu
+    document.getElementById('back').addEventListener('click', function (e) {
+      var fromApp = document.referrer && document.referrer.indexOf(location.origin) === 0;
+      if (fromApp && history.length > 1) { e.preventDefault(); history.back(); }
+    });
+  })();
+</script>
 <main class="pv">
-  <a class="pv__home" href="./">← چوگان / Chogan</a>
 
   <section lang="fa" dir="rtl">
     <h1>حریم خصوصی چوگان</h1>
