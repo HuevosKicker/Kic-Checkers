@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2887;
+const MIN_CHECKS = 2903;
 
 function ok(cond, msg) {
   checks++;
@@ -2584,7 +2584,7 @@ function testTd() {
   ok(JSON.stringify(daily) === JSON.stringify(daily2), 'نقشه‌ی روزانه با یک بذر همیشه یکی است');
 
   // بازیکن خودکار: ترکیب برج‌ها باید بیست موج را ببرد، فقط کمان نباید
-  function autoPlay(seed, order, cap) {
+  function autoPlay(seed, order, cap, upTo) {
     const r = rng(seed);
     const S = E.createGame({ path: E.genPath(rng(seed), { minTurns: 5 }) });
     const spots = [];
@@ -2608,10 +2608,10 @@ function testTd() {
             if (E.build(S, spots[si].r, spots[si].c, kind)) { si++; oi++; spent = true; } else si++;
           }
         }
-        if (!cap) {
+        if (!cap || upTo) {
           for (let t = 0; t < S.towers.length && !spent; t++) {
             const tw = S.towers[t];
-            if (tw.level < 2 && S.money > E.upgradeCost(tw.kind, tw.level) + 140 && E.upgrade(S, tw)) spent = true;
+            if (tw.level < (upTo || 2) && S.money > E.upgradeCost(tw.kind, tw.level) + 140 && E.upgrade(S, tw)) spent = true;
           }
         }
       }
@@ -2635,6 +2635,41 @@ function testTd() {
   ok(mixedWins >= 4, 'بازی با ترکیب برج‌ها بردنی است (' + mixedWins + '/5)');
   ok(archerWins <= 1, 'فقط کمان گذاشتن جواب نمی‌دهد (' + archerWins + '/5)');
   ok(thinWins === 0, 'بدون ارتقا و با برج کم نمی‌شود برد (' + thinWins + '/5)');
+
+  // More upgrade levels (#245): a tester kept nine towers, upgraded them all to the old
+  // top level and lost to the last boss at wave 18 holding 4233 gold with nothing to buy.
+  // The same nine towers upgraded as far as the game allows must now clear wave 20.
+  const ML = E.MAX_LEVEL || 2;
+  ok(ML === 4, 'towers have five levels (MAX_LEVEL ' + ML + ')');
+  const nine = ['archer', 'cannon', 'frost', 'archer', 'tesla', 'cannon', 'archer', 'frost', 'archer'];
+  let nineWins = 0;
+  for (let i = 0; i < 5; i++) {
+    const n = autoPlay(i * 137 + 5, nine, 9, ML);
+    if (n.won) nineWins++;
+  }
+  ok(nineWins >= 4, 'nine towers upgraded to the top level clear all twenty waves (' + nineWins + '/5)');
+  for (const kind of Object.keys(E.TOWERS)) {
+    let rising = true, dearer = true;
+    for (let l = 1; l <= ML; l++) {
+      const a = E.towerStats(kind, l - 1), b = E.towerStats(kind, l);
+      if (!(b.dps > a.dps && b.range >= a.range)) rising = false;
+      if (l < ML && !(E.upgradeCost(kind, l) > E.upgradeCost(kind, l - 1))) dearer = false;
+    }
+    ok(rising && dearer, kind + ': every level hits harder and costs more than the one before');
+    const S3 = E.createGame({ path: E.genPath(rng(3), { minTurns: 5 }), money: 100000 });
+    let spot = null;
+    for (let rr = 0; rr < E.GH && !spot; rr++) for (let cc = 0; cc < E.GW && !spot; cc++) if (E.canBuild(S3, rr, cc)) spot = [rr, cc];
+    E.build(S3, spot[0], spot[1], kind);
+    const tw = S3.towers[0];
+    let ups = 0;
+    while (E.upgrade(S3, tw)) ups++;
+    ok(ups === ML && tw.level === ML, kind + ': upgrades stop at the top level (' + ups + ' upgrades)');
+  }
+  const tdSrc = fs.readFileSync(path.join(ROOT, 'www/games/tower-defence/index.html'), 'utf8');
+  const panelSrc = (tdSrc.match(/function towerPanel\(t\) \{([\s\S]*?)\n  \}\n/) || [])[1] || '';
+  ok(panelSrc.length > 0, 'towerPanel found');
+  ok(/E\.towerStats\(t\.kind, t\.level \+ 1\)/.test(panelSrc) && /grow\(Math\.round\(st\.dps\)/.test(panelSrc) && /grow\(st\.range/.test(panelSrc),
+    'the tower panel shows damage and range now and after the upgrade');
 
   const S2 = E.createGame({ path: E.genPath(rng(9), { minTurns: 5 }) });
   const free = [];
