@@ -1,0 +1,5 @@
+Neue Spiele: Ausweg (schick die Pfeile in der richtigen Reihenfolge vom Brett) und Blackjack (zehn Hände gegen den Croupier, ohne Einsätze).
+Turmverteidigung: drei neue Karten, wählbar aus einer Liste mit deinen Sternen.
+Mahjong: gemalte Blumen und Jahreszeiten, Klick und Funke bei jedem Paar, dazu ein wahlweiser Zeitmodus.
+Pasur: Wer beginnt, wechselt jetzt jede Partie, mit Mischgeräusch.
+Erfolgsmeldungen bleiben länger; Rechtsklick öffnet nicht mehr das Browsermenü.
