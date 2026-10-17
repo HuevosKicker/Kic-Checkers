@@ -357,6 +357,28 @@
 
   /* --------------------------------------------------------- روزانه */
 
+  // Month grid of the daily calendar. In Persian it follows the Persian calendar
+  // (#213); daily keys stay Gregorian (C.dateKey), so only what is drawn changes.
+  // Intl does the conversion; without its Persian calendar, the grid stays Gregorian.
+  function makeCal(persian) {
+    var fmt = null;
+    if (persian) {
+      try {
+        fmt = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', { day: 'numeric' });
+        if (fmt.resolvedOptions().calendar !== 'persian') fmt = null;
+      } catch (e) { fmt = null; }
+    }
+    function day(d) { return fmt ? +fmt.format(d) : d.getDate(); }
+    function add(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+    function start(d) { return add(d, 1 - day(d)); }
+    function length(s) { var n = 1; while (day(add(s, n)) !== 1) n++; return n; }
+    return {
+      persian: !!fmt, day: day, add: add, start: start, length: length,
+      next: function (s) { return add(s, length(s)); },
+      prev: function (s) { return start(add(s, -1)); }
+    };
+  }
+
   function viewDaily() {
     var page = el('div', { class: 'ch-page' });
     page.appendChild(el('div', { class: 'ch-head' }, [
@@ -368,15 +390,21 @@
     ]));
 
     var today = new Date(); today.setHours(0, 0, 0, 0);
-    var cur = new Date(today.getFullYear(), today.getMonth(), 1);
+    var cal = makeCal(C.state.settings.lang === 'fa');
+    var cur = cal.start(today);
 
     var monthLabel = el('h2');
     var calWrap = el('div', { class: 'ch-card' });
 
     function monthName(d) {
       try {
-        // شبکه‌ی تقویم میلادی است چون کلید چالش روزانه میلادی است؛ نام ماه
-        // هم باید میلادی باشد وگرنه «مهر» بالای شبکه‌ی سپتامبر می‌نشست.
+        // The name must come from the same calendar as the grid, or «مهر» would
+        // sit above September (#31). ICU writes Persian as «۱۴۰۵ مهر»; people write «مهر ۱۴۰۵».
+        if (cal.persian) {
+          var parts = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { month: 'long', year: 'numeric' }).formatToParts(d);
+          var pick = function (t) { return parts.filter(function (p) { return p.type === t; }).map(function (p) { return p.value; })[0]; };
+          return pick('month') + ' ' + pick('year');
+        }
         return d.toLocaleDateString(C.dateLocale(), { month: 'long', year: 'numeric' });
       } catch (e) { return (d.getMonth() + 1) + '/' + d.getFullYear(); }
     }
@@ -388,14 +416,13 @@
       var dows = ['sat', 'sun', 'mon', 'tue', 'wed', 'thu', 'fri'];
       dows.forEach(function (d) { grid.appendChild(el('div', { class: 'ch-cal__dow', text: C.t(d) })); });
 
-      var first = new Date(cur.getFullYear(), cur.getMonth(), 1);
-      var lead = (first.getDay() + 1) % 7;       // شنبه ستون اول
+      var lead = (cur.getDay() + 1) % 7;       // شنبه ستون اول
       for (var i = 0; i < lead; i++) grid.appendChild(el('div', { class: 'ch-day ch-day--empty' }));
 
-      var dim = new Date(cur.getFullYear(), cur.getMonth() + 1, 0).getDate();
+      var dim = cal.length(cur);
       for (var d = 1; d <= dim; d++) {
         (function (day) {
-          var date = new Date(cur.getFullYear(), cur.getMonth(), day);
+          var date = cal.add(cur, day - 1);
           var key = C.dateKey(date);
           var future = date.getTime() > today.getTime();
           var rec = C.stats.dailyOf(key);
@@ -421,11 +448,11 @@
 
     var nav = el('div', { class: 'ch-row', style: { 'margin-bottom': 'var(--s-3)' } }, [
       el('button', { class: 'ch-iconbtn', type: 'button', 'aria-label': 'قبلی', onclick: function () {
-        cur = new Date(cur.getFullYear(), cur.getMonth() - 1, 1); C.feedback('select'); drawCal();
+        cur = cal.prev(cur); C.feedback('select'); drawCal();
       } }, [C.icon(C.isRtl() ? 'forward' : 'back', 20)]),
       el('div', { class: 'ch-grow ch-center' }, [monthLabel]),
       el('button', { class: 'ch-iconbtn', type: 'button', 'aria-label': 'بعدی', onclick: function () {
-        var next = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+        var next = cal.next(cur);
         if (next.getTime() > today.getTime()) return;
         cur = next; C.feedback('select'); drawCal();
       } }, [C.icon(C.isRtl() ? 'back' : 'forward', 20)])

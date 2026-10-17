@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2548;
+const MIN_CHECKS = 2559;
 
 function ok(cond, msg) {
   checks++;
@@ -4315,6 +4315,41 @@ function testPasurGone() {
   ok(!missing.length, 'panel strings exist in all four languages' + (missing.length ? ' (' + missing.join(', ') + ')' : ''));
 }
 
+/* ------------------------------------------------ Persian calendar in Persian (#213) */
+// The daily calendar drew Gregorian months even in Persian. The grid now follows
+// the Persian calendar there, while daily keys stay Gregorian (C.dateKey).
+function testPersianCalendar() {
+  head('Persian calendar');
+  const home = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const at = home.indexOf('function makeCal(persian)');
+  ok(at > 0, 'the menu has a calendar helper');
+  if (at < 0) return;
+  const makeCal = new Function(home.slice(at, home.indexOf('\n  }\n', at) + 4) + '; return makeCal;')();
+  const key = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const P = makeCal(true), G = makeCal(false);
+  ok(P.persian === true && G.persian === false, 'Persian is used only when asked for and supported');
+  // Fixed points of the Persian calendar: 1 Farvardin 1405 is 21 March 2026, the
+  // first six months have 31 days, the next five 30, and Esfand 1404 (not a leap year) 29.
+  const cases = [
+    [new Date(2026, 9, 17), '2026-09-23', 30, 'Mehr 1405'],
+    [new Date(2026, 2, 21), '2026-03-21', 31, 'Farvardin 1405'],
+    [new Date(2026, 2, 20), '2026-02-20', 29, 'Esfand 1404'],
+    [new Date(2026, 7, 22), '2026-07-23', 31, 'Mordad 1405']
+  ];
+  for (const [d, start, len, name] of cases) {
+    const s = P.start(d);
+    ok(key(s) === start && P.length(s) === len, name + ' starts ' + start + ' and has ' + len + ' days (got ' + key(s) + ', ' + P.length(s) + ')');
+  }
+  const mehr = P.start(new Date(2026, 9, 17));
+  ok(key(P.next(mehr)) === '2026-10-23' && key(P.prev(mehr)) === '2026-08-23', 'next and previous Persian months (Aban, Shahrivar)');
+  const oct = G.start(new Date(2026, 9, 17));
+  ok(key(oct) === '2026-10-01' && G.length(oct) === 31 && key(G.prev(oct)) === '2026-09-01' && G.length(G.prev(oct)) === 30, 'other languages keep Gregorian months');
+  ok(/var cal = makeCal\(C\.state\.settings\.lang === 'fa'\)/.test(home) && /var date = cal\.add\(cur, day - 1\);/.test(home), 'the daily page draws its grid with it');
+  ok(/var key = C\.dateKey\(date\);/.test(home), 'daily keys stay Gregorian');
+  ok(/code: 'fa',[^}]*date: 'fa-IR-u-ca-persian'/.test(core), 'Persian dates are written in the Persian calendar');
+}
+
 /* ------------------------------------------------ Games opened from a shortcut (#214) */
 // A reporter pinned single games to the home screen; their back button led into
 // the whole menu. A shortcut-opened game now stands alone, until the menu opens a game.
@@ -4901,6 +4936,7 @@ testMenuPins();
 testWaysToPlay();
 testPrivacyBar();
 testShortcutStandalone();
+testPersianCalendar();
 testPasurGone();
 testStoreMetadata();
 testAndroidShare();
