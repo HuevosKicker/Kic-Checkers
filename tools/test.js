@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 2865;
+const MIN_CHECKS = 2869;
 
 function ok(cond, msg) {
   checks++;
@@ -3978,6 +3978,19 @@ function testBlackjack() {
   ok(/id: 'bj-win'/.test(core) && /id: 'bj-21'/.test(core) && /unlock\('bj-win'\)/.test(page) && /unlock\('bj-21'\)/.test(page), 'both blackjack awards exist and are unlocked');
 }
 
+// #234: award notices left before they could be read
+function testAwardToasts() {
+  head('Award notices');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
+  const un = core.slice(core.indexOf('    unlock: function (id) {'), core.indexOf('    check: function () {'));
+  ok(/Chogan\.ui\.toast\(\{[^}]*ms: 7000\s*\}\);/.test(un), 'an award notice stays seven seconds');
+  ok(/node\.addEventListener\('pointerenter', hold\);/.test(core) && /node\.addEventListener\('pointerdown', hold\);/.test(core) && /node\.addEventListener\('pointerleave', release\);/.test(core), 'a finger or the mouse on a notice holds it');
+  ok(/node\.addEventListener\('click', function \(\) \{ clearTimeout\(node\._chTimer\); node\._chHide\(\); \}\);/.test(core), 'a tap closes a notice');
+  const toast = css.slice(css.indexOf('.ch-toast {'), css.indexOf('}', css.indexOf('.ch-toast {')));
+  ok(/pointer-events: auto;/.test(toast), 'a notice receives touches although its host lets them through');
+}
+
 /* ------------------------------------------------------------- پاسور */
 function testPasur() {
   head('پاسور');
@@ -5637,6 +5650,7 @@ testMahjongArt();
 testMahjongClack();
 testMahjongTimed();
 testBlackjack();
+testAwardToasts();
 testTd();
 testVersionStamp();
 testDeployGate();
