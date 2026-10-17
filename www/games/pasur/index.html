@@ -47,7 +47,8 @@
   .ps-wrap { position: relative; }
   .ps-hidden { visibility: hidden; }
   .ps-shuffle { position: absolute; left: 0; right: 0; display: flex; justify-content: center; align-items: center; pointer-events: none; z-index: 5; }
-  .ps-shuffle .ch-pback { position: absolute; width: calc(var(--cw) * .9); }
+  /* the back is shown large while shuffling, so its pattern can be seen (#238) */
+  .ps-shuffle .ch-pback { position: absolute; width: calc(var(--cw) * 1.5); }
   .ps-shuffle .ch-pback:nth-child(odd) { animation: ps-riffle-l 900ms var(--ease) both; }
   .ps-shuffle .ch-pback:nth-child(even) { animation: ps-riffle-r 900ms var(--ease) both; }
   @keyframes ps-riffle-l { 0% { transform: translate(0, 0); } 35% { transform: translate(-44px, 4px) rotate(-8deg); } 70%, 100% { transform: translate(0, var(--dy, 0)); } }
@@ -402,7 +403,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
     scroll: true,
     strings: {
       fa: {
-        you: 'تو', rival: 'حریف', thinking: 'فکر می‌کند…', yourTurn: 'نوبت توست، یک کارت بازی کن',
+        you: 'تو', rival: 'حریف', thinking: 'فکر می‌کند…', yourTurn: 'نوبت توست، یک کارت بازی کن', youStart: 'این دست تو شروع می‌کنی', rivalStarts: 'این دست حریف شروع می‌کند',
         deck: 'دسته', taken: 'کارت', clubs: 'گشنیز', surs: 'سور', sur: 'سور!', gone: 'کارت‌های رفته', goneSub: 'کم‌رنگ‌ها برداشته شده‌اند',
         newDeal: 'دست تازه', undoMove: 'برگرداندن حرکت', pickTake: 'کارت‌هایی را که برمی‌داری انتخاب کن',
         cancelPick: 'لغو', rivalTook: 'حریف {c} زد و {n} کارت برداشت', rivalPut: 'حریف {c} را روی میز گذاشت',
@@ -416,7 +417,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
         tutTitle3: 'سور و امتیاز', tutText3: 'اگر میز را خالی کنی سور زده‌ای: پنج امتیاز. آخر دست گشنیز بیشتر ۷، ده خشت ۳، دو گشنیز ۲، و هر آس و سرباز ۱ امتیاز دارد.'
       },
       en: {
-        you: 'You', rival: 'Rival', thinking: 'Thinking…', yourTurn: 'Your turn, play a card',
+        you: 'You', rival: 'Rival', thinking: 'Thinking…', yourTurn: 'Your turn, play a card', youStart: 'You lead this game', rivalStarts: 'Your rival leads this game',
         deck: 'Deck', taken: 'Cards', clubs: 'Clubs', surs: 'Surs', sur: 'Sur!', gone: 'Cards played', goneSub: 'Faded cards have been taken',
         newDeal: 'New deal', undoMove: 'Undo move', pickTake: 'Pick the table cards you take',
         cancelPick: 'Cancel', rivalTook: 'Rival played {c} and took {n} cards', rivalPut: 'Rival put {c} on the table',
@@ -430,7 +431,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
         tutTitle3: 'Sur and points', tutText3: 'Clear the table and you score a sur: five points. At the end, most clubs is worth 7, the 10 of diamonds 3, the 2 of clubs 2, and every ace and jack 1.'
       },
       zh: {
-        you: '你', rival: '对手', thinking: '思考中…', yourTurn: '轮到你了，出一张牌',
+        you: '你', rival: '对手', thinking: '思考中…', yourTurn: '轮到你了，出一张牌', youStart: '这一局你先出', rivalStarts: '这一局对手先出',
         deck: '牌堆', taken: '牌', clubs: '梅花', surs: '清台', sur: '清台！', gone: '已出的牌', goneSub: '变淡的牌已被收走',
         newDeal: '新一局', undoMove: '撤销一步', pickTake: '选出你要拿走的桌面牌',
         cancelPick: '取消', rivalTook: '对手打出 {c}，拿走 {n} 张', rivalPut: '对手把 {c} 放在桌上',
@@ -444,7 +445,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
         tutTitle3: '清台与计分', tutText3: '把桌面清空就是清台：五分。结束时梅花最多得 7 分，方块10 得 3 分，梅花2 得 2 分，每张 A 和 J 各 1 分。'
       },
       de: {
-        you: 'Du', rival: 'Gegner', thinking: 'Denkt nach…', yourTurn: 'Du bist dran, spiel eine Karte',
+        you: 'Du', rival: 'Gegner', thinking: 'Denkt nach…', yourTurn: 'Du bist dran, spiel eine Karte', youStart: 'Diese Partie beginnst du', rivalStarts: 'Diese Partie beginnt dein Gegner',
         deck: 'Stapel', taken: 'Karten', clubs: 'Kreuz', surs: 'Surs', sur: 'Sur!', gone: 'Gespielte Karten', goneSub: 'Blasse Karten sind schon genommen',
         newDeal: 'Neues Spiel', undoMove: 'Zug zurück', pickTake: 'Wähl die Karten, die du nimmst',
         cancelPick: 'Abbrechen', rivalTook: 'Gegner spielt {c} und nimmt {n} Karten', rivalPut: 'Gegner legt {c} auf den Tisch',
@@ -463,6 +464,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
   var params = new URLSearchParams(location.search);
   var dailyDate = params.get('daily');
   var prefs = ctx.store.get('prefs', { level: 'medium', games: 0 });
+  // Who leads the next ordinary game. It used to follow the count of finished games, so a
+  // player who restarted unfinished games kept facing the rival's lead (#238).
+  if (prefs.next !== 0 && prefs.next !== 1) prefs.next = (prefs.games || 0) % 2;
 
   var S = null, aiTimer = null, note = '', pick = null, cur = -1, lastRival = null;
   // reveal: the rival's capture shown on the table before it is taken (#194).
@@ -511,6 +515,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
       box.appendChild(c);
     }
     wrap.appendChild(box);
+    C.audio.sfx('riffle');
     paint();
     setTimeout(function () {
       if (box.parentNode) box.parentNode.removeChild(box);
@@ -524,11 +529,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
   function newGame(level, daily) {
     stopAi();
     var rnd = daily ? C.daily('pasur', daily).rng : Math.random;
-    // در بازی عادی نوبت شروع یکی در میان است؛ روزانه همیشه با خود بازیکن
-    var first = daily ? 0 : (prefs.games % 2);
+    // در بازی عادی نوبت شروع یکی در میان است؛ روزانه همیشه با خود بازیکن.
+    // Every new ordinary game flips the lead, finished or not (#238).
+    var first = daily ? 0 : prefs.next;
+    if (!daily) { prefs.next = 1 - first; ctx.store.set('prefs', prefs); }
     S = E.newDeal(rnd, first);
     S.level = level; S.daily = daily || null; S.startedAt = Date.now();
-    note = ''; pick = null; cur = -1; lastRival = null;
+    note = C.t(first ? 'rivalStarts' : 'youStart'); pick = null; cur = -1; lastRival = null;
     render();
     save();
     shuffleAnim(function () { paint(); maybeAi(); });

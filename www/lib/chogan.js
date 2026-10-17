@@ -656,6 +656,14 @@
     tick: function () { tone({ freq: 1400, dur: 0.03, gain: 0.06, type: 'square' }); },
     // Two hard tiles knocking together: a bright click, then a second, slightly lower
     // one a moment later, each a short band of noise over a quick wooden ping (#227)
+    // A deck being riffled: a quick run of tiny paper flicks that slows and fades (#238)
+    riffle: function () {
+      var b = now();
+      for (var i = 0; i < 18; i++) {
+        noise({ freq: 4200 - i * 60, to: 2200, dur: 0.022, gain: 0.07 * (1 - i / 24), at: b + i * 0.028 + (i > 12 ? (i - 12) * 0.01 : 0) });
+      }
+      noise({ freq: 1800, to: 600, dur: 0.08, gain: 0.08, at: b + 0.6 });
+    },
     clack: function () {
       var b = now();
       [[0, 3200, 1500], [0.055, 2600, 1250]].forEach(function (k) {
