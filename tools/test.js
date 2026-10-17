@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const os = require('os');
-const { spawnSync } = require('child_process');
+const { spawnSync, spawn } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 // زبان‌های اپ، به همان ترتیب جدول LOCALES در هسته
@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3095;
+const MIN_CHECKS = 3098;
 
 function ok(cond, msg) {
   checks++;
@@ -5811,6 +5811,24 @@ function testTelegramPost() {
     if (!(size > 0) || groups.some((g) => g < 2 || g > 10)) splits.push(n + ':' + groups.join('+'));
   }
   ok(sizeExpr.length > 0 && !splits.length, 'every album has 2 to 10 pictures, for 2 to 40 new games' + (splits.length ? ' (' + splits.join(', ') + ')' : ''));
+  // The fake curl above could not see curl's own parsing: -F "chat_id=@chogan_games"
+  // made the real curl read a file named chogan_games and fail (#267). The real curl
+  // talks to a local server here, and the fields must arrive as sent.
+  const reqLog = path.join(os.tmpdir(), 'chogan-tg-' + process.pid + '.log'), portFile = reqLog + '.port';
+  const srvCode = "import http.server,sys\nclass H(http.server.BaseHTTPRequestHandler):\n  def do_POST(s):\n    b=s.rfile.read(int(s.headers.get('Content-Length') or 0))\n    open(sys.argv[1],'ab').write(s.path.encode()+b'\\n'+b+b'\\n----\\n')\n    s.send_response(200);s.send_header('Content-Type','application/json');s.end_headers();s.wfile.write(b'{\"ok\":true,\"result\":{\"message_id\":1}}')\n  def log_message(s,*a): pass\nv=http.server.HTTPServer(('127.0.0.1',0),H)\nopen(sys.argv[2],'w').write(str(v.server_port))\nv.serve_forever()\n";
+  const srv = spawn('python3', ['-c', srvCode, reqLog, portFile], { stdio: 'ignore' });
+  for (let i = 0; i < 50 && !fs.existsSync(portFile); i++) spawnSync('sleep', ['0.1']);
+  const port = fs.existsSync(portFile) ? fs.readFileSync(portFile, 'utf8').trim() : '';
+  ok(/^\d+$/.test(port), 'a local stand-in for Telegram is listening (' + port + ')');
+  if (port) {
+    const live = { DRY_RUN: '0', TELEGRAM_BOT_TOKEN: 'T', TELEGRAM_API: 'http://127.0.0.1:' + port };
+    const ph = run(['--set-photo'], live), msg = run(['v0.5.2'], live);
+    const got = fs.existsSync(reqLog) ? fs.readFileSync(reqLog, 'latin1') : '';
+    ok(ph.status === 0 && /\/botT\/setChatPhoto/.test(got) && /name="chat_id"\r\n\r\n@chogan_games\r\n/.test(got) && /filename="icon-512\.png"/.test(got), 'the channel photo request carries @chogan_games as text and the icon as a file (' + ph.status + ' ' + (ph.stderr || '').trim() + ')');
+    ok(msg.status === 0 && /\/botT\/sendMessage/.test(got) && /chat_id=%40chogan_games/.test(got) && /parse_mode=HTML/.test(got) && /reply_markup=/.test(got), 'the release post reaches Telegram with the channel, HTML and the buttons');
+  }
+  srv.kill();
+  for (const f of [reqLog, portFile]) if (fs.existsSync(f)) fs.unlinkSync(f);
   const wrong = run(['v0.0.0']);
   ok(wrong.status === 2 && /No release tag/.test(wrong.stderr), 'an unknown tag cannot be posted (exit 2)');
   const noTok = run(['v0.5.2'], { DRY_RUN: '0' });
