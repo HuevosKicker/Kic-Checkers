@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3581;
+const MIN_CHECKS = 3582;
 
 function ok(cond, msg) {
   checks++;
@@ -6178,6 +6178,9 @@ function testLudo() {
   ok(['lu-win', 'lu-hard', 'lu-hunter'].every((id) => core.indexOf("id: '" + id + "'") > 0 && html.indexOf("unlock('" + id + "')") > 0), 'the three Ludo awards exist and are unlocked');
   ok(/C\.daily\('ludo', G\.daily \+ '\|' \+ G\.s\.rolls\)\.rng/.test(html) && /C\.stats\.daily\('ludo', G\.daily/.test(html), 'daily dice come from the day\'s seed and the roll number, and the result is recorded');
   ok(/ctx\.autosave\(/.test(html) && /ctx\.tutorialIfNew\(TUT\)/.test(html), 'the game autosaves and shows its tutorial once');
+  // A reload or a pause after a bad roll used to throw the die again
+  ok(/G\.roll = v;\s*\/\/[^\n]*\n[^\n]*\n\s*save\(\);\s*afterRoll\(v\);/.test(html) && /roll: G\.roll,/.test(html) && /if \(g\.roll >= 1 && g\.roll <= 6\) \{ G\.phase = 'busy'; G\.roll = g\.roll; afterRoll\(g\.roll\); \}/.test(html) &&
+    /if \(G\.roll\) \{ G\.phase = 'busy'; G\.msg = ''; afterRoll\(G\.roll\); \}/.test(html), 'a landed die is saved and replayed after a reload or a pause, never thrown again');
   ok(Date.now() - t0 < 6000, 'the Ludo group runs in under six seconds (' + (Date.now() - t0) + 'ms)');
 }
 
