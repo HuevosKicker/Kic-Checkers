@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3438;
+const MIN_CHECKS = 3439;
 
 function ok(cond, msg) {
   checks++;
@@ -2784,6 +2784,11 @@ function testFiles() {
   const pinOp = +((pinCss.match(/\.ch-game__pin \{[^}]*opacity: ([\d.]+)/) || [])[1] || 0);
   ok(pinStroke >= 2.2 && pinOp >= 0.6, 'the pin icon is drawn bold enough to see (stroke ' + pinStroke + ', opacity ' + pinOp + ')');
   ok(/\.ch-game__pin--on \{[^}]*background-color:/.test(pinCss), 'a pinned card shows a filled circle behind its pin');
+
+  // Five languages wrapped onto two rows at every phone width, Español alone below (#291)
+  const langCss = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const langPad = +((langCss.match(/\.ch-seg\.ch-langs button \{[^}]*padding-inline: (\d+)px/) || [])[1] || 99);
+  ok(/function langPicker[\s\S]{0,250}classList\.add\([^)]*'ch-langs'/.test(menu) && langPad <= 6, 'the language picker uses narrow buttons so five languages fit one phone row (padding ' + langPad + ')');
 
   const tpl = fs.readFileSync(path.join(ROOT, 'template/game/index.html'), 'utf8');
   ok(/ENGINE START/.test(tpl) && /ENGINE END/.test(tpl), 'قالب نشانه‌ی موتور را دارد');

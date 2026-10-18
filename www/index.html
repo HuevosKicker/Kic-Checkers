@@ -26,7 +26,7 @@
   // Shared by the profile and the welcome screen, so both wrap the same way (#256)
   function langPicker(value, onChange) {
     var seg = C.ui.segmented(C.locales().map(function (L) { return { value: L.code, label: L.label }; }), value, onChange);
-    seg.classList.add('ch-seg--wrap');
+    seg.classList.add('ch-seg--wrap', 'ch-langs');
     return seg;
   }
 
