@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3516;
+const MIN_CHECKS = 3522;
 
 function ok(cond, msg) {
   checks++;
@@ -1936,6 +1936,29 @@ function testBattleship() {
   for (const id of used) {
     const row = (core.match(new RegExp("\\{ id: '" + id + "'[^\\n]*\\}")) || [''])[0];
     ok(['fa', 'en', 'zh', 'dfa', 'den', 'dzh'].every((k) => new RegExp('\\b' + k + ": '[^']+'").test(row)), id + ': در جدول دستاوردها با هر سه زبان هست');
+  }
+
+  // #304: with the house rule a hit or a sink keeps the turn, only a miss passes it
+  {
+    const G = E.newGame(hand, hand, 'easy', true);
+    let r = E.playerFire(G, 0);
+    ok(r.result === 'hit' && G.turn === 'me', 'fire again: a hit keeps your turn');
+    r = E.playerFire(G, 1 * N + 5);
+    ok(r.result === 'miss' && G.turn === 'ai', 'fire again: a miss passes the turn');
+    let k = 0, fine = true;
+    while (G.turn === 'ai' && !G.winner && k++ < 200) { const a = E.aiFire(G, rng(70 + k)); if (G.turn !== (a.result === 'miss' ? 'me' : 'ai') && !G.winner) fine = false; }
+    ok(k > 0 && fine, 'fire again: the computer keeps firing while it hits and stops at its miss (' + k + ' shots)');
+    const H = E.newGame(hand, hand, 'easy', false);
+    E.playerFire(H, 0);
+    ok(H.turn === 'ai', 'one shot a turn: a hit passes the turn');
+    const old = E.newGame(hand, hand, 'easy', true);
+    delete old.again;
+    E.playerFire(old, 0);
+    ok(old.turn === 'ai', 'a game saved before the rule existed keeps one shot a turn');
+    const page = fs.readFileSync(path.join(ROOT, 'www/games/battleship/index.html'), 'utf8');
+    ok(/if \(typeof prefs\.again !== 'boolean'\) prefs\.again = true;/.test(page) && /E\.newGame\(S\.ships, foeFleet\(\), S\.level, !S\.daily && prefs\.again\)/.test(page) &&
+      /\{ value: true, label: C\.t\('hitAgain'\) \}, \{ value: false, label: C\.t\('oneShot'\) \}/.test(page),
+      'the rule is on by default, can be switched before the battle, and the daily keeps one shot a turn');
   }
 }
 
