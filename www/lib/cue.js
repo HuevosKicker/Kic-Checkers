@@ -258,9 +258,21 @@
     return true;
   }
 
+  // With the white in hand, one drag on it can mean "move it" or "pull back and
+  // shoot". Only placing was ever possible, so the break (always in hand) could
+  // not be played with the slingshot the tutorial teaches (#278). A first
+  // movement within 40 degrees of straight back from the aim is a pull.
+  function pullsBack(angle, dx, dy) {
+    if (dx * dx + dy * dy < 1e-12) return false;
+    var d = Math.atan2(dy, dx) - angle - Math.PI;
+    d = Math.atan2(Math.sin(d), Math.cos(d));
+    return Math.abs(d) < Math.PI * 40 / 180;
+  }
+
   var api = {
     DT: DT, MAX_TICKS: MAX_TICKS, table: table, clone: clone, speedOf: speedOf,
-    start: start, tick: tick, simulate: simulate, aim: aim, free: free, clear: clear, nearestPocket: nearestPocket
+    start: start, tick: tick, simulate: simulate, aim: aim, free: free, clear: clear, nearestPocket: nearestPocket,
+    pullsBack: pullsBack
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.ChoganCue = api;
