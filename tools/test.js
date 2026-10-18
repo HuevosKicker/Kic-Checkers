@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3445;
+const MIN_CHECKS = 3449;
 
 function ok(cond, msg) {
   checks++;
@@ -2800,6 +2800,14 @@ function testFiles() {
   ok(ccList.length >= 249 && new Set(ccList).size === ccList.length && ccList.every((c) => /^[A-Z]{2}$/.test(c)) && ['IR', 'GB', 'US', 'IN', 'DE', 'CN'].every((c) => ccList.includes(c)), 'the country list has every ISO country once (' + ccList.length + ')');
   ok(/new Intl\.DisplayNames\(\[tag\], \{ type: 'region' \}\)/.test(countrySrc), 'countries are named in the app language');
   ok(/var countryInput = el\('select'/.test(menu) && /C\.countries\(\)/.test(menu) && !/maxlength: '2'/.test(menu), 'the profile picks the country from a list, not a code box');
+
+  // Profile listed every game twice, under "Per game" and again under "Erase data" (#292)
+  const dangerSrc = (menu.match(/var danger = el\('div', \{ class: 'ch-card' \}\);([\s\S]*?)sectionHead\(C\.t\('dangerZone'\)\)/) || [])[1] || '';
+  ok(dangerSrc.length > 0 && !/GAMES\.forEach\(function \(g\) \{\s*danger\.appendChild/.test(dangerSrc) && /wipeAll/.test(dangerSrc), 'the erase-data card no longer lists every game, only erase everything');
+  ok(/class: 'ch-card ch-pergame'/.test(menu) && /onclick: function \(\) \{ C\.feedback\('tap'\); gameSheet\(g\); \}/.test(menu) && /\.ch-pergame \{[^}]*max-height: \d+px; overflow-y: auto/.test(fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8')), 'the per-game list scrolls in a box and a row opens the game sheet');
+  const sheetSrc = (menu.match(/function gameSheet\(g\) \{([\s\S]*?)\n  \}\n/) || [])[1] || '';
+  ok(/C\.storage\(g\.id\)\.wipe\(\)/.test(sheetSrc) && /C\.t\('eraseWhat'\)/.test(sheetSrc) && /remove\('tutSeen'\); goGame\(g\)/.test(sheetSrc), 'the game sheet erases the game, says what is erased, and reopens its tutorial');
+  ok(['howToPlay', 'eraseGame', 'eraseWhat'].every((k) => (menu.match(new RegExp('\\b' + k + ": '", 'g')) || []).length === LOCALE_CODES.length), 'the game sheet strings exist in every language');
 
   const tpl = fs.readFileSync(path.join(ROOT, 'template/game/index.html'), 'utf8');
   ok(/ENGINE START/.test(tpl) && /ENGINE END/.test(tpl), 'قالب نشانه‌ی موتور را دارد');
