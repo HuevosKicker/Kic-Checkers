@@ -597,6 +597,29 @@
       "soft": "#F6E1E4",
       "added": "2026-10-18",
       "files": []
+    },
+    {
+      "id": "gridlock",
+      "name": {
+        "fa": "راه‌بندان",
+        "en": "Gridlock",
+        "zh": "堵车",
+        "de": "Stau",
+        "es": "Atasco"
+      },
+      "summary": {
+        "fa": "ماشین‌ها را کنار بزن و ماشینت را از پارکینگ بیرون ببر.",
+        "en": "Slide the cars out of the way and drive your car out of the lot.",
+        "zh": "把挡路的车推开，把你的车开出停车场。",
+        "de": "Schieb die Autos aus dem Weg und fahr mit deinem Wagen vom Parkplatz.",
+        "es": "Aparta los coches y saca el tuyo del aparcamiento."
+      },
+      "path": "games/gridlock/index.html",
+      "icon": "games/gridlock/icon.svg",
+      "color": "#647D54",
+      "soft": "#E9F0E5",
+      "added": "2026-10-18",
+      "files": []
     }
   ]
 }

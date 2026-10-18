@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3259;
+const MIN_CHECKS = 3412;
 
 function ok(cond, msg) {
   checks++;
@@ -4088,6 +4088,500 @@ function testBlackjack() {
   ok(/id: 'bj-win'/.test(core) && /id: 'bj-21'/.test(core) && /unlock\('bj-win'\)/.test(page) && /unlock\('bj-21'\)/.test(page), 'both blackjack awards exist and are unlocked');
 }
 
+function testGridlock() {
+  head('Gridlock');
+  const E = loadEngine('gridlock', 'GridlockEngineFactory');
+  ok(['sound', 'make', 'range', 'move', 'step', 'undo', 'restart', 'useHint', 'nextMove', 'pick', 'nearest', 'cycle', 'clear', 'locked', 'plan', 'dailyPlan', 'generate', 'restore', 'progress', 'levelDone'].every((f) => typeof E[f] === 'function'), 'the engine has its API');
+
+  // A lot as text, one character a cell: '.' empty, '#' a wall, 'R' your car, any other
+  // letter a car or truck. Rows count from the top, the exit is in the third row.
+  const lot = (txt) => {
+    const rows = txt.split('\n').map((r) => r.trim()), R = rows.length, W = rows[0].length, at = {}, walls = [];
+    rows.forEach((row, y) => [...row].forEach((ch, x) => {
+      if (ch === '.') return;
+      if (ch === '#') walls.push(y * W + x); else (at[ch] = at[ch] || []).push([x, y]);
+    }));
+    const names = ['R'].concat(Object.keys(at).filter((n) => n !== 'R').sort());
+    const cars = names.map((n) => {
+      const cs = at[n], h = cs.every((c) => c[1] === cs[0][1]) ? 1 : 0;
+      return { h, n: cs.length, l: h ? cs[0][1] : cs[0][0], p: h ? cs[0][0] : cs[0][1] };
+    });
+    return { S: E.make(R, W, walls, cars), names, R, W, walls, cars };
+  };
+  const show = (B) => B.names.map((n, i) => n + B.S.cars[i].p).join(' ') + (B.S.done ? ' won' : '') + ' moves ' + B.S.moves;
+  const idx = (B, n) => B.names.indexOf(n);
+  // a move by name; the line says where every car is afterwards
+  const go = (B, n, to) => { E.move(B.S, idx(B, n), to); return show(B); };
+
+  const T = '.....\n.....\nRR.b.\n...b.\n.....';
+  const F6 = '......\n......\nRR....\n....a.\n....a.\n......';
+  let B = lot(T);
+  ok(!!B.S && B.S.best === 2 && show(B) === 'R0 b2 moves 0', 'a hand-built board is made and its fewest moves is counted (2)');
+  ok(go(B, 'b', 0) === 'R0 b0 moves 1' && go(B, 'R', 3) === 'R3 b0 won moves 2', 'a car slides to any free cell along its lane, and the red car at the right edge wins');
+
+  // movement bounds
+  B = lot(T);
+  ok(JSON.stringify(E.range(B.S, 0)) === '{"lo":0,"hi":1}', 'a car stops against the car in its way');
+  ok(go(B, 'R', 3) === 'R0 b2 moves 0' && go(B, 'R', 2) === 'R0 b2 moves 0', 'it cannot jump over a car to a free cell beyond it, or onto it');
+  B = lot('..a..\n..a..\nRR...\n..#..\n.....');
+  ok(JSON.stringify(E.range(B.S, idx(B, 'a'))) === '{"lo":0,"hi":1}' && go(B, 'a', 2) === 'R0 a0 moves 0', 'a wall stops a car like any other obstacle');
+  ok(go(B, 'a', -1) === 'R0 a0 moves 0' && go(B, 'a', 9) === 'R0 a0 moves 0' && go(B, 'a', 0.5) === 'R0 a0 moves 0', 'a car never leaves the board, and only whole cells count');
+  B = lot('.....\n.....\nRR...\n.....\n.cc..');
+  ok(JSON.stringify(E.range(B.S, idx(B, 'c'))) === '{"lo":0,"hi":3}' && E.range(B.S, idx(B, 'c')).hi + 2 === 5, 'a lane runs to the edges of the board, a car of two fills cells p and p + 1');
+  B = lot(F6);
+  const aI = idx(B, 'a'), colA = B.S.cars[aI].l;
+  ok(go(B, 'a', 0) === 'R0 a0 moves 1' && B.S.cars[aI].l === colA, 'a vertical car slides along its column and never changes column');
+  ok(JSON.stringify(E.range(lot('.....\n.....\nRR...\n.....\n.ddd.').S, 1)) === '{"lo":0,"hi":2}', 'a truck of three fills three cells');
+
+  // one drag is one move
+  B = lot(F6);
+  go(B, 'a', 0);
+  ok(B.S.moves === 1 && B.S.stack.length === 1 && B.S.stack[0].join() === aI + ',3', 'a slide of three cells is one move, and one entry to undo');
+  ok(go(B, 'a', 0) === 'R0 a0 moves 1' && E.move(B.S, aI, 0).ignored === true, 'dropping a car where it already is makes no move');
+  B = lot(F6);
+  go(B, 'a', 4); go(B, 'a', 3);
+  ok(B.S.moves === 2, 'two separate drags are two moves, even back to the start');
+
+  // the win is at column cols - 2 and nowhere else
+  for (const [rows, cols] of [[5, 5], [6, 5], [6, 6], [7, 6], [7, 7]]) {
+    const txt = [];
+    for (let r = 0; r < rows; r++) txt.push(r === 2 ? 'RR' + '.'.repeat(cols - 2) : (r === 0 ? 'a' + '.'.repeat(cols - 1) : (r === 1 ? 'a' + '.'.repeat(cols - 1) : '.'.repeat(cols))));
+    const X = lot(txt.join('\n'));
+    E.move(X.S, 0, cols - 3);
+    const before = X.S.done || E.dist(X.S) !== 1;
+    const r2 = E.move(X.S, 0, cols - 2);
+    ok(!!X.S && !before && r2.won === true && X.S.done && X.S.cars[0].p === cols - 2, rows + ' x ' + cols + ': one cell short is not a win and the left cell at column ' + (cols - 2) + ' is');
+  }
+  B = lot(T);
+  go(B, 'b', 0); go(B, 'R', 3);
+  ok(B.S.done && E.move(B.S, 1, 1).ignored === true && E.undo(B.S) === null && E.step(B.S, 0, -1).ignored === true, 'after the win nothing moves, and there is nothing to undo');
+  B = lot('.....\n.....\nRR...\n.....\n.cc..');
+  go(B, 'c', 3);
+  ok(E.clear(B.S) === true && !B.S.done && B.S.cars[idx(B, 'c')].p === 3, 'a car at the right edge that is not yours is not a win');
+
+  // undo
+  B = lot(F6);
+  const start = JSON.stringify(B.S.cars);
+  go(B, 'a', 0); go(B, 'R', 1);
+  const u1 = E.undo(B.S);
+  ok(u1 && u1.v === 0 && B.S.cars[0].p === 0 && B.S.moves === 2 && B.S.stack.length === 1, 'undo takes the last slide back and leaves it counted: trying and undoing is not free');
+  E.undo(B.S);
+  ok(JSON.stringify(B.S.cars) === start && B.S.moves === 2 && B.S.stack.length === 0 && E.undo(B.S) === null, 'undo goes all the way back to the start, a whole slide at a time, and then stops, with both slides still counted');
+  go(B, 'a', 2);
+  ok(B.S.moves === 3, 'the next slide after an undo is one more move');
+  B = lot(T);
+  go(B, 'b', 1);
+  E.useHint(B.S, { hints: 2 });
+  ok(B.S.hint !== null && E.undo(B.S) === null && B.S.stack.length === 1, 'undo is not allowed while a hint runs');
+
+  // the keyboard: steps in a row on one car are one move
+  const K = '......\n......\nRR....\n......\n.cc...\n......';
+  B = lot(K);
+  const cI = idx(B, 'c');
+  E.step(B.S, cI, 1); E.step(B.S, cI, 1); E.step(B.S, cI, 1);
+  ok(B.S.cars[cI].p === 4 && B.S.moves === 1 && B.S.stack.length === 1 && B.S.stack[0][1] === 1, 'three key steps on one car are one move');
+  E.step(B.S, cI, -1); E.step(B.S, cI, -1); E.step(B.S, cI, -1);
+  ok(B.S.cars[cI].p === 1 && B.S.moves === 0 && B.S.stack.length === 0, 'steps that come back to where the move began are no move at all');
+  E.step(B.S, cI, 1); E.step(B.S, 0, 1);
+  ok(B.S.moves === 2, 'a key step on another car is a move of its own');
+  B = lot(K);
+  E.step(B.S, cI, 1); E.move(B.S, 0, 2); E.step(B.S, cI, 1);
+  ok(B.S.moves === 3 && B.S.cars[cI].p === 3, 'a drag in between ends the run of steps, the next step is a new move');
+  B = lot(K);
+  E.step(B.S, cI, 1); E.undo(B.S); E.step(B.S, cI, 1);
+  ok(B.S.moves === 2 && B.S.cars[cI].p === 2 && B.S.stack.length === 1, 'undo ends the run too: the undone slide stays counted, the next step is a new one');
+  B = lot(K);
+  ok(E.step(B.S, cI, 0).ignored === true && E.step(B.S, cI, NaN).ignored === true && E.step(B.S, cI, 2).ignored === true && E.step(B.S, cI, '1').ignored === true &&
+    B.S.moves === 0 && B.S.cars[cI].p === 1 && B.S.stack.length === 0, 'a key step is one cell, forwards or back, and nothing else moves a car');
+  B = lot('.....\n.....\nRR...\n.....\n.cc.#');
+  E.step(B.S, idx(B, 'c'), 1);
+  const blocked = E.step(B.S, idx(B, 'c'), 1);
+  ok(blocked.blocked === true && B.S.moves === 1 && B.S.cars[1].p === 2 && E.step(B.S, 0, -1).blocked === true && B.S.moves === 1, 'a key step into a wall or the edge is refused and costs nothing');
+  B = lot(K);
+  for (let k = 0; k < 6; k++) E.step(B.S, cI, 1);
+  ok(B.S.moves === 1 && B.S.cars[cI].p === 4 && E.step(B.S, cI, 1).blocked === true, 'key steps stop at the end of the lane');
+
+  // restart
+  B = lot(F6);
+  E.useHint(B.S, { hints: 3 });
+  const hv = B.S.hint.v;
+  E.move(B.S, hv, B.S.hint.to);
+  E.restart(B.S);
+  ok(JSON.stringify(B.S.cars) === JSON.stringify(lot(F6).S.cars) && B.S.moves === 0 && B.S.stack.length === 0 && B.S.hint === null && !B.S.done, 'a restart puts every car back with the counter at zero and no hint');
+  B = lot(T);
+  go(B, 'b', 0); go(B, 'R', 3);
+  E.restart(B.S);
+  ok(!B.S.done && B.S.cars[0].p === 0 && B.S.moves === 0 && B.S.hints === 0, 'a restart after the win starts the board again');
+
+  // hints
+  B = lot(T);
+  const P = { hints: 2 };
+  const hv2 = E.useHint(B.S, P);
+  ok(hv2 === idx(B, 'b') && P.hints === 1 && B.S.hints === 1 && B.S.hint.left === 2, 'a hint names the car of a shortest way out, covers two moves and costs one hint');
+  ok(E.useHint(B.S, P) === -1 && P.hints === 1, 'a second hint is refused while the first is running');
+  ok(E.move(B.S, 0, 1).locked === true && E.step(B.S, 0, 1).locked === true && B.S.moves === 0 && E.locked(B.S, 0) && !E.locked(B.S, 1), 'every car but the hinted one is locked');
+  const to0 = B.S.hint.to, off = to0 === 0 ? 1 : 2;
+  E.move(B.S, 1, off);
+  ok(B.S.hint && B.S.hint.v === 1 && B.S.hint.to === to0 && B.S.hint.left === 2 && B.S.moves === 1, 'the hinted car dropped somewhere else is a move, and the hint stays');
+  E.move(B.S, 1, to0);
+  ok(B.S.hint && B.S.hint.v === 0 && B.S.hint.to === 3 && B.S.hint.left === 1, 'on the ghost the hint counts one move and aims again from the new position');
+  const rr = E.move(B.S, 0, 3);
+  ok(rr.won && B.S.hint === null && B.S.done, 'the win ends the hint');
+  B = lot('.....\n..cc.\nRRb..\n..b..\n..#..');
+  ok(B.S.best === 3, 'a board that needs three moves (' + B.S.best + ')');
+  const P3 = { hints: 1 };
+  E.useHint(B.S, P3);
+  const first = B.S.hint.v;
+  E.move(B.S, first, B.S.hint.to);
+  const second = B.S.hint.v;
+  E.move(B.S, second, B.S.hint.to);
+  ok(first !== 0 && second !== first && B.S.hint === null && !E.locked(B.S, 0) && E.dist(B.S) === 1, 'after two hinted moves the hint is over and every car is free again');
+  B = lot(T);
+  go(B, 'b', 0);
+  const P1 = { hints: 1 };
+  E.useHint(B.S, P1);
+  ok(B.S.hint.left === 1 && B.S.hint.v === 0, 'with one move left the hint covers one');
+  ok(E.useHint(lot(T).S, { hints: 0 }) === -1, 'no hint without one in stock');
+
+  // saves: a board comes back with everything, and a broken one is refused
+  const mk = () => { const X = lot('.....\n..cc.\nRRb..\n..b..\n..#..'); const hp2 = { hints: 3 }; E.move(X.S, 2, 3); E.useHint(X.S, hp2); E.move(X.S, X.S.hint.v, X.S.hint.to); return X; };
+  B = mk();
+  const snap = JSON.parse(JSON.stringify(B.S)), back = E.restore(JSON.parse(JSON.stringify(B.S)));
+  ok(!!back && JSON.stringify(back.cars) === JSON.stringify(B.S.cars) && back.moves === B.S.moves && JSON.stringify(back.stack) === JSON.stringify(B.S.stack) &&
+    JSON.stringify(back.hint) === JSON.stringify(B.S.hint) && back.hints === B.S.hints && back.best === B.S.best && back.level === B.S.level && JSON.stringify(back.start) === JSON.stringify(B.S.start),
+    'a save comes back with its cars, moves, undo stack, hint and fewest moves');
+  {
+    const U2 = lot(F6);
+    go(U2, 'a', 0); go(U2, 'R', 1); E.undo(U2.S);
+    const back2 = E.restore(JSON.parse(JSON.stringify(U2.S)));
+    ok(!!back2 && back2.moves === 2 && back2.stack.length === 1 && JSON.stringify(back2.cars) === JSON.stringify(U2.S.cars), 'a save taken after an undo comes back with the counter above the undo stack');
+  }
+  const brk = (f) => { const o = JSON.parse(JSON.stringify(snap)); f(o); return E.restore(o) === null; };
+  ok(brk((o) => { o.cars[1].l = 1; o.cars[1].p = 2; o.start[1] = 2; }) && brk((o) => { o.cars[1].n = 3; }), 'a save with cars on top of each other, or on a wall, is refused');
+  ok(brk((o) => { o.cars[2].p = 4; }) && brk((o) => { o.cars[1].p = -1; }) && brk((o) => { o.cars[1].l = 9; }) && brk((o) => { o.rows = 4; }) && brk((o) => { o.cols = 9; }), 'a save with a car off the board is refused');
+  ok(brk((o) => { o.cars[0].l = 1; }) && brk((o) => { o.cars[0].h = 0; }) && brk((o) => { o.cars[0].n = 3; }), 'a save whose red car is not horizontal, two long, in the exit row is refused');
+  ok(brk((o) => { o.cars[1].n = 4; }) && brk((o) => { o.cars[1].n = 1; }) && brk((o) => { o.cars[1].n = 2.5; }), 'a car of any other length than two or three is refused');
+  ok(brk((o) => { o.cars.push({ h: 1, n: 2, l: 2, p: 3 }); o.start.push(3); }) && brk((o) => { o.cars.length = 1; o.start.length = 1; }), 'another car lying across the exit row, or no other car at all, is refused');
+  ok(E.sound(6, 6, [2 * 6], [{ h: 1, n: 2, l: 2, p: 1 }, { h: 0, n: 2, l: 5, p: 3 }]) === false && E.make(6, 6, [2 * 6], [{ h: 1, n: 2, l: 2, p: 1 }, { h: 0, n: 2, l: 5, p: 3 }]) === null &&
+    E.make(6, 6, [1 * 6], [{ h: 1, n: 2, l: 2, p: 1 }, { h: 0, n: 2, l: 5, p: 3 }]) !== null, 'a wall in the exit row is refused even where the red car could still get out');
+  ok(brk((o) => { o.walls.push(2 * 5 + 4); }) && brk((o) => { o.walls.push(14); }) && brk((o) => { o.walls = [14, 14]; }) && brk((o) => { o.walls = [3, 8, 19]; }) && brk((o) => { o.walls = 'x'; }), 'walls in the exit row, doubled, or more than two are refused');
+  ok(brk((o) => { o.start.pop(); }) && brk((o) => { o.stack = [[9, 0]]; }) && brk((o) => { o.stack = [[0, 0.5]]; }) && brk((o) => { o.stack = [[1, 0]]; }) && brk((o) => { o.stack = [[1, 3]]; o.moves = 5; }) && brk((o) => { o.stack = 5; }), 'an undo stack that does not lead back is refused');
+  ok(brk((o) => { o.moves = o.stack.length - 1; }) && brk((o) => { o.moves = 'x'; }) && brk((o) => { o.moves = -1; }), 'a move count below the undo stack is refused');
+  ok(brk((o) => { o.hint = { v: 9, to: 1, left: 2 }; }) && brk((o) => { o.hint = { v: 2, to: 2, left: 3 }; }) && brk((o) => { o.hint = { v: 2, to: o.cars[2].p, left: 1 }; }) && brk((o) => { o.hint = 'x'; }) && brk((o) => { o.hint = { v: 0, to: 4, left: 1 }; }), 'a hint that cannot happen is refused');
+  ok([null, undefined, 5, 'x', [], {}, { cars: 1 }, { rows: 5 }].every((o) => E.restore(o) === null), 'anything that is not a save is refused');
+  const stuck = E.make(5, 5, [1 * 5 + 3, 4 * 5 + 3], [{ h: 1, n: 2, l: 2, p: 0 }, { h: 0, n: 2, l: 3, p: 2 }]);
+  ok(stuck === null && E.make(5, 5, [], [{ h: 1, n: 2, l: 2, p: 0 }, { h: 0, n: 2, l: 3, p: 1 }, { h: 0, n: 2, l: 4, p: 2 }]).best === 3, 'a board that can never be solved is refused, and the safety-net board takes three moves');
+  const swap = lot('.....\n.....\nRR...\n.....\naa.bb');
+  const sv = JSON.parse(JSON.stringify(swap.S));
+  const ia = swap.names.indexOf('a'), ib = swap.names.indexOf('b');
+  sv.cars[ia].p = 3; sv.cars[ib].p = 0;
+  ok(E.restore(sv) === null, 'cars that swapped places in one lane could never have got there: the save is refused');
+
+  // hit testing and the keyboard cursor
+  B = lot(T);
+  ok(E.pick(B.S, 0.5, 2.5) === 0 && E.pick(B.S, 1.99, 2.01) === 0 && E.pick(B.S, 3.5, 3.5) === idx(B, 'b') && E.pick(B.S, 0.5, 0.5) === -1, 'a touch picks the car under it');
+  ok(E.pick(B.S, 2.2, 2.5) === 0 && E.pick(B.S, 2.9, 2.5) === idx(B, 'b') && E.pick(B.S, 2.5, 0.5) === -1 && E.pick(B.S, -0.2, 2.5) === 0, 'a touch just beside a car still picks it, within a third of a cell, and empty ground picks nothing');
+  B = lot('..a..\n..a..\nRR...\n..#..\n.....');
+  ok(E.pick(B.S, 2.5, 3.5) === -1, 'a wall picks nothing');
+  B = lot(T);
+  ok(E.nearest(B.S, 0, 1) === idx(B, 'b') && E.nearest(B.S, idx(B, 'b'), 3) === 0 && E.nearest(B.S, 0, 3) === -1 && E.nearest(B.S, 0, 0) === -1, 'arrow keys across the lane move the selection to the nearest car in that direction');
+  ok(E.clear(B.S) === false && (go(B, 'b', 0), E.clear(B.S)) === true && (go(B, 'R', 3), E.clear(B.S)) === false, 'the road is clear only when nothing stands between the red car and the exit, and not any more once it is out');
+  B = lot(T);
+  ok(E.cycle(B.S, -1, 1) === 0 && E.cycle(B.S, 0, 1) === 1 && E.cycle(B.S, 1, 1) === 0 && E.cycle(B.S, 0, -1) === 1 && E.cycle(B.S, -1, -1) === 1, 'Space goes through the cars in reading order and wraps round');
+
+  // hint gifts and the ladder
+  {
+    const Pg = E.progress(), got = [];
+    for (let lv = 1; lv <= 29; lv++) if (E.levelDone(Pg, lv)) got.push(lv);
+    ok(got.join() === '4,9,14,19,24,29' && Pg.hints === 9 && Pg.level === 30 && E.progress().hints === 3, 'hints: three to start, a gift after levels 4, 9, 14, 19, 24, 29 (' + got + ')');
+    ok(!E.levelDone(Pg, 29) && !E.levelDone(Pg, 12) && Pg.hints === 9, 'a level number counts for gifts only once');
+    const p1 = E.plan(1), p3 = E.plan(3), p10 = E.plan(10), p12 = E.plan(12), p100 = E.plan(100), p250 = E.plan(250);
+    ok(p1.rows === 5 && p1.cols === 5 && p1.lo === 2 && p1.hi === 2 && p1.walls === 0 && p3.rows === 6 && p3.cols === 5 && E.plan(4).rows === 6 && E.plan(4).cols === 6 && p10.rows === 6 && p10.walls === 0, 'the ladder starts on 5 x 5 (two moves), then 6 x 5, then 6 x 6 with no walls');
+    ok(p12.walls === 1 && E.plan(11).walls === 0 && E.plan(13).walls === 0 && E.plan(16).walls === 1 && p250.rows === 7 && p250.cols === 7 && p100.hi >= 11 && p100.hi <= 18 && p250.hi >= 13 && p250.hi <= 20, 'walls come on every fourth level from 12, boards grow to 7 x 7 and the target climbs');
+    const dp = E.dailyPlan(() => 0.9);
+    ok(dp.rows === dp.cols && [6, 7].includes(dp.rows) && dp.lo === 12 && dp.hi === 16, 'the daily is 6 x 6 or 7 x 7, twelve to sixteen moves');
+  }
+
+  // the page
+  const page = fs.readFileSync(path.join(ROOT, 'www/games/gridlock/index.html'), 'utf8');
+  ok(/id: 'gridlock'/.test(page) && /C\.daily\('gridlock', daily\)\.rng/.test(page), 'the page uses its id for saves and the daily seed');
+  ok(/if \(E\.locked\(S, v\)\) \{ lockedTry\(\);/.test(page) && /function lockedTry\(\) \{\n\s+C\.feedback\('bad'\);\n\s+if \(S\.hint && nodes\[S\.hint\.v\]\) C\.ui\.shake\(nodes\[S\.hint\.v\]\._wig\);\n\s+C\.ui\.toast\(/.test(page),
+    'touching a locked car buzzes, nudges the hinted car and says why');
+  ok(!/coins\.spend/.test(page) && /E\.useHint\(S, prog\)/.test(page), 'hints cost hints from the stock, never coins');
+  ok(/'gl-win'/.test(page) && /'gl-deep'/.test(page) && /'gl-clean'/.test(page), 'the page unlocks its three achievements');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['gl-win', 'gl-deep', 'gl-clean'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '").test(core)), 'the achievements are defined in the core in all four languages');
+  ok(/C\.ui\.reduceMotion\(\)/.test(page) && /\.gl-frame \{ direction: ltr;/.test(page), 'motion asks for reduced motion and the lot is not mirrored');
+  const engineSrc = (page.match(/\/\* ==== ENGINE START ==== \*\/([\s\S]*?)\/\* ==== ENGINE END ==== \*\//) || [])[1] || '';
+  ok(engineSrc.length > 1000 && !/Math\.random|Date\.now|new Date|performance\.now|setTimeout/.test(engineSrc), 'the engine counts attempts and work, never time, and takes its randomness as a parameter');
+}
+
+// The promises the rules text makes, over every level from 1 to 300 and several dailies
+function testGridlockPromises() {
+  head('Gridlock promises');
+  const E = loadEngine('gridlock', 'GridlockEngineFactory');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const hashSrc = (core.match(/function hash32\(str\) \{[\s\S]*?\n  \}/) || [])[0];
+  const rngSrc = (core.match(/function rng\(seed\) \{[\s\S]*?\n  \}/) || [])[0];
+  const sb = {};
+  vm.createContext(sb);
+  vm.runInContext(hashSrc + '\n' + rngSrc + '\nthis.level = function (L) { return rng((L * 2654435761 + 0x6e1d) >>> 0); };\nthis.daily = function (d) { return rng(hash32("chogan|gridlock|" + d)); };', sb);
+
+  // The fewest moves counted again from nothing but the rules: breadth first over every position
+  // from the start, a slide of any length one step, until a position with the red car at cols - 2.
+  // With full set it goes on over the whole board and also says how many cars never move.
+  const search = (S, full) => {
+    const R = S.rows, W = S.cols, n = S.cars.length, cap = 60000;
+    const store = new Uint8Array(cap * n), dist = new Int16Array(cap), table = new Int32Array(1 << 17).fill(-1), moves = new Uint8Array(n);
+    let best = -1;
+    const find = (buf, off, add) => {
+      let h = 2166136261;
+      for (let i = 0; i < n; i++) h = Math.imul(h ^ buf[off + i], 16777619);
+      let slot = (h >>> 0) & (table.length - 1);
+      for (;;) {
+        const id = table[slot];
+        if (id < 0) { if (add >= 0) table[slot] = add; return -1; }
+        let same = true;
+        for (let i = 0; i < n; i++) if (store[id * n + i] !== buf[off + i]) { same = false; break; }
+        if (same) return id;
+        slot = (slot + 1) & (table.length - 1);
+      }
+    };
+    let count = 1;
+    S.start.forEach((p, i) => { store[i] = p; });
+    find(store, 0, 0);
+    const tmp = new Uint8Array(n), occ = new Int8Array(R * W);
+    for (let s = 0; s < count; s++) {
+      occ.fill(-1);
+      S.walls.forEach((w) => { occ[w] = -2; });
+      for (let i = 0; i < n; i++) {
+        const c = S.cars[i], p = store[s * n + i];
+        for (let k = 0; k < c.n; k++) occ[c.h ? c.l * W + p + k : (p + k) * W + c.l] = i;
+      }
+      for (let i = 0; i < n; i++) {
+        const c = S.cars[i], p = store[s * n + i];
+        for (const dir of [-1, 1]) {
+          for (let q = p + dir; ; q += dir) {
+            const head = dir < 0 ? q : q + c.n - 1;
+            if (head < 0 || head >= (c.h ? W : R)) break;
+            if (occ[c.h ? c.l * W + head : head * W + c.l] !== -1) break;
+            moves[i] = 1;
+            for (let j = 0; j < n; j++) tmp[j] = store[s * n + j];
+            tmp[i] = q;
+            if (find(tmp, 0, -1) >= 0) continue;
+            if (count >= cap) return { best: -1, still: -1 };
+            for (let j = 0; j < n; j++) store[count * n + j] = tmp[j];
+            dist[count] = dist[s] + 1;
+            find(store, count * n, count);
+            if (i === 0 && q === W - 2 && best < 0) { best = dist[count]; if (!full) return { best, still: -1 }; }
+            count++;
+          }
+        }
+      }
+    }
+    return { best, still: Array.prototype.filter.call(moves, (m) => !m).length };
+  };
+  const fewest = (S) => search(S, false).best;
+
+  // the rules once more, read off the board itself rather than through the engine
+  const valid = (S) => {
+    const cells = new Set(), R = S.rows, W = S.cols;
+    if (!(R >= 5 && R <= 7 && W >= 5 && W <= 7) || S.walls.length > 2 || S.cars.length < 2 || S.cars.length > 24) return false;
+    for (const w of S.walls) { if (w < 0 || w >= R * W || Math.floor(w / W) === 2 || cells.has(w)) return false; cells.add(w); }
+    return S.cars.every((c, i) => {
+      if ((c.n !== 2 && c.n !== 3) || (c.h !== 0 && c.h !== 1)) return false;
+      if (i === 0 && !(c.h === 1 && c.n === 2 && c.l === 2)) return false;
+      if (i > 0 && c.h === 1 && c.l === 2) return false;
+      if (c.l < 0 || c.l >= (c.h ? R : W) || c.p < 0 || c.p + c.n > (c.h ? W : R)) return false;
+      for (let k = 0; k < c.n; k++) {
+        const cell = c.h ? c.l * W + c.p + k : (c.p + k) * W + c.l;
+        if (cells.has(cell)) return false;
+        cells.add(cell);
+      }
+      return true;
+    });
+  };
+
+  let boards = 0, goodBoards = 0, bands = 0, plans = 0, bestOk = 0, checked = 0, hintsWin = 0, saves = 0, saveOk = true, picks = true, falls = 0, slow = 0, maxMs = 0, begun = 0, reach = 0, stuckChecked = 0, stuckOk = 0, paints = 0;
+  let totalMs = 0, kinds = [0, 0, 0, 0], means = { a: [], b: [], c: [], d: [] };
+  const seg = (L) => (L <= 10 ? 'a' : (L <= 30 ? 'b' : (L <= 80 ? 'c' : 'd')));
+  const batch = [];
+  for (let L = 1; L <= 300; L++) batch.push({ L, daily: null });
+  ['2026-10-17', '2026-10-18', '2026-10-19', '2026-11-02', '2027-01-01', '2027-03-21'].forEach((d) => batch.push({ L: 0, daily: d }));
+  for (const item of batch) {
+    const t0 = Date.now();
+    const S = item.daily ? E.generate(0, sb.daily(item.daily), true) : E.generate(item.L, sb.level(item.L));
+    const ms = Date.now() - t0;
+    totalMs += ms; maxMs = Math.max(maxMs, ms);
+    if (ms > 1500) slow++;
+    boards++;
+    const P = item.daily ? E.dailyPlan(sb.daily(item.daily)) : E.plan(item.L);
+    if (valid(S) && E.sound(S.rows, S.cols, S.walls, S.cars) && E.sound(S.rows, S.cols, S.walls, S.cars.map((c, i) => Object.assign({}, c, { p: S.start[i] })))) goodBoards++;
+    if (S.cars[0].p < S.cols - 2 && !S.done && S.best >= 2) begun++;
+    if (S.best >= P.lo && S.best <= P.hi) bands++;
+    if (S.rows === P.rows && S.cols === P.cols && S.walls.length === P.walls) plans++;
+    if (!item.daily && (S.best === 3 && S.rows === 5 && S.cols === 5 && item.L > 3)) falls++;
+    if (!item.daily) means[seg(item.L)].push(S.best);
+    S.cars.forEach((c, i) => { if (i) kinds[(c.h ? 0 : 1) + (c.n === 3 ? 2 : 0)]++; });
+    // the fewest moves, counted again
+    checked++;
+    if (fewest(S) === S.best) bestOk++;
+    // cars that never move in any position are walls in disguise: the plan allows so many, no more
+    // (searched over the whole board: the first sixty levels, every fifth after that, and the dailies)
+    if (item.daily || item.L <= 60 || item.L % 5 === 0) {
+      stuckChecked++;
+      if (search(S, true).still <= P.stuck) stuckOk++;
+    }
+    // cars that touch at the start do not share a paint while there are paints to spare
+    {
+      const g = E.grid(S);
+      let clash = 0;
+      for (let y = 0; y < S.rows; y++) for (let x = 0; x < S.cols; x++) {
+        for (const [dx, dy] of [[1, 0], [0, 1]]) {
+          const nx = x + dx, ny = y + dy;
+          if (nx >= S.cols || ny >= S.rows) continue;
+          const a = g[y * S.cols + x], b = g[ny * S.cols + nx];
+          if (a > 0 && b > 0 && a !== b && ((S.look[a] >> 1) & 3) === ((S.look[b] >> 1) & 3)) clash++;
+        }
+      }
+      if (clash === 0) paints++;
+    }
+    // following the hints from the start wins in exactly the fewest moves
+    {
+      const X = JSON.parse(JSON.stringify(S)), Y = E.restore(X), Pr = { hints: 99 };
+      let moves = 0, guard = 0, valid2 = !!Y;
+      while (Y && !Y.done && guard++ < 60) {
+        if (E.useHint(Y, Pr) < 0) { valid2 = false; break; }
+        while (Y.hint && !Y.done && guard++ < 60) {
+          const h = Y.hint, r = E.move(Y, h.v, h.to);
+          if (!r.moved) { valid2 = false; break; }
+          moves++;
+        }
+        if (!valid2) break;
+      }
+      if (valid2 && Y.done && moves === S.best && Y.moves === S.best) hintsWin++;
+    }
+    // a save taken at any point comes back the same
+    {
+      const Y = E.restore(JSON.parse(JSON.stringify(S))), r = sb.level(item.L + 5000 + (item.daily ? 7 : 0)), Pr = { hints: 99 };
+      let steps = 0;
+      while (Y && !Y.done && steps++ < 14) {
+        const t = r();
+        if (t < 0.25 && !Y.hint) E.useHint(Y, Pr);
+        else if (t < 0.4 && !Y.hint) E.undo(Y);
+        else {
+          const v = Y.hint ? Y.hint.v : Math.floor(r() * Y.cars.length), rg = E.range(Y, v);
+          const to = Y.hint ? Y.hint.to : rg.lo + Math.floor(r() * (rg.hi - rg.lo + 1));
+          // never win by luck here: keep the red car away from the exit so every state is tested
+          if (v === 0 && to === Y.cols - 2 && !Y.hint) continue;
+          E.move(Y, v, to);
+        }
+        const J = JSON.parse(JSON.stringify(Y)), B2 = E.restore(J);
+        saves++;
+        if (!B2 || JSON.stringify(B2.cars) !== JSON.stringify(Y.cars) || B2.moves !== Y.moves || JSON.stringify(B2.stack) !== JSON.stringify(Y.stack) ||
+          JSON.stringify(B2.hint) !== JSON.stringify(Y.hint) || B2.hints !== Y.hints || B2.best !== Y.best || B2.done !== Y.done) saveOk = false;
+      }
+    }
+    // the keyboard can reach every car: Space goes through them all
+    { const seen = new Set([0]); let v = 0; for (let k = 0; k < S.cars.length; k++) { v = E.cycle(S, v, 1); seen.add(v); } if (seen.size === S.cars.length) reach++; }
+    // the centre of every cell of every car picks that car
+    S.cars.forEach((c, i) => {
+      for (let k = 0; k < c.n; k++) {
+        const x = c.h ? c.p + k : c.l, y = c.h ? c.l : c.p + k;
+        if (E.pick(S, x + 0.5, y + 0.5) !== i) picks = false;
+      }
+    });
+  }
+  ok(boards === 306, 'generated levels 1 to 300 and six dailies');
+  ok(goodBoards === boards, 'every board is valid: in bounds, no overlap, your car in the exit row, walls off it, no other car lying across it (' + goodBoards + ' of ' + boards + ')');
+  ok(bestOk === checked && checked === boards, 'the stored fewest moves equals an independent breadth-first count on every board (' + bestOk + ' of ' + checked + ' agree)');
+  ok(hintsWin === boards, 'following the hints from the start wins in exactly the fewest moves, on every board (' + hintsWin + ' of ' + boards + ')');
+  ok(bands === boards, 'every level sits in the band of fewest moves its plan asks for (' + bands + ' of ' + boards + ')');
+  ok(plans === boards, 'size and walls are the plan\'s (' + plans + ' of ' + boards + ')');
+  ok(saveOk && saves > 2000, 'a save taken at any point comes back with the same cars, moves, undo stack and hint (' + saves + ' saves)');
+  ok(stuckOk === stuckChecked && stuckChecked >= 100, 'no board has more cars that can never move than its plan allows (' + stuckOk + ' of ' + stuckChecked + ' boards searched whole)');
+  ok(paints === boards, 'cars that touch at the start never share one of the four paints (' + paints + ' of ' + boards + ' boards)');
+  ok(picks, 'a touch at the centre of any car cell picks that car');
+  ok(reach === boards, 'the keyboard reaches every car on every board: Space goes through all of them (' + reach + ' of ' + boards + ')');
+  ok(begun === boards, 'every board starts unsolved, at least two moves from the exit');
+  ok(falls === 0, 'no level needs the safety-net board');
+  ok(slow === 0 && maxMs < 1500, 'no board takes more than a second and a half to make (the slowest took ' + maxMs + ' ms; all ' + boards + ' together ' + (totalMs / 1000).toFixed(1) + ' s)');
+  const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+  ok(avg(means.a) < avg(means.b) && avg(means.b) < avg(means.c) && avg(means.c) < avg(means.d) && avg(means.d) >= 11, 'the fewest moves climb along the ladder (' + ['a', 'b', 'c', 'd'].map((k) => avg(means[k]).toFixed(1)).join(', ') + ')');
+  const tot = kinds.reduce((x, y) => x + y, 0), share = kinds.map((k) => k / tot);
+  ok(share[0] > 0.25 && share[1] > 0.25 && share[0] + share[1] > 0.55 && share[2] + share[3] > 0.1 && share[2] + share[3] < 0.35, 'cars and trucks, lying and standing, all turn up (' + share.map((x) => (100 * x).toFixed(0) + '%').join(' / ') + ')');
+  const a = E.generate(0, sb.daily('2026-10-17'), true), b = E.generate(0, sb.daily('2026-10-17'), true), c = E.generate(0, sb.daily('2026-10-18'), true);
+  ok(JSON.stringify(a) === JSON.stringify(b) && JSON.stringify(a) !== JSON.stringify(c), 'the daily board is the same on every device and differs from day to day');
+  ok(JSON.stringify(E.generate(77, sb.level(77))) === JSON.stringify(E.generate(77, sb.level(77))), 'a level is the same board for everyone');
+}
+
+// The look: a muted accent, rounded vehicles, a hint that covers the whole car
+function testGridlockLook() {
+  head('Gridlock look');
+  const page = fs.readFileSync(path.join(ROOT, 'www/games/gridlock/index.html'), 'utf8');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/gridlock/icon.svg'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const sat = (hex) => { const [r, g, b] = rgb(hex); const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; return mx === mn ? 0 : (mx - mn) / (1 - Math.abs(2 * l - 1)); };
+  const hue = (hex) => { const [r, g, b] = rgb(hex); const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (!d) return 0; const h = mx === r ? ((g - b) / d) % 6 : (mx === g ? (b - r) / d + 2 : (r - g) / d + 4); return (h * 60 + 360) % 360; };
+  const lum = (hex) => rgb(hex).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const gl = games.find((g) => g.id === 'gridlock');
+  ok(!!gl && sat(gl.color) <= 0.25, 'the accent is a muted tone, saturation at most 0.25 (' + (gl ? sat(gl.color).toFixed(2) : '-') + ')');
+  ok(!!gl && /accent: '([^']+)'/.test(page) && page.match(/accent: '([^']+)'/)[1] === gl.color && icon.indexOf(gl.color) > 0, 'page accent, games.json and icon use the same colour');
+  ok(!!gl && 1.05 / (lum(gl.color) + 0.05) >= 4.5, 'white text on the accent keeps 4.5:1 (' + (gl ? (1.05 / (lum(gl.color) + 0.05)).toFixed(2) : '-') + ')');
+  const dist = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
+  const near = games.filter((g) => g.id !== 'gridlock').map((g) => [g.id, dist(hue(g.color), hue(gl.color))]).sort((x, y) => x[1] - y[1])[0];
+  ok(!!gl && near[1] >= 15, 'the hue is at least 15 degrees from every other game (nearest ' + near[0] + ', ' + near[1].toFixed(0) + ')');
+  ok(!!gl && new RegExp('<rect width="96" height="96" rx="22" fill="' + gl.soft + '"/>').test(icon) && games[games.length - 1].id === 'gridlock' && /^#[0-9A-F]{6}$/.test(gl.soft), 'the icon starts on the soft tint of games.json, and the game is last in the list');
+
+  // vehicles: one list, a sedan and a pickup; outline, glass, wheels and mirrors in one ink
+  const parts = page.slice(page.indexOf('function parts(n, goal)'), page.indexOf('function artNode'));
+  const rx = (cls) => [...parts.matchAll(new RegExp("\\['rect', \\{ class: '" + cls + "'[^}]*rx: ([0-9.]+)", 'g'))].map((m) => +m[1]);
+  const bodies = [...parts.matchAll(/\['path', \{ class: 'gl-body', d: '([^']+)'/g)].map((m) => m[1]);
+  ok(bodies.length === 2 && bodies.every((d) => (d.match(/C/g) || []).length >= 2) && rx('gl-body').length === 1 && rx('gl-body')[0] >= 5, 'the sedan and the cab are curved paths, the pickup bed a rounded rect');
+  ok(rx('gl-shadow').length === 2 && rx('gl-shadow').every((r) => r >= 10) && rx('gl-roof').length === 2 && rx('gl-roof').every((r) => r >= 2.5) && rx('gl-bed').length === 1 && rx('gl-bed')[0] >= 2.5, 'shadows, roof plates and the bed are rounded too');
+  const cls = (name) => (parts.match(new RegExp("class: '" + name + "'", 'g')) || []).length;
+  ok(cls('gl-glass') === 3 && cls('gl-mirror') === 2 && cls('gl-wheel') === 2 && cls('gl-slat') === 1 && cls('gl-mark') === 1, 'every vehicle has glass, mirrors and wheels, the pickup a slatted bed, only the red car a chevron');
+  ok(/\.gl-glass \{ fill: var\(--gl-glass\); \}/.test(page) && /\.gl-wheel \{ fill: var\(--gl-ink\); \}/.test(page) && /\.gl-mirror \{ fill: var\(--gl-ink\); \}/.test(page) && /\.gl-body \{ stroke: var\(--gl-ink\); stroke-width: 2\.5;/.test(page), 'outline, wheels and mirrors share one ink, the glass is a notch lighter');
+  ok(/\.gl-body \{[^}]*stroke-linejoin: round;/.test(page) && /\.gl-wall \{[^}]*stroke-linejoin: round;/.test(page) && /\.gl-curb \{[^}]*stroke-linejoin: round;/.test(page) && /\.gl-mark \{[^}]*stroke-linejoin: round;/.test(page), 'strokes of vehicles, walls, the kerb and the chevron have round joins');
+  ok(/\.gl-halo \{[^}]*stroke-linejoin: round;/.test(page) && /\.gl-ghost \{[^}]*stroke-linejoin: round;/.test(page) && /\.gl-cur \{[^}]*stroke-linejoin: round;/.test(page), 'the hint halo, the ghost and the key cursor have round joins');
+  const iconRects = [...icon.matchAll(/<rect ([^>]*)\/>/g)].map((m) => m[1]);
+  ok(iconRects.length >= 10 && iconRects.every((r) => /rx="\d/.test(r)) && (icon.match(/stroke-linejoin="round"/g) || []).length >= 2, 'every shape in the icon is rounded, the strokes have round joins');
+  ok(icon.indexOf(bodies[0]) > 0 && /M63 14l6 6-6 6/.test(icon) && (icon.match(/gl-|var\(/g) || []).length === 0, 'the icon is drawn from parts(2, true), with its colours written out');
+  ok(/class: 'gl-shadow'/.test(parts) && /class: 'gl-mark', d: 'M63 14l6 6-6 6'/.test(parts) && /function artMarkup\(n, goal\)/.test(page) && /artMarkup\(n, goal\)/.test(page) && /artNode\(c\.n, v === 0\)/.test(page), 'the board and the tutorial art draw from the same vehicle list');
+  ok(/cardShapes\(g, parts\(c\.n, v === 0\), v === 0 \? 'g' : \(\(B\.look\[v\] >> 1\) & 3\), tk\);/.test(page) && /cardShapes\(g, wallParts\(\), '', tk\);/.test(page) && /new Path2D\(a\.d\)/.test(page) && !/C\.rrect\(g, 4 \* u, 5 \* u/.test(page), 'the share card draws the same lists through a small canvas interpreter, no hand-drawn copy');
+
+  // the hint covers the whole vehicle, in the accent (#244), and the ghost is the whole vehicle too
+  ok(/sv\('rect', \{ class: 'gl-halo', x: -2, y: -2, width: w \+ 4, height: h \+ 4, rx: 14 \}\)/.test(page) && /var c = S\.cars\[v\], w = c\.h \? c\.n \* U : U, h = c\.h \? U : c\.n \* U;/.test(page), 'the halo is a rounded box around the whole car');
+  ok(/\.gl-car--hint \.gl-halo \{ fill-opacity: \.[2-9]; stroke-opacity: 1;/.test(page) && /\.gl-halo \{ fill: var\(--gl-hint\);[^}]*stroke: var\(--gl-hint\);/.test(page) && /\.gl-ghost \{ fill: var\(--gl-hint\);[^}]*stroke: var\(--gl-hint\);/.test(page), 'halo and ghost are drawn in the hint colour, the accent in light and a lighter tone in dark, and filled, not only outlined');
+  ok(/\.gl-ghost \{[^}]*stroke-dasharray/.test(page) && !/\.gl-cur \{[^}]*stroke-dasharray/.test(page) && /\.gl-cur \{[^}]*stroke-width: 3;/.test(page), 'the keyboard ring is a solid line and the ghost a dashed one, so the two never look alike');
+  ok(/function frameRect\(v, p, grow\) \{\n\s+var c = S\.cars\[v\], xy = lane\(v, p\), w = c\.h \? c\.n \* U : U, h = c\.h \? U : c\.n \* U;/.test(page) && /frameRect\(S\.hint\.v, S\.hint\.to, 2\)/.test(page), 'the ghost outlines every cell the car will cover');
+
+  // tokens only: colours live in the token blocks, light and both dark ones, and nowhere else
+  const css = page.slice(page.indexOf('<style>'), page.indexOf('</style>')).replace(/\/\*[\s\S]*?\*\//g, '');
+  ok(!/color-mix/.test(page), 'no color-mix');
+  const tokenBlocks = css.match(/:root \{[^}]*\}|:root:not\(\[data-theme="light"\]\) \{[^}]*\}|:root\[data-theme="dark"\] \{[^}]*\}/g) || [];
+  const rest = tokenBlocks.reduce((s, b) => s.replace(b, ''), css);
+  ok(tokenBlocks.length === 3 && !/#[0-9A-Fa-f]{3,8}\b|rgba?\(/.test(rest), 'colours are written only in the three token blocks (' + tokenBlocks.length + ' blocks)');
+  ok([0, 1, 2, 3].every((k) => (css.match(new RegExp('--gl-c' + k + ':', 'g')) || []).length === 3) && !/--gl-c4:/.test(css) && ['--gl-goal:', '--gl-goal-roof:', '--gl-concrete:', '--gl-hint:', '--gl-lot:', '--gl-cell:', '--gl-ink:', '--gl-glass:'].every((t) => (css.match(new RegExp(t, 'g')) || []).length === 3), 'four paints, the red, the lot, the ink and the hint colour each have a light and a dark value');
+  ok(/\n\s*\.gl-chev \{[^}]*\}/.test(css) && !/\n\s*\.gl-chev \{[^}]*animation/.test(css) && /\.gl-board--clear \.gl-chev \{ animation: gl-run/.test(css) && /svg\.classList\.toggle\('gl-board--clear', E\.clear\(S\)\)/.test(page), 'the exit chevrons stand still and only run while the red car\'s road is clear');
+  ok(/class: 'gl-hatch'/.test(page) && /\.gl-hatch \{[^}]*stroke-linecap: round;/.test(css) && /class: 'gl-wall', x: 4\.5, y: 4\.5, width: 31, height: 31, rx: 7/.test(page) && /function wallParts\(\)/.test(page), 'a wall is a rounded concrete block with hatching, not a car');
+  const light = css.match(/:root \{([^}]*)\}/)[1], dark = css.match(/:root\[data-theme="dark"\] \{([^}]*)\}/)[1];
+  const goal = (light.match(/--gl-goal: (#[0-9A-Fa-f]{6})/) || [])[1];
+  ok(!!goal && (hue(goal) < 15 || hue(goal) > 345) && sat(goal) > 0.5, 'your car is a clear warm red (' + goal + ')');
+  // the lot is dark asphalt in both themes, so the pale paints glow and only the red car pops
+  const tok = (block, name) => (block.match(new RegExp(name + ': (#[0-9A-Fa-f]{6})')) || [])[1];
+  ok([light, dark].every((b) => tok(b, '--gl-lot') && lum(tok(b, '--gl-lot')) < 0.05 && lum(tok(b, '--gl-cell')) < 0.06 && lum(tok(b, '--gl-ink')) < 0.02) && /\.gl-lot \{ fill: var\(--gl-lot\); \}/.test(css) && /\.gl-dim \{ fill: var\(--gl-lot\);/.test(css), 'the lot is dark asphalt in both themes, drawn in one ink, and the hint veil is the same asphalt');
+  // the user's convention: red goes out. The red car is the only red vehicle: every other paint
+  // is a pale neutral (chroma, max minus min, at most .25 in both themes), the red strong and warm
+  const chroma = (hex) => { const c = rgb(hex); return Math.max(...c) - Math.min(...c); };
+  const isRed = (hex) => !!hex && (hue(hex) < 15 || hue(hex) > 345) && chroma(hex) >= 0.5;
+  const neutral = (hex) => !!hex && chroma(hex) <= 0.25;
+  const paintsOf = (b) => [0, 1, 2, 3].map((k) => tok(b, '--gl-c' + k));
+  ok([light, dark].every((b) => paintsOf(b).every(neutral) && isRed(tok(b, '--gl-goal')) && isRed(tok(b, '--gl-goal-roof')) && neutral(tok(b, '--gl-concrete')) && neutral(tok(b, '--gl-concrete-top'))),
+    'red goes out: the red car is the only red vehicle, every other paint and the concrete are pale neutrals in both themes (chroma ' + [light, dark].map((b) => paintsOf(b).map((h) => h ? chroma(h).toFixed(2) : '-').join('/')).join(' and ') + ', red ' + (goal ? chroma(goal).toFixed(2) : '-') + ')');
+}
+
 // #234: award notices left before they could be read
 function testAwardToasts() {
   head('Award notices');
@@ -6278,6 +6772,9 @@ testMahjongTimed();
 testBlackjack();
 testEightBall();
 testSnooker();
+testGridlock();
+testGridlockPromises();
+testGridlockLook();
 testAwardToasts();
 testPasurLead();
 testModalButtons();
