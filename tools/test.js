@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3522;
+const MIN_CHECKS = 3582;
 
 function ok(cond, msg) {
   checks++;
@@ -6075,6 +6075,115 @@ function testChain() {
   ok(Date.now() - t0 < 8000, 'the Chain Reaction group runs in under eight seconds (' + (Date.now() - t0) + 'ms)');
 }
 
+/* ------------------------------------------------ Ludo (#303) */
+function testLudo() {
+  head('Ludo');
+  const t0 = Date.now();
+  const E = loadEngine('ludo', 'LudoEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/ludo/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const T = E.TRACK, key = (q) => q[0] + ',' + q[1];
+  ok(T.length === 52 && new Set(T.map(key)).size === 52, 'the loop has 52 different squares');
+  ok(T.every((q, i) => { const n = T[(i + 1) % 52], dx = Math.abs(q[0] - n[0]), dy = Math.abs(q[1] - n[1]); return dx <= 1 && dy <= 1 && dx + dy > 0; }), 'every square of the loop touches the next, the last the first');
+  ok(T.every((q) => q[0] >= 0 && q[0] < 15 && q[1] >= 0 && q[1] < 15 && !(q[0] >= 6 && q[0] <= 8 && q[1] >= 6 && q[1] <= 8) && !((q[0] < 6 || q[0] > 8) && (q[1] < 6 || q[1] > 8))),
+    'the loop stays on the cross, out of the bases and the middle');
+  const homeCells = [0, 1, 2, 3].map((c) => [51, 52, 53, 54, 55].map((p) => E.cell(c, p)));
+  ok(homeCells.every((col) => col.every((q) => q && !T.some((t) => key(t) === key(q)))) && new Set(homeCells.flat().map(key)).size === 20, 'each colour has its own 5-square home column, off the loop');
+  ok([0, 1, 2, 3].every((c) => { const a = E.cell(c, 50), b = E.cell(c, 51); return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) === 1; }), 'each colour turns into its home column from the square next to it');
+  ok([0, 1, 2, 3].every((c) => E.square(c, 0) === 13 * c && E.isSafe(13 * c) && E.isSafe(13 * c + 8)), 'start squares and the stars eight after them are safe');
+
+  // Leaving base, exact rolls, extra rolls
+  let S = E.newGame(2, 2);
+  ok(S.colours.join() === '0,2', 'two players sit opposite each other');
+  ok(E.moves(S, 5).length === 0 && E.dead(S, 5) === 'none' && E.moves(S, 6).length === 1, 'only a six brings a token out, and two tokens in base are one move');
+  let r = E.play(S, 0, 6);
+  ok(r.state.pos[0][0] === 0 && r.again && r.state.turn === 0 && r.state.sixes === 1, 'a six brings a token to its start square and rolls again');
+  r = E.play(r.state, 0, 4);
+  ok(r.state.pos[0][0] === 4 && !r.again && r.state.turn === 1 && r.state.sixes === 0, 'a four moves four squares and passes the turn');
+  S = E.newGame(2, 2); S.pos[0] = [54, -1];
+  ok(!E.canMove(S, 0, 3) && E.canMove(S, 0, 2), 'reaching home needs the exact roll');
+  r = E.play(S, 0, 2);
+  ok(r.home && r.again && r.state.winner < 0, 'a token reaching home rolls again');
+  S = E.newGame(2, 2); S.pos[0] = [56, 53];
+  r = E.play(S, 1, 3);
+  ok(r.state.winner === 0 && !r.again, 'the last token home wins the game');
+  S = E.newGame(2, 2); S.pos[0] = [10, -1]; S.sixes = 2;
+  ok(E.dead(S, 6) === 'sixes' && E.play(S, 0, 6) === null, 'a third six in a row loses the turn');
+  ok(E.pass(S).turn === 1 && E.pass(S).sixes === 0, 'a lost turn passes on');
+
+  // Captures and safe squares; square() maps each colour's path onto the loop
+  S = E.newGame(2, 2); S.pos[0] = [10, -1];
+  const enemyAt = (sq) => (sq - 26 + 52) % 52;
+  S.pos[1] = [enemyAt(13), -1];
+  r = E.play(S, 0, 3);
+  ok(r.state.pos[0][0] === 13 && r.captured.length === 0 && r.state.pos[1][0] === enemyAt(13), 'no capture on a safe square (green\'s start)');
+  S = E.newGame(2, 2); S.pos[0] = [10, -1]; S.pos[1] = [enemyAt(14), -1];
+  r = E.play(S, 0, 4);
+  ok(r.captured.length === 1 && r.state.pos[1][0] === -1 && r.again, 'landing on an opponent sends it to base and rolls again');
+  S = E.newGame(2, 2); S.pos[0] = [20, -1]; S.pos[1] = [enemyAt(17), enemyAt(30)];
+  ok(E.threats(S, 0, E.square(0, 20)) === 1 && E.threats(S, 0, E.square(0, 21)) === 0, 'a token 1 to 6 squares behind is a threat, one ahead is not');
+  S = E.newGame(2, 2); S.pos[0] = [3, -1]; S.pos[1] = [48, -1];
+  ok(E.threats(S, 0, E.square(0, 3)) === 0, 'a token about to turn into its home column is no threat past its turn');
+
+  // Whole games of every size: legal moves only, every game ends with a winner
+  const levels = ['easy', 'medium', 'hard'];
+  let ended = 0, legalAll = true, inRange = true, worst = 0;
+  for (let g = 0; g < 24; g++) {
+    const n = 2 + (g % 3), tk = g % 2 ? 4 : 2, rr = rng(500 + g);
+    let st = E.newGame(n, tk), rolls = 0;
+    while (st.winner < 0 && rolls < 4000) {
+      const roll = E.roll(rr); rolls++;
+      if (roll < 1 || roll > 6) { legalAll = false; break; }
+      if (E.dead(st, roll)) { st = E.pass(st); continue; }
+      const q = Date.now(), k = E.think(st, roll, levels[(g + st.turn) % 3], rr);
+      worst = Math.max(worst, Date.now() - q);
+      if (!E.canMove(st, k, roll)) { legalAll = false; break; }
+      st = E.play(st, k, roll).state;
+      if (!st.pos.every((t) => t.every((p) => p >= -1 && p <= 56))) inRange = false;
+    }
+    if (st.winner >= 0 && st.pos[st.winner].every((p) => p === 56)) ended++;
+  }
+  ok(legalAll && inRange, 'bots only make legal moves and tokens stay between base and home');
+  ok(ended === 24, 'every game of 2, 3 and 4 players, 2 and 4 tokens, ends with a winner (' + ended + ' of 24)');
+  ok(worst < 50, 'a bot move is instant (slowest ' + worst + 'ms)');
+
+  // Strength over full games, where skill counts more than the dice
+  const duel = (a, b, seed) => {
+    const rr = rng(seed), first = seed % 2;
+    let st = E.newGame(2, 4), k = 0;
+    while (st.winner < 0 && k++ < 4000) {
+      const roll = E.roll(rr);
+      if (E.dead(st, roll)) { st = E.pass(st); continue; }
+      st = E.play(st, E.think(st, roll, (st.turn === 0) !== !!first ? a : b, rr), roll).state;
+    }
+    return (st.winner === 0) !== !!first;
+  };
+  let me = 0, hm = 0;
+  for (let i = 0; i < 200; i++) { if (duel('medium', 'easy', 2000 + i)) me++; if (duel('hard', 'medium', 3000 + i)) hm++; }
+  ok(me >= 130, 'medium beats easy in most full games (' + me + ' of 200)');
+  ok(hm >= 106, 'hard beats medium more often than not (' + hm + ' of 200)');
+
+  // Page wiring and identity
+  const gm = games.find((g) => g.id === 'ludo');
+  ok(!!gm && gm.cat === 'board' && /accent: '([^']+)'/.test(html) && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent; the game is in the board category');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/ludo/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const hue = (h) => { const [a, b, c] = rgb(h), mx = Math.max(a, b, c), d = mx - Math.min(a, b, c); if (!d) return 0; const x = mx === a ? ((b - c) / d) % 6 : mx === b ? (c - a) / d + 2 : (a - b) / d + 4; return (x * 60 + 360) % 360; };
+  const lum = (h) => rgb(h).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const dist = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
+  const near = games.filter((g) => g.id !== 'ludo').map((g) => [g.id, dist(hue(g.color), hue(gm.color))]).sort((x, y) => x[1] - y[1])[0];
+  ok(near[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent is at least 15° of hue from every other game (nearest ' + near[0] + ', ' + near[1].toFixed(0) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['lu-win', 'lu-hard', 'lu-hunter'].every((id) => core.indexOf("id: '" + id + "'") > 0 && html.indexOf("unlock('" + id + "')") > 0), 'the three Ludo awards exist and are unlocked');
+  ok(/C\.daily\('ludo', G\.daily \+ '\|' \+ G\.s\.rolls\)\.rng/.test(html) && /C\.stats\.daily\('ludo', G\.daily/.test(html), 'daily dice come from the day\'s seed and the roll number, and the result is recorded');
+  ok(/ctx\.autosave\(/.test(html) && /ctx\.tutorialIfNew\(TUT\)/.test(html), 'the game autosaves and shows its tutorial once');
+  // A reload or a pause after a bad roll used to throw the die again
+  ok(/G\.roll = v;\s*\/\/[^\n]*\n[^\n]*\n\s*save\(\);\s*afterRoll\(v\);/.test(html) && /roll: G\.roll,/.test(html) && /if \(g\.roll >= 1 && g\.roll <= 6\) \{ G\.phase = 'busy'; G\.roll = g\.roll; afterRoll\(g\.roll\); \}/.test(html) &&
+    /if \(G\.roll\) \{ G\.phase = 'busy'; G\.msg = ''; afterRoll\(G\.roll\); \}/.test(html), 'a landed die is saved and replayed after a reload or a pause, never thrown again');
+  ok(Date.now() - t0 < 6000, 'the Ludo group runs in under six seconds (' + (Date.now() - t0) + 'ms)');
+}
+
 function testGomoku() {
   head('Gomoku');
   const E = loadEngine('gomoku', 'GomokuEngineFactory');
@@ -6963,6 +7072,7 @@ testPeg();
 testReversi();
 testGomoku();
 testChain();
+testLudo();
 testGo();
 testBackgammon();
 testMorris();

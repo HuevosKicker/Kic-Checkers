@@ -671,6 +671,30 @@
       "soft": "#F6E4F0",
       "added": "2026-10-18",
       "files": []
+    },
+    {
+      "id": "ludo",
+      "cat": "board",
+      "name": {
+        "fa": "منچ",
+        "en": "Ludo",
+        "zh": "飞行棋",
+        "de": "Ludo",
+        "es": "Ludo"
+      },
+      "summary": {
+        "fa": "تاس بریز، با شش بیرون بیا، حریف را بزن و مهره‌هایت را به خانه برسان؛ ۲ تا ۴ نفر یا با ربات.",
+        "en": "Roll, come out on a six, capture and race your tokens home; 2 to 4 players or against bots.",
+        "zh": "掷骰子，六点出营，吃掉对手，把棋子先送回家；2到4人或对战电脑。",
+        "de": "Würfeln, mit einer Sechs raus, schlagen und alle Figuren ins Ziel bringen; 2 bis 4 Spieler oder gegen Bots.",
+        "es": "Tira, sal con un seis, come y lleva tus fichas a casa; de 2 a 4 jugadores o contra bots."
+      },
+      "path": "games/ludo/index.html",
+      "icon": "games/ludo/icon.svg",
+      "color": "#776A12",
+      "soft": "#F2EDD6",
+      "added": "2026-10-18",
+      "files": []
     }
   ]
 }
