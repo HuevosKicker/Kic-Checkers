@@ -921,7 +921,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = WayOutEngi
       C.stats.best('wayout', 'level', S.level, false);
     }
     ctx.clearSave();
-    var res = ctx.finish({
+    ctx.finish({
       won: true, title: C.t('levelClear'), note: note, timeMs: elapsed, coins: coins, points: points,
       lines: [
         S.daily ? { label: C.t('daily'), value: C.num(S.daily) } : { label: C.t('level'), value: C.num(S.level) },
@@ -931,13 +931,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = WayOutEngi
       ],
       shareText: 'چوگان · راه دررو' + (S.daily ? ('\nروزانه ' + S.daily) : ('\nمرحله‌ی ' + C.num(S.level))) + '\n' + C.time(elapsed),
       paint: cardPaint(),
+      // the primary button opens the next level, so it says so
+      againLabel: S.daily ? null : C.t('nextLevel'),
       onAgain: S.daily ? null : function () { newGame(prog.level); }
     });
-    // the primary button opens the next level, so it says so
-    if (!S.daily && res && res.box) {
-      var pb = res.box.querySelector('.ch-modal__actions .ch-btn--primary');
-      if (pb) pb.textContent = C.t('nextLevel');
-    }
   }
 
   // The card shows the level as it started, every arrow in place

@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3513;
+const MIN_CHECKS = 3516;
 
 function ok(cond, msg) {
   checks++;
@@ -6902,9 +6902,16 @@ function testModalFocus() {
   ok(line.indexOf("o.focusPrimary && box.querySelector('.ch-modal__actions .ch-btn--primary')") >= 0 &&
     line.indexOf('focusPrimary') < line.indexOf("'.ch-modal__actions button'"),
     'a dialog that asks for it focuses its primary action first');
-  ok(/label: Chogan\.t\('again'\), kind: 'primary'/.test(core), 'Again is the primary action of the game-over dialog');
-  ok(/actions: actions,\s*focusPrimary: true,\s*dismissable: false,\s*closeButton: true,\s*onClose: function \(via\) \{ if \(via !== 'action'\) showResultBtn\(\); \}/.test(core),
+  ok(/label: o\.againLabel \|\| Chogan\.t\('again'\), kind: 'primary'/.test(core), 'Again (or the game\'s own label for it) is the primary action of the game-over dialog');
+  ok(/actions: actions,\s*focusPrimary: true,\s*dismissable: false,\s*closeButton: true,\s*onClose: function \(via\) \{ if \(via !== 'action'\) \{ showResultBtn\(\); showAfterBar\(o\); \} \}/.test(core),
     'the game-over dialog asks for it');
+  // #306: closing the result with X left Way Out on an empty board with no way on
+  const bar = (core.match(/function showAfterBar\(o\) \{[\s\S]*?\n    \}\n/) || [''])[0];
+  ok(/o\.againLabel \|\| Chogan\.t\('again'\), fn: o\.onAgain/.test(bar) && /Chogan\.t\('menu'\)/.test(bar) && /reopenResult\(\)/.test(bar) && /document\.body\.appendChild\(afterBar\)/.test(bar),
+    'after X, a bar offers the result again and the next round (or the menu)');
+  ok(/function hideResultBtn\(\) \{\n[^\n]*resultBtn\.hidden = true;\n[^\n]*afterBar\.remove\(\)/.test(core), 'the bar goes away when a new round starts');
+  const relabel = games.filter((g) => /ch-modal__actions \.ch-btn--primary/.test(fs.readFileSync(path.join(ROOT, 'www', g.path), 'utf8'))).map((g) => g.id);
+  ok(relabel.length === 0, 'no game rewrites the result button text after the fact; they pass againLabel (' + relabel.join(',') + ')');
   const confirmAt = core.indexOf('ui.confirm = function');
   ok(confirmAt > 0 && core.slice(confirmAt, core.indexOf('ui.reduceMotion')).indexOf('focusPrimary') < 0,
     'confirms keep focus on Cancel, so Enter cannot start over by accident');

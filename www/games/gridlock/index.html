@@ -1247,7 +1247,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GridlockEn
       C.stats.best('gridlock', 'level', S.level, false);
     }
     ctx.clearSave();
-    var res = ctx.finish({
+    ctx.finish({
       won: true, title: C.t('levelClear'), note: note, stars: stars, timeMs: elapsed, coins: coins, points: points,
       lines: [
         S.daily ? { label: C.t('daily'), value: C.num(S.daily) } : { label: C.t('level'), value: C.num(S.level) },
@@ -1256,13 +1256,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GridlockEn
       ],
       shareText: 'چوگان · راه‌بندان' + (S.daily ? ('\nروزانه ' + S.daily) : ('\nمرحله‌ی ' + C.num(S.level))) + '\n' + C.num(S.moves) + ' / ' + C.num(S.best) + '\n' + C.time(elapsed),
       paint: cardPaint(),
+      // the primary button opens the next level, so it says so
+      againLabel: S.daily ? null : C.t('nextLevel'),
       onAgain: S.daily ? null : function () { newGame(prog.level); }
     });
-    // the primary button opens the next level, so it says so
-    if (!S.daily && res && res.box) {
-      var pb = res.box.querySelector('.ch-modal__actions .ch-btn--primary');
-      if (pb) pb.textContent = C.t('nextLevel');
-    }
     // the next board is made while the result is up, once the dialog and the confetti have had their
     // moment, so Next level opens at once
     if (!S.daily) setTimeout(function () { pending = { level: prog.level, S: E.generate(prog.level, levelRng(prog.level)) }; }, 700);
