@@ -1,0 +1,4 @@
+Neues Spiel: Kettenreaktion – Kugeln legen, bis Felder platzen und Ketten übers Brett laufen, 2 bis 4 Spieler oder gegen Bots.
+Neues Spiel: Ludo – würfeln, schlagen und alle Figuren ins Ziel bringen, schnell oder voll, 2 bis 4 Spieler oder gegen Bots.
+Ein mit X geschlossenes Ergebnis lässt kein leeres Brett mehr zurück: unten stehen Ergebnis und nächstes Level.
+Schiffe versenken: Ein Treffer gibt einen weiteren Schuss (abschaltbar).
