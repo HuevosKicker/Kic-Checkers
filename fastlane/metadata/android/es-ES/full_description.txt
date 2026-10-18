@@ -1,4 +1,4 @@
-Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae veintiocho juegos, y los nuevos llegan como actualizaciones de la misma app.
+Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae veintinueve juegos, y los nuevos llegan como actualizaciones de la misma app.
 
 Los juegos:
 
@@ -30,6 +30,7 @@ Los juegos:
 * Snooker — una roja, luego un color y al final los colores en orden, con 6, 10 o 15 rojas, contra la IA en tres niveles o para dos
 * Atasco — aparta los coches y saca el tuyo del aparcamiento, un arrastre es un movimiento, niveles sin fin
 * Reacción en cadena — añade orbes hasta que las casillas estallen en cadena; de 2 a 4 en un móvil o contra bots
+* Ludo — tira, sal con un seis, come y lleva tus fichas a casa; de 2 a 4 jugadores o contra bots
 
 Alrededor de los juegos:
 

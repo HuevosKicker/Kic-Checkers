@@ -1,4 +1,4 @@
-Chogan is a collection of small, finishable games in a single app. It ships with twenty-eight games, and new ones arrive as updates to the same app.
+Chogan is a collection of small, finishable games in a single app. It ships with twenty-nine games, and new ones arrive as updates to the same app.
 
 The games:
 
@@ -30,6 +30,7 @@ The games:
 * Snooker — a red, then a colour, then the colours in order, with 6, 10 or 15 reds, against three levels of AI or two players
 * Gridlock — slide the cars out of the way and drive yours out of the lot, one drag a move, levels without end
 * Chain Reaction — add orbs until cells burst and chain across the board; 2 to 4 players on one phone or against bots
+* Ludo — roll, come out on a six, capture and race your tokens home; quick or full game, 2 to 4 players or against bots
 
 Around the games:
 
