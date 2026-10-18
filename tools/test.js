@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3582;
+const MIN_CHECKS = 3583;
 
 function ok(cond, msg) {
   checks++;
@@ -2831,6 +2831,12 @@ function testFiles() {
   const sheetSrc = (menu.match(/function gameSheet\(g\) \{([\s\S]*?)\n  \}\n/) || [])[1] || '';
   ok(/C\.storage\(g\.id\)\.wipe\(\)/.test(sheetSrc) && /C\.t\('eraseWhat'\)/.test(sheetSrc) && /remove\('tutSeen'\); goGame\(g\)/.test(sheetSrc), 'the game sheet erases the game, says what is erased, and reopens its tutorial');
   ok(['howToPlay', 'eraseGame', 'eraseWhat'].every((k) => (menu.match(new RegExp('\\b' + k + ": '", 'g')) || []).length === LOCALE_CODES.length), 'the game sheet strings exist in every language');
+
+  // The About card explains the name (#311)
+  ok(/text: C\.t\('whyName'\) \}\),[\s\S]{0,400}C\.t\('whyText'\)[\s\S]{0,120}C\.t\('whyText2'\)/.test(menu) &&
+    ['whyName', 'whyText', 'whyText2'].every((k) => (menu.match(new RegExp('\\b' + k + ": '", 'g')) || []).length === LOCALE_CODES.length) &&
+    /### Why Chogan/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')) && /### چرا چوگان/.test(fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')),
+    'About explains the name Chogan in every language, and the README does too');
 
   const tpl = fs.readFileSync(path.join(ROOT, 'template/game/index.html'), 'utf8');
   ok(/ENGINE START/.test(tpl) && /ENGINE END/.test(tpl), 'قالب نشانه‌ی موتور را دارد');

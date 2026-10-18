@@ -46,6 +46,10 @@ Ways to play:
 
 Around the games: a daily challenge that is identical on every device with no server at all, a weekly offline league with five tiers, over eighty awards, a shared coin that is only ever spent on hints and cosmetics, stats and a profile, and a Persian, English, Simplified Chinese, German and Spanish interface with light and dark themes.
 
+### Why Chogan
+
+Chogan (چوگان) is the Persian name of the game known today as polo: a team game on horseback, where the ball is struck towards the goal with a crooked stick, itself called a chogan. It is one of the oldest team games and was played in Iran for centuries; the stone goalposts still stand in Naqsh-e Jahan Square in Isfahan. We chose the name because it is an Iranian name, and because chogan, for all its simplicity, just a stick and a ball, can be a real challenge. That is what the games in this app want to be.
+
 ### Why it needs no permissions
 
 The Android manifest declares `VIBRATE` and nothing else — not even internet access, because nothing in the app ever touches the network. Fonts, sounds and every asset ship inside the package; sound is generated procedurally with WebAudio, so there is not a single audio file in the build. Progress is stored on the device only, and Google auto-backup is turned off.
@@ -140,6 +144,10 @@ MIT, see [LICENSE](LICENSE). The Vazirmatn font is under the OFL; its licence te
 | منچ | تاس بریز، با شش بیرون بیا، حریف را بزن و مهره‌هایت را به خانه برسان؛ بازی سریع با دو مهره یا کامل با چهار مهره، ۲ تا ۴ نفر یا با ربات، و بازی روزانه |
 
 بیرون از بازی‌ها: چالش روزانه‌ی مشترک برای همه‌ی دستگاه‌ها بدون هیچ سروری، لیگ هفتگی آفلاین با پنج رده، بیش از هشتاد دستاورد، سکه‌ی مشترک که فقط خرج راهنمایی و تزئینات می‌شود، آمار و پروفایل، و رابط فارسی، انگلیسی، چینی ساده‌شده، آلمانی و اسپانیایی با تم روشن و تاریک.
+
+### چرا چوگان
+
+چوگان نام فارسی بازی‌ای است که امروز بیشتر با نام پولو می‌شناسند: بازی گروهی سوار بر اسب که توپ را با چوبی سرکج، که آن هم چوگان نام دارد، به دروازه می‌زنند. از کهن‌ترین بازی‌های گروهی است و قرن‌ها در ایران بازی شده؛ دروازه‌های سنگی چوگان هنوز در میدان نقش جهان اصفهان پابرجاست. این نام را برگزیدیم چون نامی ایرانی است، و چون چوگان با همه‌ی سادگی‌اش، فقط یک چوب و یک توپ، می‌تواند چالشی واقعی باشد؛ همان چیزی که بازی‌های این اپ می‌خواهند باشند.
 
 ### چرا هیچ مجوزی نمی‌خواهد
 
