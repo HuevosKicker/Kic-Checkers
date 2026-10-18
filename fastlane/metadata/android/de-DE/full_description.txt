@@ -1,4 +1,4 @@
-Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Fünfundzwanzig Spiele sind dabei, und neue kommen als Updates derselben App dazu.
+Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Sechsundzwanzig Spiele sind dabei, und neue kommen als Updates derselben App dazu.
 
 Die Spiele:
 
@@ -27,6 +27,7 @@ Die Spiele:
 * Ausweg — schick jeden Pfeil in einer passenden Reihenfolge vom Brett, drei Herzen pro Level, Level ohne Ende
 * Blackjack — näher an 21 als der Croupier, Partien aus zehn Händen ohne Einsätze
 * 8-Ball — versenke deine Gruppe und zuletzt die 8, mit echter Tischphysik, gegen die KI in drei Stufen oder zu zweit
+* Snooker — eine Rote, dann eine Farbe, am Ende die Farben der Reihe nach, mit 6, 10 oder 15 Roten, gegen die KI in drei Stufen oder zu zweit
 
 Rund um die Spiele:
 

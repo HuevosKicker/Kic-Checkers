@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3172;
+const MIN_CHECKS = 3249;
 
 function ok(cond, msg) {
   checks++;
@@ -4299,6 +4299,198 @@ function testEightBall() {
   ok(Date.now() - t0 < 5000, 'the 8-ball group runs in under five seconds (' + (Date.now() - t0) + 'ms)');
 }
 
+/* ------------------------------------------------------------ snooker (#271) */
+// Snooker shares the table physics in www/lib/cue.js with 8-ball; only its
+// table options (smaller balls, tighter pockets), rules and AI are its own.
+function loadSnooker() {
+  const sandbox = { self: {}, module: { exports: {} }, console };
+  vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'www/lib/cue.js'), 'utf8'), sandbox, { filename: 'cue.js' });
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/snooker/index.html'), 'utf8');
+  const m = html.match(/\/\* ==== ENGINE START ==== \*\/([\s\S]*?)\/\* ==== ENGINE END ==== \*\//);
+  if (!m) throw new Error('snooker engine markers not found');
+  vm.runInContext(m[1], sandbox, { filename: 'snooker-engine.js' });
+  return { Cue: sandbox.self.ChoganCue, E: sandbox.SnookerEngineFactory(sandbox.self.ChoganCue), html };
+}
+function testSnooker() {
+  head('snooker');
+  const t0 = Date.now();
+  const { Cue, E, html } = loadSnooker();
+  const T = E.T, r = T.r;
+  const B = (id, x, y) => ({ id, x, y, vx: 0, vy: 0, inPlay: true });
+  const YEL = 22, GRN = 23, BRN = 24, BLU = 25, PNK = 26, BLK = 27;
+  ok(T.L === 2 * T.W && T.pockets.length === 6 && r === 2 && T.corner === r * 2.5 && T.side === r * 3.4, 'the snooker table is 2:1 with smaller balls and tighter pockets than the cue.js defaults');
+  ok(Cue.table({}).r === 2.6 && Cue.table({}).corner === 2.6 * 2.8, 'the default table (8-ball) is unchanged');
+
+  // The set-up: reds in a triangle behind the pink, colours on their spots, the white in the D
+  const counts = E.REDS_OPTIONS.map((n) => {
+    const F = E.newFrame({ reds: n });
+    const red = F.balls.filter((b) => E.isRed(b.id)), col = F.balls.filter((b) => E.isColour(b.id));
+    let overlap = 0;
+    for (let i = 0; i < F.balls.length; i++) for (let j = i + 1; j < F.balls.length; j++) if (Math.hypot(F.balls[i].x - F.balls[j].x, F.balls[i].y - F.balls[j].y) < 2 * r) overlap++;
+    const spots = col.every((b) => b.x === E.SPOT[b.id - 20].x && b.y === E.SPOT[b.id - 20].y);
+    const behind = red.every((b) => b.x > E.SPOT[6].x + 2 * r && b.x < E.SPOT[7].x - 2 * r);
+    return red.length === n && col.length === 6 && spots && behind && overlap === 0 && E.inD(F.balls[0].x, F.balls[0].y) && F.inHand && F.phase === 'red' ? n : -n;
+  });
+  ok(counts.join() === '6,10,15', 'the reds option sets up 6, 10 or 15 reds behind the pink, colours on their spots, nothing overlapping, the white in hand in the D (' + counts.join() + ')');
+  ok(E.newFrame({}).reds === 6, 'a frame has six reds unless asked otherwise');
+  ok(E.SPOT[4].x === E.BAULK && E.SPOT[2].y > E.SPOT[4].y && E.SPOT[3].y < E.SPOT[4].y && E.SPOT[5].x === T.L / 2 && E.SPOT[6].x === T.L * 0.75 && E.SPOT[7].x > E.SPOT[6].x, 'yellow, brown and green on the baulk line, blue in the middle, pink and black up the table');
+
+  // The tighter pockets still take a straight pot, in a corner and in a middle pocket
+  let s = Cue.simulate(T, [B(0, 150, 50), B(1, 180, 80)], { angle: Math.PI / 4, power: 0.4 }, 0);
+  ok(s.ev.first === 1 && s.ev.potted.join() === '1' && s.ev.pockets.join() === '3', 'a straight shot pots a red in the far corner');
+  s = Cue.simulate(T, [B(0, 100, 60), B(1, 100, 20)], { angle: -Math.PI / 2, power: 0.35 }, 0);
+  ok(s.ev.potted.join() === '1' && s.ev.pockets.join() === '4', 'a straight shot pots a red in the middle pocket it faces');
+
+  // A frame in the middle, built by hand: the given balls plus the colours that are not given
+  const frame = (balls, o) => {
+    const given = balls.map((b) => b.id);
+    const rest = E.newFrame({ reds: 1 }).balls.filter((b) => E.isColour(b.id) && given.indexOf(b.id) < 0 && !(o && o.noColours));
+    return Object.assign(E.newFrame({ mode: '2p', reds: 1 }), { balls: balls.concat(rest), isBreak: false, inHand: false }, o || {});
+  };
+  // A red, then a colour: 1 + 7, the black goes back on its spot, a red is on again
+  let F = frame([B(0, 160, 40), B(1, 180, 20), B(2, 60, 20)]);
+  let out = E.shoot(F, { angle: -Math.PI / 4, power: 0.4 });
+  ok(!out.res.foul && out.res.points === 1 && out.F.scores.join() === '1,0' && out.F.turn === 0 && out.F.phase === 'colour' && out.F.brk === 1, 'potting a red scores 1, the shooter stays on and a colour is on');
+  F = out.F;
+  const blk = E.ball(F, BLK), cue = E.ball(F, 0);
+  blk.x = 180; blk.y = 20; cue.x = 160; cue.y = 40;
+  out = E.shoot(F, { angle: -Math.PI / 4, power: 0.4 });
+  const b7 = E.ball(out.F, BLK);
+  ok(!out.res.foul && out.res.points === 7 && out.F.scores.join() === '8,0' && out.F.brk === 8 && out.F.best[0] === 8, 'then potting the black scores 7: a break of 1 + 7');
+  ok(b7.inPlay && b7.x === E.SPOT[7].x && b7.y === E.SPOT[7].y && out.F.phase === 'red' && E.targets(out.F).join() === '2', 'the black is re-spotted on its own spot and a red is on again');
+  // re-spotting when the spot is taken: the highest free spot
+  let G0 = frame([B(0, 30, 30), B(2, E.SPOT[7].x, E.SPOT[7].y), B(BLK, 10, 10)], { noColours: true });
+  E.respot(G0, BLK);
+  ok(E.ball(G0, BLK).x === E.SPOT[6].x && E.ball(G0, BLK).y === E.SPOT[6].y, 'a colour whose spot is covered goes on the highest free spot (the black on the pink spot while a red covers its own)');
+  G0 = frame([B(0, E.SPOT[6].x, E.SPOT[6].y), B(PNK, 10, 10)]);
+  E.respot(G0, PNK);
+  const p6 = E.ball(G0, PNK);
+  ok(p6.y === E.SPOT[6].y && p6.x > E.SPOT[6].x + 2 * r - 0.3 && p6.x < E.SPOT[6].x + 2 * r + 0.3, 'with every spot covered it goes as near its own spot as it can, towards the top cushion');
+  // several reds in one shot all count
+  F = frame([B(0, 160, 40), B(1, 180, 20), B(2, 60, 20)]);
+  ok(E.judge(F, { first: 1, potted: [1, 2] }).points === 2 && !E.judge(F, { first: 1, potted: [1, 2] }).foul, 'two reds in one shot score 2');
+
+  // Colours in order once the reds are gone
+  F = frame([B(0, 160, 40), B(1, 180, 20)], { phase: 'red' });
+  out = E.shoot(F, { angle: -Math.PI / 4, power: 0.4 });
+  ok(out.F.phase === 'colour' && E.reds(out.F).length === 0, 'after the last red a colour is still on');
+  F = out.F;
+  const pk = E.ball(F, PNK); pk.x = 180; pk.y = 20; E.ball(F, 0).x = 160; E.ball(F, 0).y = 40;
+  out = E.shoot(F, { angle: -Math.PI / 4, power: 0.4 });
+  ok(out.res.points === 6 && E.ball(out.F, PNK).inPlay && out.F.phase === 'order' && out.F.next === 2 && E.targets(out.F).join() === String(YEL), 'the colour after the last red is re-spotted, then the yellow is on');
+  F = frame([B(0, 160, 40), B(YEL, 180, 20)], { phase: 'order', next: 2 });
+  out = E.shoot(F, { angle: -Math.PI / 4, power: 0.4 });
+  ok(out.res.points === 2 && !E.ball(out.F, YEL).inPlay && out.F.next === 3 && E.targets(out.F).join() === String(GRN), 'in the colours sequence a potted colour stays down and the next one is on');
+  F = frame([B(0, 160, 40), B(GRN, 180, 20)], { phase: 'order', next: 2 });
+  out = E.shoot(F, { angle: -Math.PI / 4, power: 0.4 });
+  ok(out.res.foul === 'wrongFirst' && out.res.penalty === 4 && E.ball(out.F, GRN).inPlay && out.F.scores.join() === '0,4' && out.F.next === 2, 'potting the green while the yellow is on is a foul worth 4, and the green comes back');
+  ok(E.judge(frame([B(0, 1, 1)], { phase: 'order', next: 2 }), { first: PNK, potted: [] }).penalty === 6, 'hitting the pink first while the yellow is on gives away 6');
+
+  // Each foul and its penalty
+  F = frame([B(0, 160, 40), B(1, 180, 20), B(2, 60, 20)]);
+  const J = (FF, ev) => E.judge(FF, ev);
+  let j = J(F, { first: null, potted: [] });
+  ok(j.foul === 'noHit' && j.penalty === 4, 'hitting nothing with a red on: foul, 4');
+  ok(J(frame([B(0, 1, 1)], { phase: 'order', next: 5 }), { first: null, potted: [] }).penalty === 5, 'hitting nothing with the blue on: foul, 5 (the value of the ball on)');
+  j = J(F, { first: PNK, potted: [] });
+  ok(j.foul === 'wrongFirst' && j.penalty === 6, 'hitting the pink first with a red on: foul, 6');
+  j = J(F, { first: 1, potted: [1, BLK] });
+  ok(j.foul === 'wrongPot' && j.penalty === 7 && j.points === 0, 'potting the black with a red: foul, 7, the red does not score');
+  j = J(frame([B(0, 1, 1)], { phase: 'colour' }), { first: GRN, potted: [GRN, PNK] });
+  ok(j.foul === 'wrongPot' && j.penalty === 6, 'with a colour on, potting a second colour besides the one hit: foul, 6');
+  j = J(frame([B(0, 1, 1)], { phase: 'colour' }), { first: 1, potted: [] });
+  ok(j.foul === 'wrongFirst' && j.penalty === 4, 'with a colour on, hitting a red first: foul, 4');
+  j = J(frame([B(0, 1, 1)], { phase: 'colour' }), { first: BLU, potted: [BLU, 0] });
+  ok(j.foul === 'inOff' && j.penalty === 5, 'an in-off off the blue with a colour on: foul, 5');
+  // in-off: the opponent gets the points and the white in hand in the D
+  F = frame([B(0, 160, 40), B(1, 180, 20), B(2, 60, 20)]);
+  F = frame([B(0, 160, 40), B(1, 175, 21.7), B(2, 60, 20)]);
+  out = E.shoot(F, { angle: -Math.PI / 4, power: 0.8 });
+  const c1 = E.ball(out.F, 0);
+  ok(out.res.inOff && out.res.foul === 'inOff' && out.F.scores.join() === '0,4' && out.F.turn === 1 && out.F.inHand && c1.inPlay && E.inD(c1.x, c1.y) && out.F.brk === 0, 'an in-off gives the opponent 4 and ball in hand inside the D (' + JSON.stringify(out.res.potted) + ')');
+  ok(E.legalPlace(out.F, E.BAULK - 3, T.W / 2 + 4) && !E.legalPlace(out.F, E.BAULK + 3, T.W / 2) && !E.legalPlace(out.F, E.BAULK - E.DR - 1, T.W / 2), 'with ball in hand the white goes only inside the D');
+  // a foul re-spots colours that went in and leaves reds down
+  F = frame([B(0, 160, 40), B(1, 180, 20), B(2, 60, 20)]);
+  const sim = { balls: F.balls.map((b) => Object.assign({}, b, { inPlay: b.id !== 2 && b.id !== PNK })), ev: { first: 2, potted: [2, PNK] } };
+  const G1 = E.apply(F, sim, E.judge(F, sim.ev));
+  ok(!E.ball(G1, 2).inPlay && E.ball(G1, PNK).inPlay && E.ball(G1, PNK).x === E.SPOT[6].x && G1.scores.join() === '0,6' && G1.turn === 1, 'after a foul a potted red stays down and a potted colour is re-spotted');
+
+  // The frame ends on the black
+  F = frame([B(0, 160, 40), B(BLK, 180, 20)], { phase: 'order', next: 7, scores: [20, 13], noColours: true });
+  out = E.shoot(F, { angle: -Math.PI / 4, power: 0.4 });
+  ok(out.F.over && out.F.winner === 0 && out.F.scores.join() === '27,13', 'potting the last black ends the frame, the higher score wins');
+  F = frame([B(0, 160, 40), B(BLK, 180, 20)], { phase: 'order', next: 7, scores: [6, 13], noColours: true });
+  out = E.shoot(F, { angle: -Math.PI / 4, power: 0.4 });
+  ok(!out.F.over && out.F.shootout && out.F.scores.join() === '13,13' && out.F.turn === 1 && out.F.inHand && E.ball(out.F, BLK).x === E.SPOT[7].x && out.F.next === 7, 'level after the black: it is re-spotted and the other player starts from the D');
+  j = E.judge(out.F, { first: null, potted: [] });
+  const G2 = E.apply(out.F, { balls: out.F.balls, ev: { first: null, potted: [] } }, j);
+  ok(G2.over && G2.winner === 0 && G2.scores.join() === '20,13', 'on the re-spotted black a foul ends the frame for the opponent');
+  F = frame([B(0, 30, 50), B(BLK, 180, 20)], { phase: 'order', next: 7, scores: [40, 20], turn: 1, noColours: true });
+  const G3 = E.apply(F, { balls: F.balls, ev: { first: null, potted: [] } }, E.judge(F, { first: null, potted: [] }));
+  ok(G3.over && G3.winner === 0, 'with only the black left a foul also ends the frame');
+  F = frame([B(0, 30, 50), B(BLK, 180, 20)], { phase: 'order', next: 7, scores: [10, 10], noColours: true });
+  const G4 = E.apply(F, { balls: F.balls, ev: { first: BLK, potted: [] } }, E.judge(F, { first: BLK, potted: [] }));
+  ok(!G4.over && G4.turn === 1, 'a safe touch on the last black passes the turn without ending the frame');
+
+  // Determinism
+  const st = E.newFrame({ reds: 15 }), shot = { angle: 0.02, power: 0.5 };
+  const a1 = E.shoot(st, shot), a2 = E.shoot(st, shot);
+  ok(JSON.stringify(a1.F) === JSON.stringify(a2.F) && a1.sim.ticks === a2.sim.ticks, 'the same shot on the same table gives the same frame');
+  ok(JSON.stringify(st) === JSON.stringify(E.newFrame({ reds: 15 })), 'shoot() does not touch the frame it is given');
+
+  // The daily: a seeded table of three reds and the colours
+  const D1 = E.newDaily(rng(77), '2026-10-18'), D2 = E.newDaily(rng(77), '2026-10-18'), D3 = E.newDaily(rng(78), '2026-10-19');
+  const dOverlap = D1.balls.some((b, i) => D1.balls.some((o, k) => k > i && Math.hypot(b.x - o.x, b.y - o.y) < 2 * r));
+  ok(JSON.stringify(D1) === JSON.stringify(D2) && JSON.stringify(D1.balls) !== JSON.stringify(D3.balls), 'the daily table is the same for the same seed and differs for another');
+  ok(E.reds(D1).length === E.DAILY_REDS && E.colours(D1).length === 6 && !dOverlap && D1.mode === 'daily' && D1.inHand, 'the daily has ' + E.DAILY_REDS + ' reds, all six colours, nothing overlapping, the white in hand');
+  ok(/C\.daily\('snooker', o\.daily\)\.rng/.test(html) && /C\.stats\.daily\('snooker', F\.daily/.test(html), 'the page seeds the daily from C.daily and records it');
+  let Dd = E.copy(D1);
+  Dd.balls = [B(0, 30, 50), B(1, 150, 50)]; Dd.inHand = false;
+  const Gd = E.apply(Dd, { balls: Dd.balls, ev: { first: null, potted: [] } }, E.judge(Dd, { first: null, potted: [] }));
+  ok(Gd.turn === 0 && Gd.scores.join() === '0,0' && Gd.fouls[0] === 1 && !Gd.over, 'in the daily a foul costs a shot but gives nobody points');
+  Dd = Object.assign(E.copy(D1), { balls: [B(0, 160, 40), B(BLK, 180, 20)], phase: 'order', next: 7, inHand: false });
+  out = E.shoot(Dd, { angle: -Math.PI / 4, power: 0.4 });
+  ok(out.F.over && out.F.winner === 0, 'potting the last black clears the daily table');
+
+  // AI: medium beats easy, hard does at least as well against medium
+  let aiShots = 0, aiBad = 0;
+  const play = (l0, l1, seed, reds) => {
+    const rr = rng(seed);
+    let G = E.newFrame({ mode: 'ai', reds, first: seed % 2 }), n = 0;
+    while (!G.over && n++ < 200) {
+      const sh = E.think(G, G.turn ? l1 : l0, rr);
+      if (sh.place && G.inHand) E.placeCue(G, sh.place.x, sh.place.y);
+      const o = E.shoot(G, { angle: sh.angle, power: sh.power });
+      aiShots++;
+      if (o.res.foul === 'wrongFirst' || o.res.foul === 'noHit') aiBad++;
+      G = o.F;
+    }
+    return G.over ? G.winner : -1;
+  };
+  const N = 4, NH = 6;
+  let me = 0, hm = 0;
+  for (let i = 0; i < N; i++) { if (play('medium', 'easy', 500 + i, 6) === 0) me++; }
+  for (let i = 0; i < NH; i++) { if (play('hard', 'medium', 600 + i, 4) === 0) hm++; }
+  ok(me >= 3, 'medium AI beats easy AI in most frames (' + me + ' of ' + N + ', six reds)');
+  ok(hm >= NH / 2, 'hard AI wins at least half its frames against medium (' + hm + ' of ' + NH + ', four reds)');
+  ok(aiShots > 0 && aiBad / aiShots < 0.1, 'the AI almost always hits a ball that is on first (' + aiBad + ' misses of ' + aiShots + ' shots)');
+  const pl = E.planner(E.newFrame({ reds: 15 }), 'hard', rng(4));
+  let slices = 0, worst = 0;
+  while (true) { const q = Date.now(); const d = pl.step(4); worst = Math.max(worst, Date.now() - q); slices++; if (d || slices > 400) break; }
+  ok(pl.total <= 160 && slices < 60 && worst < 80, 'the hard AI thinks in bounded slices on a full rack (' + pl.total + ' shots, ' + slices + ' slices, slowest ' + worst + 'ms)');
+
+  // Wiring on the page
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(html.indexOf('<script src="../../lib/cue.js"></script>') > 0 && !/function tick\(|rollA:|cushionSlide:/.test(html) && /Cue\.tick\(run\)/.test(html) && /run = Cue\.start\(T, F\.balls, shot, 0\)/.test(html), 'the page has no physics of its own and animates with the shared tick()');
+  ok(/C\.ui\.segmented\(E\.REDS_OPTIONS\.map/.test(html) && /prefs\.reds = o\.reds/.test(html) && /E\.REDS_OPTIONS\.indexOf\(prefs\.reds\) < 0/.test(html), 'the new-frame dialog offers the reds count and remembers it');
+  ok(['sn-win', 'sn-hard', 'sn-break'].every((id) => core.indexOf("id: '" + id + "'") > 0 && html.indexOf("unlock('" + id + "')") > 0), 'the three snooker awards exist and are unlocked');
+  ok(Date.now() - t0 < 6000, 'the snooker group runs in under six seconds (' + (Date.now() - t0) + 'ms)');
+  // On a 390px phone the AI card read "Opponent · Medi…"; the level now sits on the second line
+  const snPage = fs.readFileSync(path.join(ROOT, 'www/games/snooker/index.html'), 'utf8');
+  ok(/name = aiCard \? C\.t\('rival'\) : pname\(p\)/.test(snPage) && /if \(aiCard\) sub = C\.t\(F\.level\)/.test(snPage) && /class: 'sn-player__name', text: name \}/.test(snPage), 'the AI card shows the level on its second line, not beside the name');
+}
+
 /* ------------------------------------------------------------- پاسور */
 function testPasur() {
   head('پاسور');
@@ -6075,6 +6267,7 @@ testMahjongClack();
 testMahjongTimed();
 testBlackjack();
 testEightBall();
+testSnooker();
 testAwardToasts();
 testPasurLead();
 testModalButtons();
