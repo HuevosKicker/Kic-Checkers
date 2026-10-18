@@ -717,15 +717,22 @@
       style: { flex: '1', 'min-width': '0', font: 'inherit', padding: '10px 14px', 'border-radius': 'var(--r-md)',
         border: '1px solid var(--c-line)', background: 'var(--c-surface-2)', color: 'var(--c-text)' }
     });
-    var countryInput = el('input', {
-      type: 'text', value: C.state.profile.country, maxlength: '2',
-      placeholder: C.t('country') + ' (IR)',
-      style: { width: '86px', font: 'inherit', 'text-align': 'center', padding: '10px', 'border-radius': 'var(--r-md)',
-        border: '1px solid var(--c-line)', background: 'var(--c-surface-2)', color: 'var(--c-text)', 'text-transform': 'uppercase' }
-    });
+    // A list of countries named in the app's language, not a two-letter code box (#293)
+    var cur = (C.state.profile.country || '').toUpperCase();
+    var countries = C.countries();
+    // A code typed into the old text box that is not in the list stays selectable, so it is not lost
+    if (cur && !countries.some(function (c) { return c.code === cur; })) countries.unshift({ code: cur, name: cur });
+    var countryInput = el('select', {
+      'aria-label': C.t('country'), title: C.t('country'),
+      style: { width: '100%', 'min-width': '0', font: 'inherit', padding: '10px 14px', 'border-radius': 'var(--r-md)',
+        border: '1px solid var(--c-line)', background: 'var(--c-surface-2)', color: 'var(--c-text)' }
+    }, [el('option', { value: '', text: C.t('country') + ' (' + C.t('optional') + ')' })].concat(countries.map(function (c) {
+      return el('option', { value: c.code, text: C.flag(c.code) + ' ' + c.name });
+    })));
+    countryInput.value = cur;
     function saveProfile() {
       C.state.profile.name = nameInput.value.trim().slice(0, 24);
-      C.state.profile.country = countryInput.value.trim().toUpperCase().slice(0, 2);
+      C.state.profile.country = countryInput.value;
       C.store.set('profile', C.state.profile);
     }
     nameInput.addEventListener('change', saveProfile);
@@ -739,7 +746,8 @@
           el('div', { class: 'ch-xs ch-faint', text: C.state.profile.uid })
         ])
       ]),
-      el('div', { class: 'ch-row' }, [nameInput, countryInput])
+      // Stacked: beside the name, a long country name was cut off («Vereinig…», #293)
+      el('div', { class: 'ch-col', style: { gap: 'var(--s-2)' } }, [nameInput, countryInput])
     ]));
 
     // Characters and palettes right under the profile card that shows the character (#253):

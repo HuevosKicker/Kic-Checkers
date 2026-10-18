@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3442;
+const MIN_CHECKS = 3445;
 
 function ok(cond, msg) {
   checks++;
@@ -2793,6 +2793,13 @@ function testFiles() {
 
   // The show-welcome button was labelled with 'play' and read «بازی» (#295)
   ok(/C\.t\('showWelcome'\) \}\),[\s\S]{0,200}text: C\.t\('showBtn'\)/.test(menu) && (menu.match(/\bshowBtn: '[^']+'/g) || []).length === LOCALE_CODES.length, 'the show-welcome button has its own "Show" label in every language');
+
+  // The country was a two-letter text box nobody knew what to type into (#293)
+  const countrySrc = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const ccList = ((countrySrc.match(/var COUNTRY_CODES = '([A-Z ]+)'\.split/) || [])[1] || '').split(' ').filter(Boolean);
+  ok(ccList.length >= 249 && new Set(ccList).size === ccList.length && ccList.every((c) => /^[A-Z]{2}$/.test(c)) && ['IR', 'GB', 'US', 'IN', 'DE', 'CN'].every((c) => ccList.includes(c)), 'the country list has every ISO country once (' + ccList.length + ')');
+  ok(/new Intl\.DisplayNames\(\[tag\], \{ type: 'region' \}\)/.test(countrySrc), 'countries are named in the app language');
+  ok(/var countryInput = el\('select'/.test(menu) && /C\.countries\(\)/.test(menu) && !/maxlength: '2'/.test(menu), 'the profile picks the country from a list, not a code box');
 
   const tpl = fs.readFileSync(path.join(ROOT, 'template/game/index.html'), 'utf8');
   ok(/ENGINE START/.test(tpl) && /ENGINE END/.test(tpl), 'قالب نشانه‌ی موتور را دارد');
