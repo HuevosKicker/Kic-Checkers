@@ -2426,7 +2426,7 @@
 
     var stats = {};
     var saveFn = null;
-    var lastFinish = null, resultBtn = null, reopenResult = null;
+    var lastFinish = null, resultBtn = null, reopenResult = null, afterBar = null;
 
     var ctx = {
       id: cfg.id,
@@ -2562,7 +2562,8 @@
           });
         }
         if (!standalone) actions.push({ label: Chogan.t('menu'), onClick: function () { Chogan.back(); } });
-        if (o.onAgain) actions.push({ label: Chogan.t('again'), kind: 'primary', onClick: o.onAgain });
+        // againLabel: the primary button says what it does, e.g. "Next level"
+        if (o.onAgain) actions.push({ label: o.againLabel || Chogan.t('again'), kind: 'primary', onClick: o.onAgain });
 
         // بستن با ضربدر تخته را همان‌طور که تمام شد نشان می‌دهد؛ دکمه‌ی «نتیجه»
         // در نوار بالا می‌ماند تا هر وقت خواست همین پنجره را برگرداند.
@@ -2574,7 +2575,7 @@
             focusPrimary: true,
             dismissable: false,
             closeButton: true,
-            onClose: function (via) { if (via !== 'action') showResultBtn(); }
+            onClose: function (via) { if (via !== 'action') { showResultBtn(); showAfterBar(o); } }
           });
         };
         hideResultBtn();
@@ -2595,7 +2596,31 @@
       }
       resultBtn.hidden = false;
     }
-    function hideResultBtn() { if (resultBtn) resultBtn.hidden = true; }
+    function hideResultBtn() {
+      if (resultBtn) resultBtn.hidden = true;
+      if (afterBar) { afterBar.remove(); afterBar = null; }
+    }
+    // Closing the result with X keeps the finished board in view, but in Way Out that
+    // board is empty, so the page looked blank with no way to the next level (#306).
+    // A bar under the board offers the result again and the round's main action.
+    function showAfterBar(o) {
+      if (afterBar) afterBar.remove();
+      var go = o.onAgain ? { label: o.againLabel || Chogan.t('again'), fn: o.onAgain } :
+        (standalone ? null : { label: Chogan.t('menu'), fn: function () { Chogan.back(); } });
+      afterBar = el('div', { class: 'ch-afterbar' }, [
+        el('button', { class: 'ch-btn', type: 'button', onclick: function () {
+          Chogan.feedback('tap');
+          if (afterBar) { afterBar.remove(); afterBar = null; }
+          if (reopenResult) reopenResult();
+        } }, [Chogan.icon('trophy', 18), el('span', { text: Chogan.t('result') })]),
+        go ? el('button', { class: 'ch-btn ch-btn--primary', type: 'button', onclick: function () {
+          Chogan.feedback('tap');
+          hideResultBtn();
+          go.fn();
+        } }, go.label) : null
+      ]);
+      document.body.appendChild(afterBar);
+    }
 
     function starsRow(n) {
       var row = el('div', { class: 'ch-row ch-center', style: { 'justify-content': 'center', gap: '6px', margin: '4px 0 14px' } });

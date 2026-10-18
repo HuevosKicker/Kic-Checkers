@@ -798,7 +798,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BreakoutEn
     }
 
     var nextIdx = (won && !last && !snap.daily) ? lvl + 1 : null;
-    var res = ctx.finish({
+    ctx.finish({
       won: won,
       title: won ? ((last && !snap.daily) ? C.t('allClear') : C.t('levelClear')) : C.t('outOfBalls'),
       stars: won ? st : null,
@@ -812,14 +812,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BreakoutEn
       shareText: 'چوگان · آجرشکن' + (snap.daily ? (' · روزانه ' + snap.daily) : '') +
         '\nمرحله‌ی ' + C.num(lvl + 1) + ' · ' + (won ? 'تمام شد' : 'نیمه‌کاره') + ' · امتیاز ' + C.num(snap.score),
       paint: cardPaint(),
+      // after a win the primary button opens the next level, so it says so
+      againLabel: nextIdx !== null ? C.t('nextLevel') : null,
       onAgain: function () { start(nextIdx !== null ? nextIdx : lvl, snap.daily); }
     });
-    // هسته برای دکمه‌ی اصلی همیشه «دوباره» می‌نویسد؛ بعد از برد همین دکمه
-    // مرحله‌ی بعد را باز می‌کند و برچسبش باید همان را بگوید.
-    if (nextIdx !== null && res && res.box) {
-      var pb = res.box.querySelector('.ch-modal__actions .ch-btn--primary');
-      if (pb) pb.textContent = C.t('nextLevel');
-    }
   }
 
   /* ---------------------------------------------------------- ذخیره */
