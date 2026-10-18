@@ -361,6 +361,23 @@ a  { color: var(--c-accent); text-decoration: none; }
 .ch-game__pin--on { color: var(--game, var(--c-accent)); background-color: var(--game-soft, var(--c-surface-2)); opacity: 1; }
 .ch-game__pin--on svg { fill: currentColor; fill-opacity: .35; }
 .ch-games:not(.ch-games--grid) .ch-game { padding-inline-end: 44px; }
+/* Profile game list (#292): one list instead of "Per game" plus a second list
+   under "Erase data". It scrolls inside the card so the page stays short; the
+   height cuts a row in half, which shows that there is more to scroll. */
+.ch-pergame { max-height: 330px; overflow-y: auto; overscroll-behavior: contain; padding-block: 0; }
+.ch-pergame__row {
+  width: 100%; border: 0; background: none; font: inherit; color: inherit; text-align: start;
+  cursor: pointer; touch-action: manipulation;
+}
+.ch-pergame__row:hover, .ch-pergame__row:focus-visible { background: var(--c-surface-2); }
+.ch-pergame__icon { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 9px; overflow: hidden; }
+.ch-sheet__head { align-items: center; margin-bottom: var(--s-3); }
+.ch-sheet__head .ch-game__icon { width: 56px; height: 56px; flex: 0 0 56px; }
+.ch-sheet__head p { margin: 0; }
+.ch-sheet__stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); margin-bottom: var(--s-3); }
+.ch-sheet__stats .ch-stat b { font-size: var(--fs-md); overflow-wrap: anywhere; }
+.ch-sheet__erase { border-top: 1px solid var(--c-line); padding-top: var(--s-3); margin-bottom: var(--s-2); }
+.ch-sheet__erase p { margin: 0 0 var(--s-2); }
 /* Recently played: up to three compact chips in one row */
 .ch-recent { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); }
 .ch-recent__item {

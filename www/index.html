@@ -54,7 +54,8 @@
       youTitle: 'خودت را معرفی کن', youSub: 'اسم اختیاری است و از این دستگاه بیرون نمی‌رود.',
       yourName: 'اسمت', pickChar: 'یک شخصیت انتخاب کن', charFree: 'بقیه را بعداً با سکه باز می‌کنی.',
       prefsTitle: 'دلخواه خودت تنظیمش کن', prefsSub: 'هر کدام از این‌ها را بعداً هم می‌توانی از تنظیمات عوض کنی.',
-      showWelcome: 'دیدن دوباره‌ی خوشامدگویی', showBtn: 'نمایش'
+      showWelcome: 'دیدن دوباره‌ی خوشامدگویی', showBtn: 'نمایش',
+      howToPlay: 'آموزش بازی', eraseGame: 'پاک کردن داده‌ی این بازی', eraseWhat: 'پیشرفت، بازی ذخیره‌شده، بهترین رکوردها، شمار بازی‌ها و تنظیمات این بازی پاک می‌شود. سکه‌ها، دستاوردها و لیگ سر جایشان می‌مانند.'
     },
     en: {
       slogan: 'Small games you can actually finish',
@@ -79,7 +80,8 @@
       youTitle: 'Tell us about you', youSub: 'The name is optional and never leaves this device.',
       yourName: 'Your name', pickChar: 'Pick a character', charFree: 'You can unlock the rest later with coins.',
       prefsTitle: 'Set it up how you like', prefsSub: 'You can change any of this later in Settings.',
-      showWelcome: 'Show the welcome again', showBtn: 'Show'
+      showWelcome: 'Show the welcome again', showBtn: 'Show',
+      howToPlay: 'How to play', eraseGame: 'Erase this game\'s data', eraseWhat: 'This erases the game\'s progress, saved game, best scores, play count and settings. Your coins, achievements and league stay.'
     },
     zh: {
       slogan: '小而能玩完的游戏，不打扰你',
@@ -104,7 +106,8 @@
       youTitle: '介绍一下你自己', youSub: '名字是可选的，而且不会离开这台设备。',
       yourName: '你的名字', pickChar: '选一个角色', charFree: '其余的以后可以用金币解锁。',
       prefsTitle: '按你的喜好设置', prefsSub: '这些以后都可以在设置里修改。',
-      showWelcome: '再看一次欢迎页', showBtn: '查看'
+      showWelcome: '再看一次欢迎页', showBtn: '查看',
+      howToPlay: '玩法说明', eraseGame: '清除这个游戏的数据', eraseWhat: '将清除这个游戏的进度、存档、最佳纪录、游玩次数和设置。金币、成就和联赛不受影响。'
     },
     de: {
       slogan: 'Kleine Spiele, die du wirklich zu Ende spielst',
@@ -129,7 +132,8 @@
       youTitle: 'Erzähl uns von dir', youSub: 'Der Name ist freiwillig und verlässt nie dieses Gerät.',
       yourName: 'Dein Name', pickChar: 'Wähl eine Figur', charFree: 'Den Rest kannst du später mit Münzen freischalten.',
       prefsTitle: 'Stell es dir ein, wie du magst', prefsSub: 'Das alles kannst du später in den Einstellungen ändern.',
-      showWelcome: 'Begrüßung nochmal zeigen', showBtn: 'Zeigen'
+      showWelcome: 'Begrüßung nochmal zeigen', showBtn: 'Zeigen',
+      howToPlay: 'So wird gespielt', eraseGame: 'Daten dieses Spiels löschen', eraseWhat: 'Gelöscht werden Fortschritt, gespeichertes Spiel, Bestwerte, Spielanzahl und Einstellungen dieses Spiels. Münzen, Erfolge und Liga bleiben erhalten.'
     },
     es: {
       slogan: 'Juegos pequeños que de verdad puedes terminar',
@@ -154,7 +158,8 @@
       youTitle: 'Cuéntanos de ti', youSub: 'El nombre es opcional y nunca sale de este dispositivo.',
       yourName: 'Tu nombre', pickChar: 'Elige un personaje', charFree: 'El resto lo puedes desbloquear luego con monedas.',
       prefsTitle: 'Ajústalo a tu gusto', prefsSub: 'Puedes cambiar todo esto luego en Ajustes.',
-      showWelcome: 'Ver la bienvenida otra vez', showBtn: 'Ver'
+      showWelcome: 'Ver la bienvenida otra vez', showBtn: 'Ver',
+      howToPlay: 'Cómo se juega', eraseGame: 'Borrar los datos de este juego', eraseWhat: 'Se borran el progreso, la partida guardada, los mejores récords, el número de partidas y los ajustes de este juego. Tus monedas, logros y liga se quedan.'
     }
   });
 
@@ -765,46 +770,31 @@
       ])
     ]));
 
-    var per = el('div', { class: 'ch-card' });
+    // One list of games, not two (#292): "Per game" and "Erase data" each listed all
+    // 28 games. The list scrolls inside a box of limited height, and a tap opens the
+    // game's sheet with its stats, its tutorial and its own erase button.
+    var per = el('div', { class: 'ch-card ch-pergame' });
     GAMES.forEach(function (g) {
       var s = st.byGame[g.id];
-      per.appendChild(el('div', { class: 'ch-item' }, [
-        el('div', { style: { width: '30px', height: '30px', 'border-radius': '9px', overflow: 'hidden', flex: '0 0 30px' } },
-          [el('img', { src: g.icon, alt: '', width: 30, height: 30 })]),
+      per.appendChild(el('button', {
+        class: 'ch-item ch-pergame__row', type: 'button', 'aria-haspopup': 'dialog',
+        onclick: function () { C.feedback('tap'); gameSheet(g); }
+      }, [
+        el('div', { class: 'ch-pergame__icon' }, [el('img', { src: g.icon, alt: '', width: 30, height: 30 })]),
         el('div', { class: 'ch-item__label' }, [
           el('div', { text: gname(g) }),
           el('div', { class: 'ch-item__hint', text: s ? C.t('playedTimes', { n: C.num(s.plays) }) : C.t('noneYet') })
         ]),
-        el('span', { class: 'ch-badge', text: bestLine(g) || '—' })
+        el('span', { class: 'ch-badge', text: bestLine(g) || '—' }),
+        C.icon(C.isRtl() ? 'back' : 'forward', 18, 'ch-faint')
       ]));
     });
     // Settings before the long per-game list, for the same reason (#253)
     page.appendChild(el('div', { class: 'ch-section' }, [sectionHead(C.t('settings')), settingsCard()]));
     page.appendChild(el('div', { class: 'ch-section' }, [sectionHead(C.t('perGame')), per]));
 
-    // پاک کردن داده
+    // پاک کردن داده — one game at a time is in its sheet now (#292)
     var danger = el('div', { class: 'ch-card' });
-    GAMES.forEach(function (g) {
-      danger.appendChild(el('div', { class: 'ch-item' }, [
-        el('div', { class: 'ch-item__label', text: gname(g) }),
-        el('button', {
-          class: 'ch-btn ch-btn--danger ch-btn--sm', type: 'button', text: C.t('resetGame'),
-          onclick: function () {
-            C.ui.confirm({
-              title: C.t('resetAsk'), body: gname(g) + ' — ' + C.t('resetWarn'), danger: true,
-              onOk: function () {
-                C.storage(g.id).wipe();
-                var s2 = C.stats.get();
-                delete s2.byGame[g.id];
-                C.store.set('stats', s2);
-                C.ui.toast({ icon: 'check', title: C.t('resetDone') });
-                render();
-              }
-            });
-          }
-        })
-      ]));
-    });
     danger.appendChild(el('div', { class: 'ch-item' }, [
       el('div', { class: 'ch-item__label', text: C.t('wipeAll') }),
       el('button', {
@@ -873,6 +863,59 @@
       ])
     ]));
     return page;
+  }
+
+  // A game's sheet from the profile list (#292): what it is, how far you got, how to
+  // play it, and erasing it with a plain list of what goes and what stays.
+  function gameSheet(g) {
+    var s = C.stats.get().byGame[g.id];
+    // bestLine() starts with "Best" for most games; the tile carries that as its label,
+    // otherwise it read «بهترین ۵:۱۲ / بهترین».
+    var bl = bestLine(g), bp = C.t('best') + ' ';
+    var top = bl && bl.indexOf(bp) === 0 ? { v: bl.slice(bp.length), l: C.t('best') } : { v: C.num(s ? s.wins : 0), l: C.t('wins') };
+    var rows = el('div', { class: 'ch-sheet__stats' }, [
+      el('div', { class: 'ch-stat' }, [el('b', { text: C.num(s ? s.plays : 0) }), el('span', { text: C.t('totalPlays') })]),
+      el('div', { class: 'ch-stat' }, [el('b', { text: C.duration(s ? s.timeMs : 0) }), el('span', { text: C.t('playTime') })]),
+      el('div', { class: 'ch-stat' }, [el('b', { text: top.v }), el('span', { text: top.l })])
+    ]);
+    var m;
+    var erase = el('div', { class: 'ch-sheet__erase' }, [
+      el('p', { class: 'ch-xs ch-dim', text: C.t('eraseWhat') }),
+      el('button', {
+        class: 'ch-btn ch-btn--danger ch-btn--sm', type: 'button', text: C.t('eraseGame'),
+        onclick: function () {
+          C.ui.confirm({
+            title: C.t('resetAsk'), body: gname(g) + ' — ' + C.t('resetWarn'), danger: true,
+            onOk: function () {
+              C.storage(g.id).wipe();
+              var s2 = C.stats.get();
+              delete s2.byGame[g.id];
+              C.store.set('stats', s2);
+              if (m) m.close();
+              C.ui.toast({ icon: 'check', title: C.t('resetDone') });
+              render(true);
+            }
+          });
+        }
+      })
+    ]);
+    m = C.ui.modal({
+      title: gname(g), closeButton: true,
+      body: [
+        el('div', { class: 'ch-row ch-sheet__head', style: { '--game': g.color, '--game-soft': g.soft } }, [
+          el('div', { class: 'ch-game__icon' }, [el('img', { src: g.icon, alt: '', width: 56, height: 56 })]),
+          el('p', { class: 'ch-dim', text: gsum(g) })
+        ]),
+        rows,
+        erase
+      ],
+      actions: [
+        // Every game shows its tutorial while tutSeen is unset, so clearing it opens the
+        // game on its tutorial, as on a first visit, with no flag in the address
+        { label: C.t('howToPlay'), onClick: function () { C.storage(g.id).remove('tutSeen'); goGame(g); } },
+        { label: C.t('play'), kind: 'primary', onClick: function () { goGame(g); } }
+      ]
+    });
   }
 
   function unlockShop() {
