@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3427;
+const MIN_CHECKS = 3429;
 
 function ok(cond, msg) {
   checks++;
@@ -2771,6 +2771,10 @@ function testFiles() {
   const noLabel = catLabels.filter((k) => (menu.match(new RegExp('\\b' + k + ": '[^']+'", 'g')) || []).length !== LOCALE_CODES.length);
   ok(noLabel.length === 0, 'each category has a label in every language' + (noLabel.length ? ' (' + noLabel.join(',') + ')' : ''));
   ok(/GAMES\.filter\(function \(g\) \{ return g\.cat === c; \}\)/.test(menu) && /settings\.gameCat/.test(menu), 'the menu groups the games by cat and remembers the chosen category');
+  // A full render() scrolls to the top, so a chip or a pin tap must not jump the page (#285)
+  const chipFn = (menu.match(/C\.ui\.segmented\(\['all'\][\s\S]*?function \(v\) \{([\s\S]*?)\n    \}\);/) || [])[1] || '';
+  ok(/drawGames\(\)/.test(chipFn) && !/render\(/.test(chipFn), 'a category chip redraws only the games, not the whole page');
+  ok(/C\.pins\.toggle\(g\.id\);[\s\S]{0,80}render\(true\)/.test(menu) && /window\.scrollTo\(0, keep \? y : 0\)/.test(menu), 'a pin tap keeps the scroll position');
 
   const tpl = fs.readFileSync(path.join(ROOT, 'template/game/index.html'), 'utf8');
   ok(/ENGINE START/.test(tpl) && /ENGINE END/.test(tpl), 'قالب نشانه‌ی موتور را دارد');

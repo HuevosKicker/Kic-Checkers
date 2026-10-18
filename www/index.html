@@ -344,7 +344,7 @@
           e.stopPropagation();
           C.pins.toggle(g.id);
           C.feedback('select');
-          render();
+          render(true);
         } }, [C.icon('pin', 18)]);
       return el('div', {
         class: 'ch-card ch-game ch-tap ch-enter ch-kbnav', tabindex: '0', role: 'link', 'aria-label': gname(g),
@@ -387,30 +387,39 @@
 
     // One long list stopped working at 27 games (#283): chips pick a category, and
     // All shows every category under its own heading. The choice is remembered.
+    // A chip redraws only the games under it: a full render() scrolled the page back to the
+    // top, so the chips left the screen after every tap (#285).
     var cat = CATS.indexOf(C.state.settings.gameCat) >= 0 ? C.state.settings.gameCat : 'all';
+    var box = el('div', { class: 'ch-cats__games' });
     var chips = C.ui.segmented(['all'].concat(CATS).map(function (c) { return { value: c, label: C.t(catKey(c)) }; }), cat, function (v) {
+      cat = v;
       C.state.settings.gameCat = v;
       C.store.set('settings', C.state.settings);
-      render();
+      drawGames();
     });
     chips.classList.add('ch-seg--wrap', 'ch-cats');
-    sec.appendChild(chips);
-    var shown = cat === 'all' ? CATS : [cat];
-    shown.forEach(function (c) {
-      var list = GAMES.filter(function (g) { return g.cat === c; });
-      if (!list.length) return;
-      var grid = el('div', { class: gridCls });
-      list.forEach(function (g, i) { grid.appendChild(gameCard(g, i)); });
-      if (cat === 'all') sec.appendChild(el('h3', { class: 'ch-cat__head', text: C.t(catKey(c)) }));
-      sec.appendChild(grid);
-    });
-    // a game with no known category is still listed, never lost
-    var loose = GAMES.filter(function (g) { return CATS.indexOf(g.cat) < 0; });
-    if (loose.length && cat === 'all') {
-      var lgrid = el('div', { class: gridCls });
-      loose.forEach(function (g, i) { lgrid.appendChild(gameCard(g, i)); });
-      sec.appendChild(lgrid);
+    function drawGames() {
+      box.innerHTML = '';
+      var shown = cat === 'all' ? CATS : [cat];
+      shown.forEach(function (c) {
+        var list = GAMES.filter(function (g) { return g.cat === c; });
+        if (!list.length) return;
+        var grid = el('div', { class: gridCls });
+        list.forEach(function (g, i) { grid.appendChild(gameCard(g, i)); });
+        if (cat === 'all') box.appendChild(el('h3', { class: 'ch-cat__head', text: C.t(catKey(c)) }));
+        box.appendChild(grid);
+      });
+      // a game with no known category is still listed, never lost
+      var loose = GAMES.filter(function (g) { return CATS.indexOf(g.cat) < 0; });
+      if (loose.length && cat === 'all') {
+        var lgrid = el('div', { class: gridCls });
+        loose.forEach(function (g, i) { lgrid.appendChild(gameCard(g, i)); });
+        box.appendChild(lgrid);
+      }
     }
+    drawGames();
+    sec.appendChild(chips);
+    sec.appendChild(box);
     page.appendChild(sec);
 
     page.appendChild(el('div', { class: 'ch-center', style: { opacity: '.5', 'margin-top': 'var(--s-6)' } },
@@ -1173,13 +1182,15 @@
     });
   }
 
-  function render() {
+  // keep: stay where the user is (a pin tap, #285); a new tab starts at the top
+  function render(keep) {
     var t = TABS.filter(function (x) { return x.id === tab; })[0] || TABS[0];
+    var y = window.scrollY;
     app.innerHTML = '';
     app.appendChild(t.view());
     drawNav();
     C.ui.refreshCoins();
-    window.scrollTo(0, 0);
+    window.scrollTo(0, keep ? y : 0);
   }
 
   // The game cards were plain divs, so a keyboard could not reach them at all,
