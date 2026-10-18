@@ -2,6 +2,7 @@
   "games": [
     {
       "id": "tower-defence",
+      "cat": "skill",
       "name": {
         "fa": "دفاع از برج",
         "en": "Tower Defence",
@@ -25,6 +26,7 @@
     },
     {
       "id": "sudoku",
+      "cat": "puzzle",
       "name": {
         "fa": "سودوکو",
         "en": "Sudoku",
@@ -48,6 +50,7 @@
     },
     {
       "id": "minesweeper",
+      "cat": "puzzle",
       "name": {
         "fa": "مین‌روب",
         "en": "Minesweeper",
@@ -71,6 +74,7 @@
     },
     {
       "id": "dots",
+      "cat": "board",
       "name": {
         "fa": "نقطه‌بازی",
         "en": "Dots and Boxes",
@@ -94,6 +98,7 @@
     },
     {
       "id": "nonogram",
+      "cat": "puzzle",
       "name": {
         "fa": "نونوگرام",
         "en": "Nonogram",
@@ -117,6 +122,7 @@
     },
     {
       "id": "mancala",
+      "cat": "board",
       "name": {
         "fa": "منقله",
         "en": "Mancala",
@@ -140,6 +146,7 @@
     },
     {
       "id": "freecell",
+      "cat": "cards",
       "name": {
         "fa": "فری‌سل",
         "en": "FreeCell",
@@ -163,6 +170,7 @@
     },
     {
       "id": "peg",
+      "cat": "puzzle",
       "name": {
         "fa": "میخ‌پران",
         "en": "Peg Solitaire",
@@ -186,6 +194,7 @@
     },
     {
       "id": "reversi",
+      "cat": "board",
       "name": {
         "fa": "ریورسی",
         "en": "Reversi",
@@ -209,6 +218,7 @@
     },
     {
       "id": "backgammon",
+      "cat": "board",
       "name": {
         "fa": "تخته‌نرد",
         "en": "Backgammon",
@@ -232,6 +242,7 @@
     },
     {
       "id": "morris",
+      "cat": "board",
       "name": {
         "fa": "دوز",
         "en": "Nine Men's Morris",
@@ -255,6 +266,7 @@
     },
     {
       "id": "battleship",
+      "cat": "board",
       "name": {
         "fa": "نبرد دریایی",
         "en": "Battleship",
@@ -278,6 +290,7 @@
     },
     {
       "id": "bridges",
+      "cat": "puzzle",
       "name": {
         "fa": "پل‌ها",
         "en": "Bridges",
@@ -301,6 +314,7 @@
     },
     {
       "id": "mastermind",
+      "cat": "puzzle",
       "name": {
         "fa": "رمزشکن",
         "en": "Code Breaker",
@@ -324,6 +338,7 @@
     },
     {
       "id": "breakout",
+      "cat": "skill",
       "name": {
         "fa": "آجرشکن",
         "en": "Breakout",
@@ -347,6 +362,7 @@
     },
     {
       "id": "pasur",
+      "cat": "cards",
       "name": {
         "fa": "پاسور",
         "en": "Pasur",
@@ -370,6 +386,7 @@
     },
     {
       "id": "mahjong",
+      "cat": "puzzle",
       "name": {
         "fa": "ماهجونگ",
         "en": "Mahjong Solitaire",
@@ -393,6 +410,7 @@
     },
     {
       "id": "chess",
+      "cat": "board",
       "name": {
         "fa": "شطرنج",
         "en": "Chess",
@@ -416,6 +434,7 @@
     },
     {
       "id": "hokm",
+      "cat": "cards",
       "name": {
         "fa": "حکم",
         "en": "Hokm",
@@ -439,6 +458,7 @@
     },
     {
       "id": "blockdrop",
+      "cat": "skill",
       "name": {
         "fa": "بلوک‌ریز",
         "en": "Block Drop",
@@ -462,6 +482,7 @@
     },
     {
       "id": "gomoku",
+      "cat": "board",
       "name": {
         "fa": "گوموکو",
         "en": "Gomoku",
@@ -485,6 +506,7 @@
     },
     {
       "id": "go",
+      "cat": "board",
       "name": {
         "fa": "گو",
         "en": "Go",
@@ -508,6 +530,7 @@
     },
     {
       "id": "wayout",
+      "cat": "puzzle",
       "name": {
         "fa": "راه دررو",
         "en": "Way Out",
@@ -531,6 +554,7 @@
     },
     {
       "id": "blackjack",
+      "cat": "cards",
       "name": {
         "fa": "بیست‌ویک",
         "en": "Blackjack",
@@ -554,6 +578,7 @@
     },
     {
       "id": "eightball",
+      "cat": "skill",
       "name": {
         "fa": "بیلیارد",
         "en": "8-Ball Pool",
@@ -577,6 +602,7 @@
     },
     {
       "id": "snooker",
+      "cat": "skill",
       "name": {
         "fa": "اسنوکر",
         "en": "Snooker",
@@ -600,6 +626,7 @@
     },
     {
       "id": "gridlock",
+      "cat": "puzzle",
       "name": {
         "fa": "راه‌بندان",
         "en": "Gridlock",

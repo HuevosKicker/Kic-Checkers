@@ -41,6 +41,7 @@
       statsTitle: 'آمار تو', perGame: 'به تفکیک بازی',
       dangerZone: 'پاک کردن داده', wipeAll: 'پاک کردن همه‌چیز',
       wipeAllAsk: 'همه‌ی داده‌های اپ پاک شود؟ سکه‌ها، دستاوردها، لیگ و پیشرفت همه‌ی بازی‌ها.',
+      catAll: 'همه', catPuzzle: 'پازل', catBoard: 'تخته‌ای', catCards: 'کارتی', catSkill: 'مهارتی',
       installed: 'نصب‌شده روی دستگاه', playedTimes: '{n} بار بازی کردی', pinned: 'سنجاق‌شده', recent: 'اخیراً بازی کردی', pin: 'سنجاق کن', unpin: 'برداشتن سنجاق',
       noneYet: 'هنوز چیزی نیست', dailyOf: 'چالش‌های {d}',
       noGames: 'هنوز بازی‌ای اضافه نشده', noGamesSub: 'به‌زودی', loadFailed: 'فهرست بازی‌ها بار نشد',
@@ -65,6 +66,7 @@
       statsTitle: 'Your stats', perGame: 'Per game',
       dangerZone: 'Erase data', wipeAll: 'Erase everything',
       wipeAllAsk: 'Erase all app data? Coins, awards, league and every game.',
+      catAll: 'All', catPuzzle: 'Puzzle', catBoard: 'Board', catCards: 'Cards', catSkill: 'Skill',
       installed: 'Installed on device', playedTimes: 'played {n} times', pinned: 'Pinned', recent: 'Recently played', pin: 'Pin', unpin: 'Unpin',
       noneYet: 'Nothing yet', dailyOf: 'Challenges of {d}',
       noGames: 'No games yet', noGamesSub: 'Coming soon', loadFailed: 'Could not load the game list',
@@ -89,6 +91,7 @@
       statsTitle: '你的数据', perGame: '按游戏',
       dangerZone: '清除数据', wipeAll: '清除全部',
       wipeAllAsk: '清除应用的全部数据？金币、成就、联赛和所有游戏进度。',
+      catAll: '全部', catPuzzle: '益智', catBoard: '棋类', catCards: '纸牌', catSkill: '技巧',
       installed: '已安装到设备', playedTimes: '玩过 {n} 次', pinned: '已置顶', recent: '最近玩过', pin: '置顶', unpin: '取消置顶',
       noneYet: '还没有内容', dailyOf: '{d} 的挑战',
       noGames: '还没有游戏', noGamesSub: '敬请期待', loadFailed: '游戏列表加载失败',
@@ -113,6 +116,7 @@
       statsTitle: 'Deine Statistik', perGame: 'Pro Spiel',
       dangerZone: 'Daten löschen', wipeAll: 'Alles löschen',
       wipeAllAsk: 'Alle App-Daten löschen? Münzen, Erfolge, Liga und jedes Spiel.',
+      catAll: 'Alle', catPuzzle: 'Rätsel', catBoard: 'Brett', catCards: 'Karten', catSkill: 'Geschick',
       installed: 'Auf dem Gerät installiert', playedTimes: '{n}-mal gespielt', pinned: 'Angeheftet', recent: 'Zuletzt gespielt', pin: 'Anheften', unpin: 'Lösen',
       noneYet: 'Noch nichts', dailyOf: 'Rätsel vom {d}',
       noGames: 'Noch keine Spiele', noGamesSub: 'Kommt bald', loadFailed: 'Spieleliste konnte nicht geladen werden',
@@ -137,6 +141,7 @@
       statsTitle: 'Tus estadísticas', perGame: 'Por juego',
       dangerZone: 'Borrar datos', wipeAll: 'Borrar todo',
       wipeAllAsk: '¿Borrar todos los datos de la app? Monedas, logros, liga y todos los juegos.',
+      catAll: 'Todos', catPuzzle: 'Puzles', catBoard: 'Tablero', catCards: 'Cartas', catSkill: 'Habilidad',
       installed: 'Instalada en el dispositivo', playedTimes: 'jugado {n} veces', pinned: 'Fijados', recent: 'Jugados hace poco', pin: 'Fijar', unpin: 'Soltar',
       noneYet: 'Aún nada', dailyOf: 'Retos del {d}',
       noGames: 'Aún no hay juegos', noGamesSub: 'Muy pronto', loadFailed: 'No se pudo cargar la lista de juegos',
@@ -242,6 +247,10 @@
       el('b', { 'data-coin-view': '1', text: C.num(C.coins.get()) })
     ]);
   }
+
+  // The menu's game categories, in display order; every game in games.json names one as cat (#283)
+  var CATS = ['puzzle', 'board', 'cards', 'skill'];
+  function catKey(c) { return 'cat' + c.charAt(0).toUpperCase() + c.slice(1); }
 
   function sectionHead(title, extra) {
     return el('div', { class: 'ch-section__head' }, [el('h2', { text: title }), extra || null]);
@@ -376,9 +385,32 @@
       page.appendChild(el('div', { class: 'ch-section ch-section--recent' }, [sectionHead(C.t('recent')), row]));
     }
 
-    var grid = el('div', { class: gridCls });
-    GAMES.forEach(function (g, i) { grid.appendChild(gameCard(g, i)); });
-    sec.appendChild(grid);
+    // One long list stopped working at 27 games (#283): chips pick a category, and
+    // All shows every category under its own heading. The choice is remembered.
+    var cat = CATS.indexOf(C.state.settings.gameCat) >= 0 ? C.state.settings.gameCat : 'all';
+    var chips = C.ui.segmented(['all'].concat(CATS).map(function (c) { return { value: c, label: C.t(catKey(c)) }; }), cat, function (v) {
+      C.state.settings.gameCat = v;
+      C.store.set('settings', C.state.settings);
+      render();
+    });
+    chips.classList.add('ch-seg--wrap', 'ch-cats');
+    sec.appendChild(chips);
+    var shown = cat === 'all' ? CATS : [cat];
+    shown.forEach(function (c) {
+      var list = GAMES.filter(function (g) { return g.cat === c; });
+      if (!list.length) return;
+      var grid = el('div', { class: gridCls });
+      list.forEach(function (g, i) { grid.appendChild(gameCard(g, i)); });
+      if (cat === 'all') sec.appendChild(el('h3', { class: 'ch-cat__head', text: C.t(catKey(c)) }));
+      sec.appendChild(grid);
+    });
+    // a game with no known category is still listed, never lost
+    var loose = GAMES.filter(function (g) { return CATS.indexOf(g.cat) < 0; });
+    if (loose.length && cat === 'all') {
+      var lgrid = el('div', { class: gridCls });
+      loose.forEach(function (g, i) { lgrid.appendChild(gameCard(g, i)); });
+      sec.appendChild(lgrid);
+    }
     page.appendChild(sec);
 
     page.appendChild(el('div', { class: 'ch-center', style: { opacity: '.5', 'margin-top': 'var(--s-6)' } },

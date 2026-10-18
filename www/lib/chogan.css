@@ -247,6 +247,14 @@ a  { color: var(--c-accent); text-decoration: none; }
   margin-bottom: var(--s-3);
 }
 .ch-section__head h2 { font-size: var(--fs-lg); }
+/* Category chips over the menu's games, and the heading of each category in All (#283) */
+.ch-cats { margin-bottom: var(--s-4); }
+/* five chips: with the default padding the Spanish row broke onto a second line at 390px and
+   360px. Two classes, so it wins over .ch-seg button further down. */
+.ch-seg.ch-cats button { padding-inline: 10px; }
+@media (max-width: 360px) { .ch-seg.ch-cats button { padding-inline: 7px; } }
+.ch-cat__head { font-size: var(--fs-md); color: var(--c-text-dim); margin: var(--s-5) 0 var(--s-3); }
+.ch-cats + .ch-cat__head { margin-top: 0; }
 
 /* ------------------------------------------------------- playing cards */
 /* Shared by the card games (#178). --pw is the card's width; a game sets it, or

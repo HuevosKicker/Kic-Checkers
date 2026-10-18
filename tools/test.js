@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3412;
+const MIN_CHECKS = 3427;
 
 function ok(cond, msg) {
   checks++;
@@ -2759,6 +2759,19 @@ function testFiles() {
     ok(html.indexOf('../../lib/chogan.js') > 0, g.id + ': به هسته وصل است');
     ok(!/https?:\/\/(?!www\.w3\.org)/.test(html.replace(/github\.com\/choganhq/g, '')), g.id + ': هیچ منبع بیرونی بار نمی‌کند');
   }
+  // Every game sits in one of the menu's categories, or it would only show under All (#283)
+  const menu = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
+  const catsM = menu.match(/var CATS = \[([^\]]*)\]/);
+  const cats = catsM ? catsM[1].split(',').map((x) => x.trim().replace(/'/g, '')) : [];
+  ok(cats.length >= 2, 'the menu lists its game categories (' + cats.join(',') + ')');
+  const offCat = games.filter((g) => cats.indexOf(g.cat) < 0).map((g) => g.id);
+  ok(games.length > 0 && offCat.length === 0, 'every game in games.json has a menu category' + (offCat.length ? ' (missing: ' + offCat.join(',') + ')' : ''));
+  ok(cats.every((c) => games.some((g) => g.cat === c)), 'no category is empty');
+  const catLabels = ['all'].concat(cats).map((c) => 'cat' + c.charAt(0).toUpperCase() + c.slice(1));
+  const noLabel = catLabels.filter((k) => (menu.match(new RegExp('\\b' + k + ": '[^']+'", 'g')) || []).length !== LOCALE_CODES.length);
+  ok(noLabel.length === 0, 'each category has a label in every language' + (noLabel.length ? ' (' + noLabel.join(',') + ')' : ''));
+  ok(/GAMES\.filter\(function \(g\) \{ return g\.cat === c; \}\)/.test(menu) && /settings\.gameCat/.test(menu), 'the menu groups the games by cat and remembers the chosen category');
+
   const tpl = fs.readFileSync(path.join(ROOT, 'template/game/index.html'), 'utf8');
   ok(/ENGINE START/.test(tpl) && /ENGINE END/.test(tpl), 'قالب نشانه‌ی موتور را دارد');
   ok(tpl.indexOf('../../lib/chogan.js') > 0, 'قالب به هسته وصل است');
