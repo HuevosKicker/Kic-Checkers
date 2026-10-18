@@ -574,6 +574,29 @@
       "soft": "#D8EEEA",
       "added": "2026-10-18",
       "files": []
+    },
+    {
+      "id": "snooker",
+      "name": {
+        "fa": "اسنوکر",
+        "en": "Snooker",
+        "zh": "斯诺克",
+        "de": "Snooker",
+        "es": "Snooker"
+      },
+      "summary": {
+        "fa": "اسنوکر: یک سرخ، یک رنگی، و آخر رنگی‌ها به ترتیب؛ با ۶، ۱۰ یا ۱۵ سرخ، با ربات یا دو نفره.",
+        "en": "A red, a colour, then the colours in order: snooker with 6, 10 or 15 reds, against the AI or two players.",
+        "zh": "一个红球、一个彩球，最后按顺序打彩球：6、10 或 15 个红球的斯诺克，对战电脑或双人对战。",
+        "de": "Eine Rote, eine Farbe, am Ende die Farben der Reihe nach: Snooker mit 6, 10 oder 15 Roten, gegen die KI oder zu zweit.",
+        "es": "Una roja, un color y al final los colores en orden: snooker con 6, 10 o 15 rojas, contra la IA o para dos."
+      },
+      "path": "games/snooker/index.html",
+      "icon": "games/snooker/icon.svg",
+      "color": "#A3263A",
+      "soft": "#F6E1E4",
+      "added": "2026-10-18",
+      "files": []
     }
   ]
 }
