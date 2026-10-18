@@ -1,0 +1,7 @@
+New games:
+- 8-Ball Pool: against the AI on three levels or two players on one phone, with a daily table
+- Snooker: 6, 10 or 15 reds, against the AI or a friend, with a daily table
+Improvements:
+- New language: Spanish
+- Mahjong: a matched pair flies to the middle and strikes with a flint spark
+- Profile links the news channel on Telegram, @chogan_games
