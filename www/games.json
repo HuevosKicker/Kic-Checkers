@@ -647,6 +647,30 @@
       "soft": "#E9F0E5",
       "added": "2026-10-18",
       "files": []
+    },
+    {
+      "id": "chain",
+      "cat": "board",
+      "name": {
+        "fa": "واکنش زنجیره‌ای",
+        "en": "Chain Reaction",
+        "zh": "连锁反应",
+        "de": "Kettenreaktion",
+        "es": "Reacción en cadena"
+      },
+      "summary": {
+        "fa": "گوی بگذار، خانه‌های پر را بترکان و رنگ حریف را از صفحه پاک کن؛ ۲ تا ۴ نفر روی یک گوشی یا با ربات.",
+        "en": "Add orbs, set off bursts and wipe the other colours off the board; 2 to 4 players on one phone or against bots.",
+        "zh": "放球、引爆满格，把对手的颜色清出棋盘；2到4人同机对战或对战电脑。",
+        "de": "Kugeln legen, Ketten zünden und die anderen Farben vom Brett fegen; 2 bis 4 Spieler an einem Handy oder gegen Bots.",
+        "es": "Añade orbes, provoca estallidos y borra los otros colores del tablero; de 2 a 4 en un móvil o contra bots."
+      },
+      "path": "games/chain/index.html",
+      "icon": "games/chain/icon.svg",
+      "color": "#AE3A92",
+      "soft": "#F6E4F0",
+      "added": "2026-10-18",
+      "files": []
     }
   ]
 }

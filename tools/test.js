@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3449;
+const MIN_CHECKS = 3513;
 
 function ok(cond, msg) {
   checks++;
@@ -4582,7 +4582,7 @@ function testGridlockLook() {
   const dist = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
   const near = games.filter((g) => g.id !== 'gridlock').map((g) => [g.id, dist(hue(g.color), hue(gl.color))]).sort((x, y) => x[1] - y[1])[0];
   ok(!!gl && near[1] >= 15, 'the hue is at least 15 degrees from every other game (nearest ' + near[0] + ', ' + near[1].toFixed(0) + ')');
-  ok(!!gl && new RegExp('<rect width="96" height="96" rx="22" fill="' + gl.soft + '"/>').test(icon) && games[games.length - 1].id === 'gridlock' && /^#[0-9A-F]{6}$/.test(gl.soft), 'the icon starts on the soft tint of games.json, and the game is last in the list');
+  ok(!!gl && new RegExp('<rect width="96" height="96" rx="22" fill="' + gl.soft + '"/>').test(icon) && games.findIndex((g) => g.id === 'gridlock') > games.findIndex((g) => g.id === 'snooker') && /^#[0-9A-F]{6}$/.test(gl.soft), 'the icon starts on the soft tint of games.json, and the game comes after the games added before it');
 
   // vehicles: one list, a sedan and a pickup; outline, glass, wheels and mirrors in one ink
   const parts = page.slice(page.indexOf('function parts(n, goal)'), page.indexOf('function artNode'));
@@ -5942,6 +5942,116 @@ function testPasurGone() {
 // Built from PR #215. Its bot did not block open threes and lost in five moves to
 // itself, so the engine is checked on the shapes that decide a game, and the levels
 // are checked against each other by playing whole games.
+/* ------------------------------------------------ Chain Reaction (#302) */
+function testChain() {
+  head('Chain Reaction');
+  const t0 = Date.now();
+  const E = loadEngine('chain', 'ChainEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/chain/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  ok(E.SIZES.map((z) => z.cols + 'x' + z.rows).join(',') === '5x7,6x9', 'boards of 5×7 and 6×9');
+  const nb = E.neighbours(6, 9), caps = nb.map((l) => l.length);
+  ok(caps[0] === 2 && caps[5] === 2 && caps[48] === 2 && caps[53] === 2 && caps[1] === 3 && caps[6] === 3 && caps[7] === 4,
+    'a cell bursts at 2 in a corner, 3 on an edge and 4 inside');
+  ok(caps.filter((c) => c === 2).length === 4 && caps.filter((c) => c === 3).length === 2 * (4 + 7) && caps.filter((c) => c === 4).length === 4 * 7,
+    'four corners, 22 edge cells and 28 inner cells on 6×9');
+
+  const at = (S, cells) => { for (const [i, p, n] of cells) { S.owner[i] = p; S.orbs[i] = n; } return S; };
+  let S = E.newGame(6, 9, 2);
+  ok(E.legal(S, 0) && E.legalMoves(S).length === 54, 'every cell is open on an empty board');
+  S = at(E.newGame(6, 9, 2), [[7, 2, 1]]);
+  ok(!E.legal(S, 7) && E.legal(S, 8), "a colour cannot add to the other colour's cell");
+
+  // A corner with one orb gets a second: it bursts into both neighbours
+  S = at(E.newGame(6, 9, 2), [[0, 1, 1], [20, 2, 1]]); S.moves = 2;
+  let r = E.play(S, 0);
+  ok(r.waves.length === 1 && r.state.orbs[0] === 0 && r.state.owner[0] === 0 && r.state.owner[1] === 1 && r.state.orbs[1] === 1 && r.state.owner[6] === 1 && r.state.orbs[6] === 1,
+    'a full corner empties and gives one orb to each neighbour');
+  ok(r.state.turn === 2 && !r.state.winner, 'the turn passes on');
+
+  // A burst into a full enemy cell takes it over and chains on
+  S = at(E.newGame(6, 9, 2), [[0, 1, 1], [1, 2, 2], [30, 2, 1]]); S.moves = 2;
+  r = E.play(S, 0);
+  ok(r.waves.length === 2 && r.waves[1].burst.join() === '1' && r.state.owner[2] === 1 && r.state.owner[7] === 1 && r.state.owner[6] === 1,
+    'a burst takes the full enemy edge cell next to it, which bursts in the next wave in the new colour');
+  const sum = (st) => st.orbs.reduce((a, b) => a + b, 0);
+  ok(sum(r.state) === sum(S) + 1, 'bursts move orbs, they never create or destroy them');
+
+  // Knock-out: only after every colour has had a first turn
+  S = at(E.newGame(6, 9, 2), [[0, 1, 1], [1, 2, 2]]); S.moves = 2;
+  r = E.play(S, 0);
+  ok(r.state.winner === 1 && r.state.out[2], 'taking the last enemy cell wins');
+  S = E.newGame(6, 9, 2);
+  r = E.play(S, 10);
+  ok(!r.state.winner && !r.state.out[2] && r.state.turn === 2, 'a colour that has not moved yet is not out');
+  S = at(E.newGame(6, 9, 3), [[0, 1, 1], [1, 2, 2], [40, 3, 1]]); S.moves = 3;
+  r = E.play(S, 0);
+  ok(r.state.out[2] && !r.state.winner && r.state.turn === 3, 'with three colours, a knocked-out colour is skipped and play goes on');
+
+  // A board one colour has filled to the brim stops bursting at once
+  S = E.newGame(5, 7, 2);
+  E.neighbours(5, 7).forEach((l, i) => { S.owner[i] = 1; S.orbs[i] = l.length - 1; });
+  S.owner[34] = 2; S.orbs[34] = 1; S.moves = 2;
+  r = E.play(S, 0);
+  ok(r.state.winner === 1 && r.waves.length < E.MAX_WAVES, 'a chain over a full board ends as soon as one colour owns everything (' + r.waves.length + ' waves)');
+
+  // Whole games: every move legal, orbs kept, the game always ends with one winner
+  let ended = 0, kept = true, legalAll = true, worst = 0, played = 0;
+  const lv = ['easy', 'medium', 'hard'];
+  for (let g = 0; g < 12; g++) {
+    const sz = E.SIZES[g % 2], n = 2 + (g % 3), rr = rng(900 + g);
+    let st = E.newGame(sz.cols, sz.rows, n), moves = 0;
+    while (!st.winner && moves < 1500) {
+      const q = Date.now(), m = E.think(st, lv[(g + st.turn) % 3], rr);
+      worst = Math.max(worst, Date.now() - q);
+      if (!E.legal(st, m)) { legalAll = false; break; }
+      const o = E.play(st, m);
+      if (!o.state.winner && sum(o.state) !== sum(st) + 1) kept = false;
+      st = o.state; moves++; played++;
+    }
+    if (st.winner && st.out.filter(Boolean).length === n - 1) ended++;
+  }
+  ok(legalAll, 'bots only make legal moves');
+  ok(kept, 'no orb is lost or made in ' + played + ' moves');
+  ok(ended === 12, 'every game of 2, 3 and 4 colours ends with one colour left (' + ended + ' of 12)');
+  ok(worst < 150, 'a bot move takes well under a frame budget (slowest ' + worst + 'ms)');
+
+  // Strength: medium beats easy, hard beats medium, each side moving first half the time
+  const duel = (a, b, seed) => {
+    const rr = rng(seed), first = seed % 2;
+    let st = E.newGame(6, 9, 2), k = 0;
+    while (!st.winner && k++ < 1500) st = E.play(st, E.think(st, (st.turn === 1) !== !!first ? a : b, rr)).state;
+    return (st.winner === 1) !== !!first;
+  };
+  let me = 0, hm = 0;
+  for (let i = 0; i < 10; i++) { if (duel('medium', 'easy', 300 + i)) me++; if (duel('hard', 'medium', 400 + i)) hm++; }
+  ok(me >= 7, 'medium beats easy in most games (' + me + ' of 10)');
+  ok(hm >= 6, 'hard beats medium in most games (' + hm + ' of 10)');
+
+  // Daily: the same board for everyone, mirrored so neither side starts ahead
+  const d1 = E.dailyStart(rng(42), 6, 9), d2 = E.dailyStart(rng(42), 6, 9);
+  ok(d1.owner.join() === d2.owner.join() && d1.owner.filter((o) => o === 1).length === 2 && d1.owner.filter((o) => o === 2).length === 2,
+    'the daily board comes from the seed, two orbs a side');
+  ok(d1.owner.every((o, i) => !o || d1.owner[53 - i] === 3 - o) && d1.moves === 2 && d1.turn === 1, 'the daily board is mirrored and you move first');
+
+  // Page wiring and identity
+  const gm = games.find((g) => g.id === 'chain');
+  ok(!!gm && gm.cat === 'board' && /accent: '([^']+)'/.test(html) && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent; the game is in the board category');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/chain/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const hue = (h) => { const [a, b, c] = rgb(h), mx = Math.max(a, b, c), d = mx - Math.min(a, b, c); if (!d) return 0; const x = mx === a ? ((b - c) / d) % 6 : mx === b ? (c - a) / d + 2 : (a - b) / d + 4; return (x * 60 + 360) % 360; };
+  const lum = (h) => rgb(h).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const dist = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
+  const near = games.filter((g) => g.id !== 'chain').map((g) => [g.id, dist(hue(g.color), hue(gm.color))]).sort((x, y) => x[1] - y[1])[0];
+  ok(near[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent is at least 15° of hue from every other game (nearest ' + near[0] + ', ' + near[1].toFixed(0) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['cr-win', 'cr-hard', 'cr-chain'].every((id) => core.indexOf("id: '" + id + "'") > 0 && html.indexOf("unlock('" + id + "')") > 0), 'the three Chain Reaction awards exist and are unlocked');
+  ok(/E\.dailyStart\(C\.daily\('chain', o\.daily\)\.rng/.test(html) && /C\.stats\.daily\('chain', G\.daily/.test(html), 'the daily game starts from the day\'s seed and is recorded');
+  ok(/ctx\.autosave\(/.test(html) && /ctx\.tutorialIfNew\(TUT\)/.test(html) && /C\.undoKey\(e\)/.test(html), 'the game autosaves, shows its tutorial once and takes the undo key');
+  ok(Date.now() - t0 < 8000, 'the Chain Reaction group runs in under eight seconds (' + (Date.now() - t0) + 'ms)');
+}
+
 function testGomoku() {
   head('Gomoku');
   const E = loadEngine('gomoku', 'GomokuEngineFactory');
@@ -6822,6 +6932,7 @@ testFreecell();
 testPeg();
 testReversi();
 testGomoku();
+testChain();
 testGo();
 testBackgammon();
 testMorris();

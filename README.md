@@ -41,6 +41,7 @@ Ways to play:
 | 8-Ball Pool | Eight-ball pool with real table physics: pot your group, then the 8, against three levels of AI or two players, and a daily clear-the-table challenge |
 | Snooker | Snooker on the same table physics: a red, then a colour, then the colours in order, with 6, 10 or 15 reds, against three levels of AI or two players, and a daily three-red clearance |
 | Gridlock | Slide the cars out of the way and drive yours out of the lot, one drag a move, levels without end and a daily puzzle |
+| Chain Reaction | Add orbs until cells burst and chain across the board; the last colour left wins, 2 to 4 players on one phone or against bots, and a daily game |
 
 Around the games: a daily challenge that is identical on every device with no server at all, a weekly offline league with five tiers, over eighty awards, a shared coin that is only ever spent on hints and cosmetics, stats and a profile, and a Persian, English, Simplified Chinese, German and Spanish interface with light and dark themes.
 
@@ -134,6 +135,7 @@ MIT, see [LICENSE](LICENSE). The Vazirmatn font is under the OFL; its licence te
 | بیلیارد | بیلیارد هشت‌توپ با فیزیک واقعی میز: توپ‌های دسته‌ات و بعد توپ ۸ را بینداز، با ربات در سه سطح یا دو نفره، و چالش روزانه‌ی پاک کردن میز |
 | اسنوکر | اسنوکر با همان فیزیک میز: یک سرخ، یک رنگی و آخر رنگی‌ها به ترتیب، با ۶، ۱۰ یا ۱۵ سرخ، با ربات در سه سطح یا دو نفره، و چالش روزانه‌ی پاک کردن میز سه‌سرخه |
 | راه‌بندان | ماشین‌ها را کنار بزن و ماشینت را از پارکینگ بیرون ببر، هر کشیدن یک حرکت، مرحله‌های بی‌پایان و بازی روزانه |
+| واکنش زنجیره‌ای | گوی بگذار تا خانه‌ها بترکند و زنجیروار پخش شوند؛ آخرین رنگ برنده است، ۲ تا ۴ نفر روی یک گوشی یا با ربات، و بازی روزانه |
 
 بیرون از بازی‌ها: چالش روزانه‌ی مشترک برای همه‌ی دستگاه‌ها بدون هیچ سروری، لیگ هفتگی آفلاین با پنج رده، بیش از هشتاد دستاورد، سکه‌ی مشترک که فقط خرج راهنمایی و تزئینات می‌شود، آمار و پروفایل، و رابط فارسی، انگلیسی، چینی ساده‌شده، آلمانی و اسپانیایی با تم روشن و تاریک.
 
