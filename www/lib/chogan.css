@@ -350,13 +350,16 @@ a  { color: var(--c-accent); text-decoration: none; }
 /* Pin toggle on each menu card (#193). The 40px button sits in the card's
    top corner; outside the card padding so it never covers the name. */
 .ch-game__pin {
-  position: absolute; top: 2px; inset-inline-end: 2px; width: 40px; height: 40px;
+  position: absolute; top: 2px; inset-inline-end: 2px; width: 40px; height: 40px; padding: 3px;
   display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent;
-  color: var(--c-text-dim); opacity: .45; cursor: pointer; z-index: 1;
+  background-clip: content-box; color: var(--c-text-dim); opacity: .6; cursor: pointer; z-index: 1;
 }
-.ch-game__pin:hover, .ch-game__pin:focus-visible { opacity: .9; }
-.ch-game__pin--on { color: var(--game, var(--c-accent)); opacity: 1; }
-.ch-game__pin--on svg { fill: currentColor; fill-opacity: .25; }
+/* An 18px pin at 1.9 stroke and 45% opacity read as a faint smudge on a
+   173px card, and a pinned card looked almost unpinned (#289). */
+.ch-game__pin svg { stroke-width: 2.2; }
+.ch-game__pin:hover, .ch-game__pin:focus-visible { opacity: 1; }
+.ch-game__pin--on { color: var(--game, var(--c-accent)); background-color: var(--game-soft, var(--c-surface-2)); opacity: 1; }
+.ch-game__pin--on svg { fill: currentColor; fill-opacity: .35; }
 .ch-games:not(.ch-games--grid) .ch-game { padding-inline-end: 44px; }
 /* Recently played: up to three compact chips in one row */
 .ch-recent { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); }

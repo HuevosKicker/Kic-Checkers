@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3435;
+const MIN_CHECKS = 3438;
 
 function ok(cond, msg) {
   checks++;
@@ -2775,6 +2775,15 @@ function testFiles() {
   const chipFn = (menu.match(/C\.ui\.segmented\(\['all'\][\s\S]*?function \(v\) \{([\s\S]*?)\n    \}\);/) || [])[1] || '';
   ok(/drawGames\(\)/.test(chipFn) && !/render\(/.test(chipFn), 'a category chip redraws only the games, not the whole page');
   ok(/C\.pins\.toggle\(g\.id\);[\s\S]{0,80}render\(true\)/.test(menu) && /window\.scrollTo\(0, keep \? y : 0\)/.test(menu), 'a pin tap keeps the scroll position');
+
+  // An 18px pin at 1.9 stroke and 45% opacity was a faint smudge on a 173px card (#289)
+  const pinCss = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const pinSize = +((menu.match(/C\.icon\('pin', (\d+)\)/) || [])[1] || 0);
+  ok(pinSize >= 22, 'the pin icon on a menu card is at least 22px (' + pinSize + ')');
+  const pinStroke = +((pinCss.match(/\.ch-game__pin svg \{[^}]*stroke-width: ([\d.]+)/) || [])[1] || 0);
+  const pinOp = +((pinCss.match(/\.ch-game__pin \{[^}]*opacity: ([\d.]+)/) || [])[1] || 0);
+  ok(pinStroke >= 2.2 && pinOp >= 0.6, 'the pin icon is drawn bold enough to see (stroke ' + pinStroke + ', opacity ' + pinOp + ')');
+  ok(/\.ch-game__pin--on \{[^}]*background-color:/.test(pinCss), 'a pinned card shows a filled circle behind its pin');
 
   const tpl = fs.readFileSync(path.join(ROOT, 'template/game/index.html'), 'utf8');
   ok(/ENGINE START/.test(tpl) && /ENGINE END/.test(tpl), 'قالب نشانه‌ی موتور را دارد');
