@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3248;
+const MIN_CHECKS = 3249;
 
 function ok(cond, msg) {
   checks++;
@@ -4486,6 +4486,9 @@ function testSnooker() {
   ok(/C\.ui\.segmented\(E\.REDS_OPTIONS\.map/.test(html) && /prefs\.reds = o\.reds/.test(html) && /E\.REDS_OPTIONS\.indexOf\(prefs\.reds\) < 0/.test(html), 'the new-frame dialog offers the reds count and remembers it');
   ok(['sn-win', 'sn-hard', 'sn-break'].every((id) => core.indexOf("id: '" + id + "'") > 0 && html.indexOf("unlock('" + id + "')") > 0), 'the three snooker awards exist and are unlocked');
   ok(Date.now() - t0 < 6000, 'the snooker group runs in under six seconds (' + (Date.now() - t0) + 'ms)');
+  // On a 390px phone the AI card read "Opponent · Medi…"; the level now sits on the second line
+  const snPage = fs.readFileSync(path.join(ROOT, 'www/games/snooker/index.html'), 'utf8');
+  ok(/name = aiCard \? C\.t\('rival'\) : pname\(p\)/.test(snPage) && /if \(aiCard\) sub = C\.t\(F\.level\)/.test(snPage) && /class: 'sn-player__name', text: name \}/.test(snPage), 'the AI card shows the level on its second line, not beside the name');
 }
 
 /* ------------------------------------------------------------- پاسور */

@@ -28,7 +28,8 @@
   .sn-player--on { border-color: var(--game); box-shadow: var(--sh-2); }
   .sn-player__text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
   .sn-player__name { font-weight: 700; font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sn-player__sub { font-size: var(--fs-xs); color: var(--c-text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .sn-player__sub { font-size: var(--fs-xs); color: var(--c-text-dim); font-variant-numeric: tabular-nums; }
+  /* the level and the best break share this line on a phone; it wraps rather than cut either */
   .sn-player__score { flex: 0 0 auto; font-size: var(--fs-lg); font-weight: 800; font-variant-numeric: tabular-nums; min-width: 1.6em; text-align: center; }
   .sn-player canvas { flex: 0 0 auto; }
   .sn-thinking { animation: sn-blink 900ms infinite; }
@@ -486,7 +487,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SnookerEng
         tutTitle3: 'خطا و پایان فریم', tutText3: 'خطا دست‌کم ۴ امتیاز به حریف می‌دهد. وقتی سرخ‌ها تمام شد، رنگی‌ها را از زرد تا سیاه به ترتیب بینداز. با سیاه آخر، امتیاز بیشتر برنده است.'
       },
       en: {
-        vsAi: 'Versus AI', twoPlayers: 'Two players', mode: 'Mode', level: 'Level', redsCount: 'Reds', rival: 'Opponent', player2: 'Player two',
+        vsAi: 'Versus AI', twoPlayers: 'Two players', mode: 'Mode', level: 'Level', redsCount: 'Reds', rival: 'Rival', player2: 'Player two',
         yourTurn: 'Your turn', turnOf: 'Turn: {n}', thinking: 'Thinking…',
         breakHint: 'Break-off: place the white in the D and hit the reds', inHand: 'Ball in hand: place the white in the D, then aim',
         onRed: 'Ball on: a red', onColour: 'Ball on: any colour', onBall: 'Ball on: {c}',
@@ -1050,10 +1051,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SnookerEng
     [0, 1].forEach(function (p) {
       var on = F.turn === p && !F.over;
       var sub = on ? (F.brk > 0 ? C.t('subBreak', { b: C.num(F.brk) }) : C.t('subOn', { c: onText(false) })) : (F.best[p] > 0 ? C.t('subBest', { b: C.num(F.best[p]) }) : '');
+      // Beside the score, "Opponent · Medium" was cut off on a 390px phone; the card
+      // names the rival only and puts the level on the second line
+      var aiCard = F.mode === 'ai' && p === 1, name = aiCard ? C.t('rival') : pname(p);
+      if (aiCard) sub = C.t(F.level) + (sub ? ' · ' + sub : '');
       var box = el('div', { class: 'sn-player' + (on ? ' sn-player--on' : '') }, [
         chipBall(on ? onValue() : -1),
         // an empty second line would push the name up, off the score's middle
-        el('div', { class: 'sn-player__text' }, [el('div', { class: 'sn-player__name', text: pname(p) })].concat(sub ? [el('div', { class: 'sn-player__sub', text: sub })] : [])),
+        el('div', { class: 'sn-player__text' }, [el('div', { class: 'sn-player__name', text: name })].concat(sub ? [el('div', { class: 'sn-player__sub', text: sub })] : [])),
         el('div', { class: 'sn-player__score', text: C.num(F.scores[p]) })
       ]);
       if (F.mode === 'ai' && p === 1 && (ai || aiAnim)) box.classList.add('sn-thinking');
