@@ -1,0 +1,2 @@
+Bug fixes:
+- 8-Ball Pool and Snooker: with the white ball in hand, pulling straight back from it now shoots instead of only moving the ball
