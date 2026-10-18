@@ -664,6 +664,11 @@ a  { color: var(--c-accent); text-decoration: none; }
   border-radius: 22px;
 }
 .ch-seg--wrap button { flex: 1 1 auto; }
+/* Five languages still wrapped at every phone width with the 16px side padding,
+   leaving Español alone on a second row (#291). Narrow padding keeps them on one
+   row down to about 360px; below that the wrap above is the fallback. */
+.ch-seg.ch-langs { gap: 1px; }
+.ch-seg.ch-langs button { padding-inline: 6px; }
 
 /* ------------------------------------------------------------ پیمایه */
 .ch-bar {
