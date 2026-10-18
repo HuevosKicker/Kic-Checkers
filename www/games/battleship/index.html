@@ -308,20 +308,23 @@ function BattleshipEngineFactory() {
   }
 
   /* یک دست کامل: بازیکن به صفحه‌ی foe شلیک می‌کند، حریف به me.
-     نوبت‌ها یکی‌یکی‌اند، چه شلیک بخورد چه نخورد. */
-  function newGame(myShips, foeShips, level) {
+     again: with the house rule many people play (#304), a hit or a sink keeps the
+     turn and only a miss passes it. Without it turns alternate every shot; a game
+     saved before the rule existed has no again and keeps alternating. */
+  function newGame(myShips, foeShips, level, again) {
     return {
-      me: makeBoard(myShips), foe: makeBoard(foeShips), level: level,
+      me: makeBoard(myShips), foe: makeBoard(foeShips), level: level, again: !!again,
       turn: 'me', shots: { me: 0, ai: 0 }, log: [], winner: null
     };
   }
+  function keepsTurn(G, result) { return !!G.again && result !== 'miss'; }
 
   function playerFire(G, idx) {
     if (G.winner || G.turn !== 'me' || !canFire(G.foe, idx)) return null;
     var res = fire(G.foe, idx);
     G.shots.me++;
     G.log.push({ by: 'me', i: idx, r: res.result });
-    if (allSunk(G.foe)) G.winner = 'me'; else G.turn = 'ai';
+    if (allSunk(G.foe)) G.winner = 'me'; else if (!keepsTurn(G, res.result)) G.turn = 'ai';
     return { i: idx, result: res.result, ship: res.ship };
   }
 
@@ -332,7 +335,7 @@ function BattleshipEngineFactory() {
     var res = fire(G.me, idx);
     G.shots.ai++;
     G.log.push({ by: 'ai', i: idx, r: res.result });
-    if (allSunk(G.me)) G.winner = 'ai'; else G.turn = 'me';
+    if (allSunk(G.me)) G.winner = 'ai'; else if (!keepsTurn(G, res.result)) G.turn = 'me';
     return { i: idx, result: res.result, ship: res.ship };
   }
 
@@ -340,7 +343,7 @@ function BattleshipEngineFactory() {
     N: N, FLEET: FLEET, cellsOf: cellsOf, fits: fits, halo: halo, canPlace: canPlace,
     validFleet: validFleet, randomFleet: randomFleet, makeBoard: makeBoard, shipAt: shipAt,
     blocked: blocked, canFire: canFire, fire: fire, allSunk: allSunk, knowledge: knowledge,
-    aiShot: aiShot, newGame: newGame, playerFire: playerFire, aiFire: aiFire
+    aiShot: aiShot, newGame: newGame, keepsTurn: keepsTurn, playerFire: playerFire, aiFire: aiFire
   };
   if (typeof self !== 'undefined') self.BattleshipEngine = api;
   return api;
@@ -375,7 +378,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
         ship: 'کشتی {n} خانه‌ای', move: 'جابه‌جایی', fireKey: 'شلیک یا گذاشتن کشتی', pickShip: 'انتخاب کشتی',
         wonIn: 'برد در {n} شلیک',
         tutTitle1: 'ناوگان را بچین', tutText1: 'پنج کشتی داری: ۵، ۴، ۳، ۳ و ۲ خانه. هیچ دو کشتی‌ای حتی از گوشه به هم نمی‌چسبند. دکمه‌ی تصادفی هم هست.',
-        tutTitle2: 'نوبتی شلیک کنید', tutText2: 'هر نوبت یک شلیک. آب، اصابت یا غرق. اولین کسی که همه‌ی ناوگان حریف را غرق کند می‌برد.',
+        tutTitle2: 'نوبتی شلیک کنید', tutText2: 'به نوبت شلیک کنید: آب، اصابت یا غرق. با «اصابت، دوباره شلیک» هر اصابت یک شلیک دیگر می‌دهد و فقط آب نوبت را رد می‌کند. اولین کسی که همه‌ی ناوگان حریف را غرق کند می‌برد.', hitAgain: 'اصابت، دوباره شلیک', oneShot: 'یک شلیک در نوبت',
         tutTitle3: 'دور کشتی غرق‌شده خالی است', tutText3: 'چون کشتی‌ها به هم نمی‌چسبند، خانه‌های دور کشتی غرق‌شده علامت می‌خورند و لازم نیست آنجا شلیک کنی.'
       },
       en: {
@@ -390,7 +393,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
         ship: '{n}-cell ship', move: 'Move', fireKey: 'Fire or place ship', pickShip: 'Pick ship',
         wonIn: 'Won in {n} shots',
         tutTitle1: 'Place your fleet', tutText1: 'You have five ships: 5, 4, 3, 3 and 2 cells. No two ships touch, not even at a corner. There is a random button too.',
-        tutTitle2: 'Take turns firing', tutText2: 'One shot per turn: miss, hit or sunk. The first to sink the whole rival fleet wins.',
+        tutTitle2: 'Take turns firing', tutText2: 'Take turns firing: miss, hit or sunk. With "Hit, fire again" every hit gives another shot and only a miss passes the turn. The first to sink the whole rival fleet wins.', hitAgain: 'Hit, fire again', oneShot: 'One shot a turn',
         tutTitle3: 'Around a wreck is empty', tutText3: 'Ships never touch, so the cells around a sunk ship get marked and you never need to fire there.'
       },
       zh: {
@@ -405,7 +408,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
         ship: '{n} 格船', move: '移动', fireKey: '开炮或放船', pickShip: '选择船只',
         wonIn: '{n} 炮获胜',
         tutTitle1: '布置舰队', tutText1: '你有五艘船：5、4、3、3、2 格。任何两艘船都不相邻，连斜角也不行。也可以随机布置。',
-        tutTitle2: '轮流开炮', tutText2: '每回合一炮：落空、命中或击沉。先击沉对方全部舰队的人获胜。',
+        tutTitle2: '轮流开炮', tutText2: '轮流开炮：落空、命中或击沉。开启“命中再开炮”时，每次命中都能再开一炮，只有落空才换人。先击沉对方全部舰队的人获胜。', hitAgain: '命中再开炮', oneShot: '每回合一炮',
         tutTitle3: '沉船周围是空的', tutText3: '因为船不相邻，被击沉的船周围会被标出，不必再往那里开炮。'
       },
       de: {
@@ -420,7 +423,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
         ship: '{n}er-Schiff', move: 'Bewegen', fireKey: 'Feuern oder Schiff setzen', pickShip: 'Schiff wählen',
         wonIn: 'Gewonnen mit {n} Schüssen',
         tutTitle1: 'Flotte aufstellen', tutText1: 'Du hast fünf Schiffe: 5, 4, 3, 3 und 2 Felder. Keine zwei Schiffe berühren sich, nicht mal an einer Ecke. Es gibt auch einen Zufallsknopf.',
-        tutTitle2: 'Abwechselnd feuern', tutText2: 'Ein Schuss pro Zug: Wasser, Treffer oder versenkt. Wer zuerst die ganze gegnerische Flotte versenkt, gewinnt.',
+        tutTitle2: 'Abwechselnd feuern', tutText2: 'Abwechselnd feuern: Wasser, Treffer oder versenkt. Mit „Treffer, nochmal“ gibt jeder Treffer einen weiteren Schuss, nur Wasser gibt den Zug ab. Wer zuerst die ganze gegnerische Flotte versenkt, gewinnt.', hitAgain: 'Treffer, nochmal', oneShot: 'Ein Schuss pro Zug',
         tutTitle3: 'Um ein Wrack ist Wasser', tutText3: 'Schiffe berühren sich nie, also werden die Felder um ein versenktes Schiff markiert und du musst nie dorthin schießen.'
       },
       es: {
@@ -435,7 +438,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
         ship: 'Barco de {n} casillas', move: 'Mover', fireKey: 'Disparar o colocar barco', pickShip: 'Elegir barco',
         wonIn: 'Ganaste en {n} disparos',
         tutTitle1: 'Coloca tu flota', tutText1: 'Tienes cinco barcos: de 5, 4, 3, 3 y 2 casillas. Dos barcos nunca se tocan, ni siquiera en una esquina. También hay un botón para colocarlos al azar.',
-        tutTitle2: 'Disparos por turnos', tutText2: 'Un disparo por turno: agua, tocado o hundido. Gana quien hunda primero toda la flota rival.',
+        tutTitle2: 'Disparos por turnos', tutText2: 'Disparad por turnos: agua, tocado o hundido. Con «Tocado, otra vez» cada acierto da otro disparo y solo el agua pasa el turno. Gana quien hunda primero toda la flota rival.', hitAgain: 'Tocado, otra vez', oneShot: 'Un disparo por turno',
         tutTitle3: 'Alrededor de un naufragio hay agua', tutText3: 'Los barcos nunca se tocan, así que las casillas alrededor de un barco hundido se marcan y nunca necesitas disparar ahí.'
       }
     }
@@ -444,6 +447,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
   var params = new URLSearchParams(location.search);
   var dailyDate = params.get('daily');
   var prefs = ctx.store.get('prefs', { level: 'medium' });
+  // Fire again after a hit (#304) is on unless the player turned it off
+  if (typeof prefs.again !== 'boolean') prefs.again = true;
   // روزانه با حریف متوسط است: سخت بیشتر شانسِ چیدمان را می‌سنجد تا مهارت را،
   // و بازی روزانه باید برای همه منصفانه و تمام‌شدنی بماند.
   var DAILY_LEVEL = 'medium';
@@ -494,7 +499,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
 
   function startBattle() {
     if (!S || S.phase !== 'place' || !E.validFleet(S.ships)) { C.feedback('bad'); return; }
-    S.G = E.newGame(S.ships, foeFleet(), S.level);
+    // The daily keeps one shot a turn, so every player of a day plays the same rules
+    S.G = E.newGame(S.ships, foeFleet(), S.level, !S.daily && prefs.again);
     S.phase = 'battle';
     S.startedAt = Date.now();
     hover = -1;
@@ -667,8 +673,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
         prefs.level = v;
         ctx.store.set('prefs', prefs);
       }));
+      top.appendChild(C.ui.segmented([
+        { value: true, label: C.t('hitAgain') }, { value: false, label: C.t('oneShot') }
+      ], prefs.again, function (v) {
+        prefs.again = v;
+        ctx.store.set('prefs', prefs);
+      }));
     } else {
-      top.appendChild(el('span', { class: 'ch-badge', text: C.t('rival') + ' · ' + C.t(S.level) }));
+      top.appendChild(el('span', { class: 'ch-badge', text: C.t('rival') + ' · ' + C.t(S.level) + ' · ' + C.t(S.G && S.G.again ? 'hitAgain' : 'oneShot') }));
     }
 
     var placing = S.phase === 'place';
