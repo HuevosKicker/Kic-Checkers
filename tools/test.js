@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3249;
+const MIN_CHECKS = 3259;
 
 function ok(cond, msg) {
   checks++;
@@ -4168,6 +4168,16 @@ function testEightBall() {
   ok(!!Cue && typeof Cue.simulate === 'function' && typeof Cue.tick === 'function', 'cue.js attaches ChoganCue to self');
   const viaRequire = require(path.join(ROOT, 'www/lib/cue.js'));
   ok(typeof viaRequire.simulate === 'function', 'cue.js also loads through module.exports');
+  // #278: with the white in hand every drag on it moved the ball, so the break
+  // could never be played with the slingshot. Aim up the screen (-90 degrees):
+  const up = -Math.PI / 2, pb = Cue.pullsBack;
+  ok(typeof pb === 'function' && pb(up, 0, 10) && pb(up, 3, 10) && pb(0, -10, 0.1) && pb(Math.PI, 10, -0.1), 'a pull straight back from the aim, or close to it, counts as a pull');
+  ok(typeof pb === 'function' && !pb(up, 0, -10) && !pb(up, 10, 0) && !pb(up, 10, 10) && !pb(up, 0, 0), 'a move forward, sideways, at 45 degrees or not at all moves the white instead');
+  for (const g of ['eightball', 'snooker']) {
+    const page = fs.readFileSync(path.join(ROOT, 'www/games/' + g + '/index.html'), 'utf8');
+    ok(/if \(F\.inHand && dc < grab\) drag = \{ id: e\.pointerId, mode: 'hand'/.test(page) && /drag\.mode = Cue\.pullsBack\(aimA, p\.x - h0\.x, p\.y - h0\.y\) \? 'sling' : 'place'/.test(page),
+      g + ': a drag on the white in hand can still become a slingshot shot');
+  }
   const T = E.T, r = T.r;
   ok(T.L === 2 * T.W && T.pockets.length === 6, 'the default table is 2:1 with six pockets');
   const B = (id, x, y) => ({ id, x, y, vx: 0, vy: 0, inPlay: true });

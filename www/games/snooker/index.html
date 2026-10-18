@@ -1093,15 +1093,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SnookerEng
 
   /* -------------------------------------------------------------- input */
 
-  // On the table: start on the white to pull back like a slingshot, start on
-  // the white with ball in hand to move it, start anywhere else to aim at the finger.
+  // On the table: start on the white to pull back like a slingshot, start
+  // anywhere else to aim at the finger. With the ball in hand the first movement
+  // decides: straight back from the aim pulls, any other way moves the white (#278).
   cv.addEventListener('pointerdown', function (e) {
     if (!humanTurn()) return;
     e.preventDefault();
     var p = toTable(e.clientX, e.clientY), c = E.ball(F, 0);
     var dc = Math.hypot(p.x - c.x, p.y - c.y), grab = Math.max(R * 2.5, 24 / G.s);
     if (setMsgClear()) drawMsg();
-    if (F.inHand && dc < grab) drag = { id: e.pointerId, mode: 'place', dx: c.x - p.x, dy: c.y - p.y };
+    if (F.inHand && dc < grab) drag = { id: e.pointerId, mode: 'hand', x0: e.clientX, y0: e.clientY, a0: aimA, dx: c.x - p.x, dy: c.y - p.y };
     else if (dc < grab) drag = { id: e.pointerId, mode: 'sling', x0: e.clientX, y0: e.clientY, a0: aimA };
     else { drag = { id: e.pointerId, mode: 'aim' }; aimA = Math.atan2(p.y - c.y, p.x - c.x); }
     kbOn = false;
@@ -1120,6 +1121,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SnookerEng
   cv.addEventListener('pointermove', function (e) {
     if (!drag || e.pointerId !== drag.id || !humanTurn()) return;
     var p = toTable(e.clientX, e.clientY), c = E.ball(F, 0);
+    if (drag.mode === 'hand') {
+      var h0 = toTable(drag.x0, drag.y0);
+      if (Math.hypot(p.x - h0.x, p.y - h0.y) * G.s < 8) return;
+      drag.mode = Cue.pullsBack(aimA, p.x - h0.x, p.y - h0.y) ? 'sling' : 'place';
+    }
     if (drag.mode === 'place') placeTo(p.x + drag.dx, p.y + drag.dy);
     else if (drag.mode === 'sling') {
       var q0 = toTable(drag.x0, drag.y0), vx = q0.x - p.x, vy = q0.y - p.y, len = Math.hypot(vx, vy) * G.s;
