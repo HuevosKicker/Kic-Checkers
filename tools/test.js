@@ -20,7 +20,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3429;
+const MIN_CHECKS = 3435;
 
 function ok(cond, msg) {
   checks++;
@@ -5414,6 +5414,21 @@ function testChessBot() {
   ok(/ChessBotFactory\.toString\(\)/.test(file) && /new Worker\(URL\.createObjectURL/.test(file), 'فکر کردن در Web Worker است');
   ok(/var ms = E\.legal\(S\), m = r && ms\.filter/.test(file), 'حرکت ربات از فیلتر legal موتور قانون‌ها رد می‌شود');
   ok(/if \(isAi\(\) && \(thinking \|\| S\.turn !== G\.human\)\) return;/.test(file), 'وقتی نوبت ربات است لمس تخته کاری نمی‌کند');
+
+  // #287: a Random side in the new-game window. The choice stays 'r' in prefs and each
+  // new game flips its own coin; the game itself only ever holds 'w' or 'b'.
+  ok(/\{ value: 'r', label: C\.t\('randomSide'\) \}/.test(file), 'the colour picker offers Random');
+  ok(/human: sideFor\(prefs\.human, Math\.random\)/.test(file), 'a new game resolves the side from prefs');
+  const sf = file.match(/function sideFor\(h, rnd\) \{[^\n]*\}/);
+  ok(!!sf, 'sideFor found in the chess page');
+  if (sf) {
+    const sideFor = vm.runInNewContext('(' + sf[0] + ')');
+    ok(sideFor('w', () => 0.9) === 'w' && sideFor('b', () => 0.1) === 'b', 'a fixed colour is kept as chosen');
+    ok(sideFor('r', () => 0.1) === 'w' && sideFor('r', () => 0.9) === 'b', 'Random gives white or black by the coin');
+    const seen = new Set();
+    for (let i = 0; i < 64; i++) seen.add(sideFor('r', Math.random));
+    ok(seen.size === 2 && seen.has('w') && seen.has('b'), 'Random over 64 games gives both colours (' + [...seen].join(',') + ')');
+  }
 }
 
 /* ------------------------------------------------------ معمای شطرنج */
