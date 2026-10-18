@@ -1,0 +1,6 @@
+Menú: juegos agrupados en Puzles, Tablero, Cartas y Habilidad; tocar una categoría o un pin ya no salta arriba.
+Menú: un pin más grande y claro en cada juego.
+Ajedrez: color al azar contra el bot.
+Perfil: una sola lista de juegos; toca uno para ver datos, cómo se juega y borrar sus datos.
+Perfil: elige tu país de una lista en tu idioma.
+Ajustes: los cinco idiomas caben en una fila.

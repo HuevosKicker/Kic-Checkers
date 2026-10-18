@@ -1,0 +1,9 @@
+Bug fixes:
+- Profile: the button to see the welcome again said "Play"
+Improvements:
+- Menu: games grouped into Puzzle, Board, Cards and Skill, and a category or pin tap no longer jumps to the top
+- Menu: a bigger, clearer pin on each game
+- Chess: a Random choice for your colour against the bot
+- Profile: one game list; tap a game for its stats, how to play and erasing its data
+- Profile: pick your country from a list in your language
+- Settings: all five languages fit on one row
