@@ -10,6 +10,7 @@ const path = require('path');
 const vm = require('vm');
 const os = require('os');
 const { spawnSync, spawn } = require('child_process');
+const { Worker, isMainThread, workerData } = require('worker_threads');
 
 const ROOT = path.join(__dirname, '..');
 // زبان‌های اپ، به همان ترتیب جدول LOCALES در هسته
@@ -20,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3440;
+const MIN_CHECKS = 3442;
 
 function ok(cond, msg) {
   checks++;
@@ -4808,20 +4809,11 @@ function testEightBall() {
   ok(out.F.over && out.F.winner === 0 && out.F.shots === 1, 'potting the last daily ball clears the table');
 
   // AI: medium beats easy most of the time, hard does at least as well against medium
-  const play = (l0, l1, seed) => {
-    const rr = rng(seed);
-    let G = E.newFrame({ mode: 'ai', rnd: rr, first: seed % 2 }), n = 0;
-    while (!G.over && n++ < 150) {
-      const sh = E.think(G, G.turn ? l1 : l0, rr);
-      if (sh.place && G.inHand) E.placeCue(G, sh.place.x, sh.place.y);
-      G = E.shoot(G, { angle: sh.angle, power: sh.power }).F;
-    }
-    return G.over ? G.winner : -1;
-  };
-  const N = 6;
-  let me = 0, hm = 0;
-  for (let i = 0; i < N; i++) { if (play('medium', 'easy', 500 + i) === 0) me++; }
-  for (let i = 0; i < N; i++) { if (play('hard', 'medium', 600 + i) === 0) hm++; }
+  const N = 6, jobs8 = [];
+  for (let i = 0; i < N; i++) jobs8.push({ l0: 'medium', l1: 'easy', seed: 500 + i });
+  for (let i = 0; i < N; i++) jobs8.push({ l0: 'hard', l1: 'medium', seed: 600 + i });
+  const res8 = cueFrames('eightball', jobs8);
+  const me = res8.slice(0, N).filter((r) => r.winner === 0).length, hm = res8.slice(N).filter((r) => r.winner === 0).length;
   ok(me >= 4, 'medium AI beats easy AI in most frames (' + me + ' of ' + N + ')');
   ok(hm >= N / 2, 'hard AI wins at least half its frames against medium (' + hm + ' of ' + N + ')');
   const pl = E.planner(E.copy(out.F.over ? frame([B(0, 40, 50), B(3, 30, 20), B(11, 80, 50), B(8, 60, 80)]) : out.F), 'hard', rng(4));
@@ -4849,6 +4841,43 @@ function loadSnooker() {
   if (!m) throw new Error('snooker engine markers not found');
   vm.runInContext(m[1], sandbox, { filename: 'snooker-engine.js' });
   return { Cue: sandbox.self.ChoganCue, E: sandbox.SnookerEngineFactory(sandbox.self.ChoganCue), html };
+}
+// AI matches for 8-ball and snooker, one frame per job. They were played one after
+// another and took about 2.6 and 2.9 s here, but over 5 and 6 s on a GitHub runner,
+// so the groups' time limits failed correct commits and held back deploys (#297).
+// Each frame has its own seed and shares nothing, so they now run on worker
+// threads; every frame is played exactly as before and gives the same result.
+const cueEngines = {};
+function cueFrameJob(game, j) {
+  const E = cueEngines[game] || (cueEngines[game] = (game === 'eightball' ? loadEightBall() : loadSnooker()).E);
+  const rr = rng(j.seed);
+  let G = game === 'eightball' ? E.newFrame({ mode: 'ai', rnd: rr, first: j.seed % 2 }) : E.newFrame({ mode: 'ai', reds: j.reds, first: j.seed % 2 });
+  let n = 0, shots = 0, bad = 0;
+  const cap = game === 'eightball' ? 150 : 200;
+  while (!G.over && n++ < cap) {
+    const sh = E.think(G, G.turn ? j.l1 : j.l0, rr);
+    if (sh.place && G.inHand) E.placeCue(G, sh.place.x, sh.place.y);
+    const o = E.shoot(G, { angle: sh.angle, power: sh.power });
+    shots++;
+    if (o.res && (o.res.foul === 'wrongFirst' || o.res.foul === 'noHit')) bad++;
+    G = o.F;
+  }
+  return { winner: G.over ? G.winner : -1, shots, bad };
+}
+// Runs the jobs on worker threads and blocks until all are done, so the test groups
+// stay synchronous. out[0] counts finished jobs; job i writes out[1 + 3i ..].
+function cueFrames(game, jobs) {
+  ok(jobs.length > 0, game + ': there are AI frames to play');
+  const out = new Int32Array(new SharedArrayBuffer(4 * (1 + 3 * jobs.length)));
+  const threads = Math.max(1, Math.min(jobs.length, os.availableParallelism ? os.availableParallelism() : os.cpus().length));
+  for (let w = 0; w < threads; w++) new Worker(__filename, { workerData: { cueGame: game, jobs, out, from: w, step: threads } });
+  const until = Date.now() + 120000;
+  for (let done; (done = Atomics.load(out, 0)) < jobs.length;) {
+    // a worker that throws never reports, so give up loudly rather than wait forever
+    if (Date.now() > until) throw new Error(game + ' AI frames: only ' + done + ' of ' + jobs.length + ' finished');
+    Atomics.wait(out, 0, done, 1000);
+  }
+  return jobs.map((_, i) => ({ winner: out[1 + 3 * i], shots: out[2 + 3 * i], bad: out[3 + 3 * i] }));
 }
 function testSnooker() {
   head('snooker');
@@ -4992,24 +5021,12 @@ function testSnooker() {
   ok(out.F.over && out.F.winner === 0, 'potting the last black clears the daily table');
 
   // AI: medium beats easy, hard does at least as well against medium
-  let aiShots = 0, aiBad = 0;
-  const play = (l0, l1, seed, reds) => {
-    const rr = rng(seed);
-    let G = E.newFrame({ mode: 'ai', reds, first: seed % 2 }), n = 0;
-    while (!G.over && n++ < 200) {
-      const sh = E.think(G, G.turn ? l1 : l0, rr);
-      if (sh.place && G.inHand) E.placeCue(G, sh.place.x, sh.place.y);
-      const o = E.shoot(G, { angle: sh.angle, power: sh.power });
-      aiShots++;
-      if (o.res.foul === 'wrongFirst' || o.res.foul === 'noHit') aiBad++;
-      G = o.F;
-    }
-    return G.over ? G.winner : -1;
-  };
-  const N = 4, NH = 6;
-  let me = 0, hm = 0;
-  for (let i = 0; i < N; i++) { if (play('medium', 'easy', 500 + i, 6) === 0) me++; }
-  for (let i = 0; i < NH; i++) { if (play('hard', 'medium', 600 + i, 4) === 0) hm++; }
+  const N = 4, NH = 6, jobsS = [];
+  for (let i = 0; i < N; i++) jobsS.push({ l0: 'medium', l1: 'easy', seed: 500 + i, reds: 6 });
+  for (let i = 0; i < NH; i++) jobsS.push({ l0: 'hard', l1: 'medium', seed: 600 + i, reds: 4 });
+  const resS = cueFrames('snooker', jobsS);
+  const me = resS.slice(0, N).filter((r) => r.winner === 0).length, hm = resS.slice(N).filter((r) => r.winner === 0).length;
+  const aiShots = resS.reduce((a, r) => a + r.shots, 0), aiBad = resS.reduce((a, r) => a + r.bad, 0);
   ok(me >= 3, 'medium AI beats easy AI in most frames (' + me + ' of ' + N + ', six reds)');
   ok(hm >= NH / 2, 'hard AI wins at least half its frames against medium (' + hm + ' of ' + NH + ', four reds)');
   ok(aiShots > 0 && aiBad / aiShots < 0.1, 'the AI almost always hits a ball that is on first (' + aiBad + ' misses of ' + aiShots + ' shots)');
@@ -6766,6 +6783,18 @@ function testModalFocus() {
   const confirmAt = core.indexOf('ui.confirm = function');
   ok(confirmAt > 0 && core.slice(confirmAt, core.indexOf('ui.reduceMotion')).indexOf('focusPrimary') < 0,
     'confirms keep focus on Cancel, so Enter cannot start over by accident');
+}
+
+// A worker started by cueFrames() plays its share of AI frames and stops here (#297)
+if (!isMainThread && workerData && workerData.cueGame) {
+  const d = workerData;
+  for (let i = d.from; i < d.jobs.length; i += d.step) {
+    const r = cueFrameJob(d.cueGame, d.jobs[i]);
+    d.out[1 + 3 * i] = r.winner; d.out[2 + 3 * i] = r.shots; d.out[3 + 3 * i] = r.bad;
+    Atomics.add(d.out, 0, 1);
+    Atomics.notify(d.out, 0);
+  }
+  return;
 }
 
 testFiles();
