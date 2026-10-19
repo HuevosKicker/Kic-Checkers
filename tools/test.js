@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3746;
+const MIN_CHECKS = 3804;
 
 function ok(cond, msg) {
   checks++;
@@ -6437,6 +6437,106 @@ function testDarts() {
   ok(Date.now() - t0 < 8000, 'the Darts group runs in under eight seconds (' + (Date.now() - t0) + 'ms)');
 }
 
+/* ----------------------------------------------------- Bowling (#313) */
+function testBowling() {
+  head('Bowling');
+  const t0 = Date.now();
+  const E = loadEngine('bowling', 'BowlingEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/bowling/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const full = () => Array(10).fill(true);
+
+  // The rack: ten pins on the standard triangle, 12 inches (0.286 lane) apart
+  const P = E.PINS;
+  ok(P.length === 10 && P[0][0] === 0 && P[0][1] === E.HEAD, 'pin 1 stands alone in front, in the middle');
+  ok([[1, 2], [3, 4, 5], [6, 7, 8, 9]].every((row) => row.every((i) => Math.abs(P[i][1] - P[row[0]][1]) < 1e-9)) && P[6][0] < 0 && P[9][0] > 0,
+    'rows of two, three and four behind it, 7 on the left and 10 on the right');
+  let near = Infinity;
+  for (let i = 0; i < 10; i++) for (let j = i + 1; j < 10; j++) near = Math.min(near, Math.hypot(P[i][0] - P[j][0], P[i][1] - P[j][1]));
+  ok(Math.abs(near - 0.286) < 0.005, 'neighbouring pins are 12 inches apart (' + near.toFixed(3) + ' lane)');
+
+  // Scoring
+  const play = (rolls, players) => {
+    let S = E.newGame(players || 1);
+    for (const n of rolls) { const d = S.standing.map((up, i) => false); let k = n; for (let i = 0; i < 10 && k > 0; i++) if (S.standing[i]) { d[i] = true; k--; } S = E.roll(S, d).state; }
+    return S;
+  };
+  let S = play(Array(12).fill(10));
+  ok(S.done && E.total(S.frames[0]) === 300 && E.score(S.frames[0]).join() === '30,60,90,120,150,180,210,240,270,300', 'twelve strikes are a perfect 300, frame by frame');
+  S = play(Array(21).fill(5));
+  ok(S.done && E.total(S.frames[0]) === 150, 'all fives and spares make 150');
+  S = play(Array(20).fill(0));
+  ok(S.done && E.total(S.frames[0]) === 0 && S.frames[0][9].length === 2, 'twenty gutter balls are 0, and the tenth frame has no bonus');
+  S = play([10, 7, 3, 9, 0, 10, 0, 8, 8, 2, 0, 6, 10, 10, 10, 8, 1]);
+  ok(S.done && E.score(S.frames[0]).join() === '20,39,48,66,74,84,90,120,148,167', 'a known card scores 167 frame by frame');
+  S = play([10, 10]);
+  ok(E.score(S.frames[0])[0] === null && !S.done, 'a strike waits for its two bonus balls before it is scored');
+  S = play([7, 3, 10], 2);
+  ok(S.frames[0][0].join() === '7,3' && S.frames[1][0].join() === '10' && S.turn === 0 && S.frame === 1, 'two players take whole frames in turn');
+  const m = (f, i) => f.map((_, k) => E.mark(f, i, k)).join(' ');
+  ok(m([10], 0) === 'X' && m([7, 3], 0) === '7 /' && m([0, 0], 0) === '- -' && m([10, 10, 10], 9) === 'X X X' && m([10, 7, 3], 9) === 'X 7 /' && m([9, 1, 10], 9) === '9 / X' && m([10, 10, 4], 9) === 'X X 4',
+    'the scorecard marks strikes, spares and misses, the tenth frame too');
+
+  // The lane
+  const g = E.simulate(full(), { x: 0, angle: 0.04, speed: 7.5, spin: 0 });
+  ok(g.gutter && g.count === 0, 'a ball that leaves the lane is a gutter ball and knocks nothing');
+  // A swipe in the visual check hooked off the wood beside the rack; it rolled on
+  // past pin 7 as if still on the lane instead of dropping into the gutter
+  const edge = E.simulate(full(), { x: 0.0318, angle: 0.00882, speed: 6.1, spin: 1 });
+  ok(edge.gutter && edge.count === 0, 'a ball that hooks off the wood beside the rack is a gutter ball');
+  const a1 = E.simulate(full(), { x: 0.3, angle: -0.01, speed: 7.5, spin: 0.5 }), a2 = E.simulate(full(), { x: 0.3, angle: -0.01, speed: 7.5, spin: 0.5 });
+  ok(a1.down.join() === a2.down.join() && a1.frames.length === a2.frames.length, 'the same throw always ends the same way');
+  const st = full(); st[0] = false; st[1] = false;
+  const r2 = E.simulate(st, { x: -0.1, angle: 0.0, speed: 7.5, spin: 0 });
+  ok(!r2.down[0] && !r2.down[1], 'pins already down are never counted again');
+  const hookA = E.aimAngle(0.3, 0.075, E.HEAD, 7.5, 0.5);
+  ok(Math.abs(E.crossing({ x: 0.3, angle: hookA, speed: 7.5, spin: 0.5 }, E.HEAD) - 0.075) < 0.002, 'the aim solver brings a hooking ball to the point it was asked for');
+  ok(E.crossing({ x: 0.3, angle: hookA, speed: 7.5, spin: 0.5 }, 8) > 0.3 + Math.sin(hookA) * 8 - 0.01, 'the oiled front of the lane keeps a spinning ball straight');
+  const rate = (lo, hi) => {
+    let n = 0, s = 0;
+    for (let e = lo; e <= hi + 1e-9; e += 0.012) for (const sp of [7.1, 7.5, 7.9]) { const a = E.aimAngle(0.3, e, E.HEAD, sp, 0.5); n++; if (E.simulate(full(), { x: 0.3, angle: a, speed: sp, spin: 0.5 }).count === 10) s++; }
+    return s / n;
+  };
+  const pocket = rate(0.045, 0.105), headOn = rate(-0.02, 0.02), light = rate(0.13, 0.18);
+  ok(pocket >= 0.6 && headOn <= 0.35 && light <= 0.2, 'the pocket strikes most of the time, head-on and light hits seldom (' + [pocket, headOn, light].map((v) => (v * 100).toFixed(0) + '%').join(', ') + ')');
+
+  // Bots: full games end, and the levels are in order
+  const game = (lv, seed) => { const rr = rng(seed); let s = E.newGame(1); while (!s.done) s = E.roll(s, E.simulate(s.standing, E.think(s.standing, lv, rr)).down).state; return E.total(s.frames[0]); };
+  const med = (lv) => { const a = []; for (let i = 0; i < 15; i++) a.push(game(lv, 400 + i)); a.sort((x, y) => x - y); return a[7]; };
+  const be = med('easy'), bm = med('medium'), bh = med('hard');
+  ok(be < bm && bm < bh && be >= 60 && bh <= 260, 'harder bots score more, and none is perfect (' + be + ', ' + bm + ', ' + bh + ')');
+
+  // Page wiring and identity
+  const gm = games.find((x) => x.id === 'bowling');
+  ok(!!gm && gm.cat === 'skill' && gm.daily !== false, 'games.json lists it under skill games, with a daily lane');
+  ok(!!gm && /accent: '([^']+)'/.test(html) && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/bowling/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const lin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const lab = (h) => {
+    const [R, G, B] = rgb(h).map(lin), f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    const X = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047, Y = R * 0.2126 + G * 0.7152 + B * 0.0722, Z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  };
+  const dE = (a, b) => { const A = lab(a), B = lab(b); return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]); };
+  const lum = (h) => rgb(h).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const nearest = games.filter((x) => x.id !== 'bowling').map((x) => [x.id, dE(x.color, gm.color)]).sort((x, y) => x[1] - y[1])[0];
+  ok(nearest[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + nearest[0] + ', ' + nearest[1].toFixed(1) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['bw-win', 'bw-hard', 'bw-turkey'].every((id) => core.indexOf("id: '" + id + "'") > 0 && html.indexOf("unlock('" + id + "')") > 0), 'the three bowling awards exist and are unlocked');
+  // The reporter asked for the sound of the ball rolling and of the pins
+  ok(/    roll: function \(\) \{[\s\S]{0,40}noise\(/.test(core) && /    pin: function \(\) \{[\s\S]{0,40}noise\(/.test(core) && /roll: \['roll', null\], pin: \['pin', null\]/.test(core), 'the core has a rolling rumble and a pin knock, without a buzz');
+  ok(/C\.feedback\('roll'\)/.test(html) && /C\.feedback\('pin'\)/.test(html), 'a ball rumbles down the lane and each struck pin knocks');
+  ok(/C\.daily\('bowling', daily\)\.rng\(\)/.test(html) && /C\.stats\.daily\('bowling', G\.daily/.test(html), 'the daily lane\'s oil comes from the day\'s seed, and the score is recorded');
+  // The first throw of a game read the swipe with a size the canvas had not been
+  // drawn at yet (the font arrived and the layout grew), so it started 0.06 off
+  ok(/var V = shown = view\(\)/.test(html) && /function readSwipe\(pts\) \{\n    var V = shown \|\| view\(\)/.test(html) && /document\.fonts\.ready\.then/.test(html),
+    'a swipe is read against the picture on screen, which is redrawn once the font is in');
+  ok(/ctx\.autosave\(/.test(html) && /ctx\.tutorialIfNew\(TUT\)/.test(html), 'the game autosaves and shows its tutorial once');
+  ok(Date.now() - t0 < 10000, 'the Bowling group runs in under ten seconds (' + (Date.now() - t0) + 'ms)');
+}
+
 function testGomoku() {
   head('Gomoku');
   const E = loadEngine('gomoku', 'GomokuEngineFactory');
@@ -7336,6 +7436,7 @@ testChain();
 testLudo();
 testSnakes();
 testDarts();
+testBowling();
 testCoreLabels();
 testGo();
 testBackgammon();

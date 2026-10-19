@@ -734,6 +734,19 @@
       var b = now();
       noise({ freq: 1800, to: 260, dur: 0.06, gain: 0.32, at: b });
       tone({ freq: 150, to: 70, dur: 0.1, gain: 0.26, type: 'triangle', at: b });
+    },
+    // A bowling ball rolling down the lane (#313): a low rumble that fades as
+    // the ball runs away, with a heavy start as it lands on the wood
+    roll: function () {
+      var b = now();
+      noise({ freq: 320, to: 140, dur: 2.4, gain: 0.16, at: b });
+      tone({ freq: 70, to: 52, dur: 0.35, gain: 0.18, type: 'sine', at: b });
+    },
+    // One pin struck: a hollow wooden knock; a strike plays several close together
+    pin: function () {
+      var b = now();
+      noise({ freq: 2400, to: 1300, dur: 0.05, gain: 0.24, filter: 'bandpass', at: b });
+      tone({ freq: 820, to: 520, dur: 0.07, gain: 0.11, type: 'triangle', at: b });
     }
   };
 
@@ -871,7 +884,7 @@
   Chogan.feedback = function (kind) {
     var map = { tap: ['tap', 'tap'], select: ['select', 'select'], good: ['good', 'success'],
       bad: ['bad', 'error'], win: ['win', 'win'], coin: ['coin', 'success'], place: ['place', 'tap'], clack: ['clack', 'tap'], flint: ['flint', 'tap'],
-      whoosh: ['whoosh', null], thud: ['thud', 'tap'] };
+      whoosh: ['whoosh', null], thud: ['thud', 'tap'], roll: ['roll', null], pin: ['pin', null] };
     var m = map[kind] || map.tap;
     audioApi.sfx(m[0]);
     // a throw has no touch to answer, so it makes a sound without a buzz
@@ -983,6 +996,9 @@
     { id: 'dt-win',      icon: 'medal',   fa: 'دوبل آخر',          en: 'Double out',        dfa: 'یک دست دارت را مقابل ربات بردی',      den: 'Win a game of darts against the bot', zh: '双倍收镖', dzh: '对战电脑赢下一局飞镖', de: 'Doppel-Finish', dde: 'Gewinne eine Partie Darts gegen den Bot', es: 'Cierre doble', des: 'Gana una partida de dardos contra el bot' },
     { id: 'dt-hard',     icon: 'brain',   fa: 'دست ثابت',          en: 'Steady hand',       dfa: 'در دارت ربات سخت را شکست دادی',       den: 'Beat the hard bot at darts', zh: '稳如磐石', dzh: '在飞镖中击败困难电脑', de: 'Ruhige Hand', dde: 'Schlag den schweren Bot im Darts', es: 'Pulso firme', des: 'Vence al bot difícil en dardos' },
     { id: 'dt-180',      icon: 'flame',   fa: 'صد و هشتاد!',       en: 'One hundred and eighty!', dfa: 'در یک نوبت دارت ۱۸۰ زدی',  den: 'Score 180 in one turn of darts', zh: '一百八十分！', dzh: '飞镖一轮打出180分', de: 'Hundertachtzig!', dde: 'Wirf 180 in einer Aufnahme', es: '¡Ciento ochenta!', des: 'Haz 180 en un turno de dardos' },
+    { id: 'bw-win',      icon: 'medal',   fa: 'ده پین',            en: 'Ten pins',          dfa: 'یک دست بولینگ را مقابل ربات بردی',     den: 'Win a game of bowling against the bot', zh: '十瓶', dzh: '对战电脑赢下一局保龄球', de: 'Zehn Pins', dde: 'Gewinne eine Partie Bowling gegen den Bot', es: 'Diez bolos', des: 'Gana una partida de bolos contra el bot' },
+    { id: 'bw-hard',     icon: 'brain',   fa: 'استاد مسیر',        en: 'Lane master',       dfa: 'در بولینگ ربات سخت را شکست دادی',      den: 'Beat the hard bot at bowling', zh: '球道大师', dzh: '在保龄球中击败困难电脑', de: 'Bahnmeister', dde: 'Schlag den schweren Bot im Bowling', es: 'Maestro de la pista', des: 'Vence al bot difícil en bolos' },
+    { id: 'bw-turkey',   icon: 'flame',   fa: 'بوقلمون',           en: 'Turkey',            dfa: 'در بولینگ سه استرایک پشت سر هم زدی',    den: 'Bowl three strikes in a row', zh: '三连全中', dzh: '保龄球连续三次全中', de: 'Turkey', dde: 'Wirf drei Strikes hintereinander', es: 'Pavo', des: 'Haz tres plenos seguidos en bolos' },
     { id: 'go-win',      icon: 'medal',   fa: 'زمین‌گیر',          en: 'Territory',         dfa: 'یک دست گو را مقابل ربات بردی',        den: 'Win a game of go against the AI', zh: '围地', dzh: '对战电脑赢下一局围棋', de: 'Gebietsherr', dde: 'Gewinne eine Partie Go gegen den Computer', es: 'Territorio', des: 'Gana una partida de Go contra la IA' },
     { id: 'go-hard',     icon: 'brain',   fa: 'دو چشم',            en: 'Two eyes',          dfa: 'در گو ربات سخت را شکست دادی',         den: 'Beat the hard AI at go', zh: '两只眼', dzh: '在围棋中击败困难电脑', de: 'Zwei Augen', dde: 'Schlag die schwere Go-KI', es: 'Dos ojos', des: 'Vence a la IA difícil en Go' },
     { id: 'bj-win',      icon: 'trophy',  fa: 'دیلر را بردی',      en: 'Beat the dealer',   dfa: 'یک مسابقه‌ی ده‌دستی بیست‌ویک را بردی', den: 'Win a ten-hand blackjack match', zh: '赢过庄家', dzh: '赢下一场十手的二十一点比赛', de: 'Croupier geschlagen', dde: 'Gewinne eine Blackjack-Partie aus zehn Händen', es: 'Vence a la banca', des: 'Gana una partida de Blackjack de diez manos' },

@@ -744,6 +744,30 @@
       "soft": "#F8E3E0",
       "added": "2026-10-19",
       "files": []
+    },
+    {
+      "id": "bowling",
+      "cat": "skill",
+      "name": {
+        "fa": "بولینگ",
+        "en": "Bowling",
+        "zh": "保龄球",
+        "de": "Bowling",
+        "es": "Bolos"
+      },
+      "summary": {
+        "fa": "ده فریم، با کشیدن انگشت پرتاب کن و پیچ بده؛ تنها، با ربات یا دو نفره، و چالش روزانه.",
+        "en": "Ten frames: swipe to bowl and bend it for spin; alone, against a bot or two players, and a daily lane.",
+        "zh": "十格，滑动投球、弯曲加旋；单人、对战电脑或双人，还有每日球道。",
+        "de": "Zehn Frames: wischen zum Werfen, biegen für Drall; allein, gegen einen Bot oder zu zweit, mit Tagesbahn.",
+        "es": "Diez juegos: desliza para lanzar y curva para dar efecto; solo, contra un bot o a dos, y una pista diaria."
+      },
+      "path": "games/bowling/index.html",
+      "icon": "games/bowling/icon.svg",
+      "color": "#3C4F9A",
+      "soft": "#E3E6F4",
+      "added": "2026-10-19",
+      "files": []
     }
   ]
 }
