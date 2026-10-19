@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3807;
+const MIN_CHECKS = 3814;
 
 function ok(cond, msg) {
   checks++;
@@ -178,6 +178,18 @@ function testMines() {
   ok(sj(se(0, 251, 250, false)) === sj({ left: false, right: false }), 'یک پیکسل گردکردن لبه‌ی پنهان حساب نمی‌شود');
   const msHtml = fs.readFileSync(path.join(ROOT, 'www/games/minesweeper/index.html'), 'utf8');
   ok(/E\.scrollEdges\(scroll\.scrollLeft, scroll\.scrollWidth, scroll\.clientWidth, rtl\)/.test(msHtml), 'صفحه لبه‌ها را از scrollEdges می‌گیرد');
+
+  // Left and right ran on into the next row at the board's edge (#328)
+  ok(typeof E.step === 'function', 'the engine has a cursor step');
+  if (typeof E.step === 'function') {
+    const st = (c, k, rtl) => E.step(c, k, 9, 9, !!rtl);
+    ok(st(8, 'ArrowRight') === 8 && st(9, 'ArrowLeft') === 9, 'left to right: the cursor stops at both ends of a row');
+    ok(st(8, 'ArrowLeft', true) === 8 && st(9, 'ArrowRight', true) === 9, 'right to left: the same, with the arrows swapped');
+    ok(st(4, 'ArrowRight') === 5 && st(4, 'ArrowLeft') === 3 && st(4, 'ArrowRight', true) === 3, 'inside a row it moves one cell');
+    ok(st(4, 'ArrowUp') === 4 && st(76, 'ArrowDown') === 76 && st(4, 'ArrowDown') === 13 && st(13, 'ArrowUp') === 4, 'up and down stop at the top and bottom rows');
+    ok(st(4, 'Enter') === -1, 'any other key is not a move');
+  }
+  ok(/E\.step\(cursor, k, sp\.rows, sp\.cols, document\.documentElement\.dir === 'rtl'\)/.test(msHtml), 'the page moves its cursor with the engine step');
 }
 
 /* ------------------------------------------------------- نقطه‌بازی */
