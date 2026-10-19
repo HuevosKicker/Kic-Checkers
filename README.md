@@ -48,6 +48,7 @@ Ways to play:
 | Bowling | Ten frames on a lane seen from behind: swipe to bowl, bend the swipe for spin, and pins that carry like real ones; alone, against a bot at three levels or two players, and a daily lane |
 | Sliding Puzzle | Slide the numbered tiles back into order on a 3×3, 4×4 or 5×5 tray, every shuffle solvable, in as few moves as you can, and a daily tray |
 | Jigsaw | Drag pieces up from a scrolling row into the frame, 12, 24 or 48 of them, where each one snaps into its own place; six pictures of our own drawn in code, Persian patterns and scenes, and a daily picture |
+| Checkers | Draughts on 8×8 with two rule sets: classic checkers (English draughts), with compulsory jumps that run to the end and kings that step backwards too, or Spanish draughts, with flying kings and the capture that takes the most pieces; against the AI at three levels or two players, and a daily classic game from a seeded opening against the hard AI |
 
 Around the games: a daily challenge that is identical on every device with no server at all, a weekly offline league with five tiers, over eighty awards, a shared coin that is only ever spent on hints and cosmetics, stats and a profile, and a Persian, English, Simplified Chinese, German and Spanish interface with light and dark themes.
 
@@ -152,6 +153,7 @@ MIT, see [LICENSE](LICENSE). The Vazirmatn font is under the OFL; its licence te
 | بولینگ | ده فریم روی مسیری که از پشت دیده می‌شود: انگشت بکش تا پرتاب کنی، کج بکش تا پیچ بخورد، و پین‌هایی که مثل واقعی می‌افتند؛ تنها، با ربات در سه سطح یا دو نفره، و مسیر روزانه |
 | پازل کشویی | کاشی‌های شماره‌دار را روی سینی ۳×۳، ۴×۴ یا ۵×۵ با سُر دادن به ترتیب بچین، همه‌ی چیدمان‌ها حل‌شدنی، با کمترین حرکت، و سینی روزانه |
 | جورچین | تکه‌ها را از ردیفی که به پهلو می‌لغزد بالا بکش و در قاب بگذار، ۱۲، ۲۴ یا ۴۸ تکه، که هر کدام فقط سر جای خودش می‌چسبد؛ شش تصویر از خود ما که با کد کشیده شده‌اند، نقش‌های ایرانی و منظره، و تصویر روزانه |
+| چکرز | چکرز روی تخته‌ی ۸×۸ با دو قانون: کلاسیک (درافتس انگلیسی) با زدن اجباری که باید تا آخر ادامه پیدا کند و شاهی که به عقب هم می‌رود، یا اسپانیایی با شاه پرنده و زدنی که بیشترین مهره را بگیرد؛ مقابل هوش مصنوعی در سه سطح یا دو نفره، و بازی روزانه‌ی کلاسیک از یک گشایش ثابت مقابل حریف سخت |
 
 بیرون از بازی‌ها: چالش روزانه‌ی مشترک برای همه‌ی دستگاه‌ها بدون هیچ سروری، لیگ هفتگی آفلاین با پنج رده، بیش از هشتاد دستاورد، سکه‌ی مشترک که فقط خرج راهنمایی و تزئینات می‌شود، آمار و پروفایل، و رابط فارسی، انگلیسی، چینی ساده‌شده، آلمانی و اسپانیایی با تم روشن و تاریک.
 

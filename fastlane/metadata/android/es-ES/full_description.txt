@@ -1,4 +1,4 @@
-Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae treinta y cuatro juegos, y los nuevos llegan como actualizaciones de la misma app.
+Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae treinta y cinco juegos, y los nuevos llegan como actualizaciones de la misma app.
 
 Los juegos:
 
@@ -27,7 +27,7 @@ Los juegos:
 * Salida — saca todas las flechas del tablero en un orden que funcione, tres corazones por nivel, niveles sin fin
 * Blackjack — acércate más a 21 que la banca, partidas de diez manos sin apuestas
 * Bola 8 — mete tu grupo y al final la 8, con física de mesa real, contra la IA en tres niveles o para dos
-* Snooker — una roja, luego un color y al final los colores en orden, con 6, 10 o 15 rojas, contra la IA en tres niveles o para dos
+* Snooker — roja, luego color y al final los colores en orden; 6, 10 o 15 rojas, contra la IA o para dos
 * Atasco — aparta los coches y saca el tuyo del aparcamiento, un arrastre es un movimiento, niveles sin fin
 * Reacción en cadena — añade orbes hasta que las casillas estallen en cadena; de 2 a 4 en un móvil o contra bots
 * Ludo — tira, sal con un seis, come y lleva tus fichas a casa; de 2 a 4 jugadores o contra bots
@@ -36,6 +36,7 @@ Los juegos:
 * Bolos — diez juegos, desliza para lanzar y curva para dar efecto; solo, contra un bot o a dos
 * Puzle deslizante — ordena las fichas numeradas, de 3×3 a 5×5, con pocos movimientos
 * Rompecabezas — de 12 a 48 piezas al marco; motivos persas y paisajes dibujados con código
+* Damas — 8×8 con captura obligatoria, reglas clásicas o españolas, contra la IA o para dos
 
 Alrededor de los juegos:
 
@@ -49,7 +50,7 @@ Sobre la privacidad:
 
 * El único permiso que declara la app es la vibración. Ni siquiera acceso a internet
 * Sin anuncios, sin compras dentro de la app, sin analíticas, sin rastreo
-* Todos los recursos van dentro del paquete. Hasta el sonido se genera con WebAudio, así que no hay ni un solo archivo de audio en la build
+* Todo va dentro del paquete, hasta el sonido se genera con código
 * El progreso se guarda solo en el dispositivo, y la copia de seguridad automática de Google está desactivada
 
 Gratis y de código abierto con la licencia MIT.
