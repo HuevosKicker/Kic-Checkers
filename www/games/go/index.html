@@ -12,7 +12,6 @@
   :root { --go-wood: #DDB97E; --go-line: rgba(60, 38, 10, .55); --go-black: #1A1A1A; --go-white: #F5F0E6; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --go-wood: #BE9A62; --go-line: rgba(35, 20, 5, .6); } }
   :root[data-theme="dark"] { --go-wood: #BE9A62; --go-line: rgba(35, 20, 5, .6); }
-  .go-wrap { width: 100%; display: flex; flex-direction: column; gap: var(--s-3); align-items: center; }
   .go-top { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: center; width: 100%; max-width: 520px; }
   .go-players { width: 100%; max-width: 520px; display: flex; gap: var(--s-2); }
   .go-player {
@@ -27,7 +26,7 @@
   .go-player__caps { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--c-text-dim); font-size: var(--fs-sm); }
   .go-thinking { animation: go-blink 900ms infinite; }
   @keyframes go-blink { 50% { opacity: .55; } }
-  .go-boardbox { width: 100%; max-width: min(96vw, 56vh, 520px); aspect-ratio: 1; }
+  .go-boardbox { aspect-ratio: 1; } /* fills the room it has (#359); it stopped at a fixed size before */
   .go-canvas { width: 100%; height: 100%; display: block; touch-action: manipulation; cursor: pointer; border-radius: var(--r-md); box-shadow: var(--sh-2); }
   .go-actions { display: flex; gap: var(--s-2); justify-content: center; width: 100%; max-width: 520px; }
   .go-note { min-height: 22px; font-size: var(--fs-sm); color: var(--c-text-dim); text-align: center; }
@@ -409,11 +408,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GoEngineFa
   cv.setAttribute('role', 'img');
   cv.setAttribute('aria-label', C.t('boardLabel'));
   var boardBox = el('div', { class: 'go-boardbox' }, [cv]);
-  var top = el('div', { class: 'go-top' });
-  var playersRow = el('div', { class: 'go-players' });
+  var top = el('div', { class: 'go-top ch-above' });
+  var playersRow = el('div', { class: 'go-players ch-above' });
   var noteEl = el('div', { class: 'go-note', 'aria-live': 'polite' });
   var passBtn = el('button', { class: 'ch-btn ch-btn--soft', type: 'button', text: C.t('pass'), onclick: function () { if (!busy()) move(PASS); } });
-  var wrap = el('div', { class: 'go-wrap' }, [top, playersRow, boardBox, el('div', { class: 'go-actions' }, [passBtn]), noteEl]);
+  var wrap = el('div', { class: 'go-wrap ch-split' }, [el('div', { class: 'ch-fit' }, [boardBox]), el('div', { class: 'ch-side' }, [top, playersRow, el('div', { class: 'go-actions' }, [passBtn]), noteEl])]);
 
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
   ctx.button({ icon: 'undo', label: C.t('undoMove'), onClick: undo });
@@ -786,7 +785,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GoEngineFa
     if (C.keyIs(e, 'p')) { e.preventDefault(); move(PASS); }
   });
 
-  window.addEventListener('resize', function () { if (S) draw(); });
+  // the board's size follows its slot, which changes with the window and the side column
+  if (window.ResizeObserver) new ResizeObserver(function () { if (S) draw(); }).observe(boardBox);
+  else window.addEventListener('resize', function () { if (S) draw(); });
   if (window.matchMedia) {
     var mq = window.matchMedia('(prefers-color-scheme: dark)');
     if (mq.addEventListener) mq.addEventListener('change', function () { if (S) draw(); });

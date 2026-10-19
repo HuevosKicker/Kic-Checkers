@@ -8,22 +8,14 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../../lib/chogan.css">
 <style>
-  /* The board takes the room the rows above and below it leave (#359); before, it
-     stopped at 520px and a laptop or tablet showed it in half the screen. On a
-     wide screen the controls move beside the board, so the board can use the full
-     height. */
-  .sd-wrap { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-3); }
-  .sd-side { display: contents; }
-  .sd-top { order: -1; }
-  .sd-tools, .sd-pad { width: 100%; max-width: 560px; }
+  /* The board fills the room it has (#359); before, it stopped at 520px and a
+     laptop or tablet showed it in half the screen. In a wide window the tools and
+     a 3x3 number pad sit beside it (the core's .ch-split). */
+  .sd-tools, .sd-pad { width: 100%; }
   @container game (min-aspect-ratio: 5 / 4) {
-    .sd-wrap { flex-direction: row; justify-content: center; }
-    .sd-wrap > .ch-fit { flex: 0 1 auto; width: min(100cqh, 100cqw - 280px); height: 100%; max-height: none; }
-    .sd-side { display: flex; flex-direction: column; justify-content: center; gap: var(--s-3); width: clamp(240px, 26cqw, 360px); }
-    .sd-top { order: 0; }
-    .sd-side .sd-pad { grid-template-columns: repeat(3, 1fr); gap: 6px; }
-    .sd-side .sd-pad .sd-num { min-height: clamp(36px, 10cqh, 76px); padding-block: 2px; font-size: clamp(16px, 3.4cqh, 28px); }
-    .sd-side .sd-tool { min-height: clamp(40px, 9cqh, 56px); }
+    .ch-side .sd-pad { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .ch-side .sd-pad .sd-num { min-height: clamp(36px, 10cqh, 76px); padding-block: 2px; font-size: clamp(16px, 3.4cqh, 28px); }
+    .ch-side .sd-tool { min-height: clamp(40px, 9cqh, 56px); }
   }
   .sd-board {
     /* ردیف‌ها هم صریح‌اند: با ردیف خودکار هر ردیف به اندازه‌ی محتوایش بود و
@@ -458,8 +450,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
   var board = el('div', { class: 'sd-board', role: 'grid', 'aria-label': 'جدول سودوکو' });
   var pad = el('div', { class: 'sd-pad' });
   var tools = el('div', { class: 'sd-tools' });
-  var topRow = el('div', { class: 'sd-top' });
-  var wrap = el('div', { class: 'sd-wrap' }, [el('div', { class: 'ch-fit' }, [board]), el('div', { class: 'sd-side' }, [topRow, tools, pad])]);
+  var topRow = el('div', { class: 'sd-top ch-above' });
+  var wrap = el('div', { class: 'sd-wrap ch-split' }, [el('div', { class: 'ch-fit' }, [board]), el('div', { class: 'ch-side' }, [topRow, tools, pad])]);
 
   for (var i = 0; i < 81; i++) {
     (function (idx) {
