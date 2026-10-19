@@ -366,6 +366,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BlockDropE
   ctx.stat('lines', C.t('lines'));
   // the second counter is the clock in a sprint and the score in a marathon
   var scoreLbl = ctx.stat('score', C.t('score')).querySelector('span');
+  ctx.button({ icon: 'refresh', label: C.t('newRound'), onClick: askNew });
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
   ctx.main.appendChild(wrap);
   ctx.mount();
@@ -415,6 +416,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BlockDropE
     if (!daily) { prefs.mode = S.mode; ctx.store.set('prefs', prefs); }
     afterLoad();
     save();
+  }
+
+  // Restarting used to mean switching mode and back, and the daily had no way at all (#327)
+  function askNew() {
+    var go = function () { start(S.mode, S.daily); };
+    if (!S.started || over || S.pieces === 0) { go(); return; }
+    paused = true;
+    save();
+    C.ui.confirm({ title: C.t('newRound'), body: C.t('resetWarn'), onOk: go });
   }
 
   function resume(restored) {

@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3805;
+const MIN_CHECKS = 3807;
 
 function ok(cond, msg) {
   checks++;
@@ -3726,6 +3726,10 @@ function testBlockDrop() {
   const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
   ok(['bd-sprint', 'bd-tetris', 'bd-marathon'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '").test(core) && new RegExp("\\{ id: '" + id + "',[^\\n]*des: '").test(core)), 'the achievements are defined in the core in every language');
   ok(!/Tetris/i.test(page.replace(/tetrises|'bd-tetris'|e\.cleared === 4/g, '')), 'the trademark name is not used in the game');
+  // A round could only be restarted by switching mode and back (#327)
+  ok(/ctx\.button\(\{ icon: 'refresh', label: C\.t\('newRound'\), onClick: askNew \}\)/.test(page), 'the top bar has a new-round button');
+  const ask = (page.match(/function askNew\(\) \{[\s\S]*?\n  \}/) || [''])[0];
+  ok(/start\(S\.mode, S\.daily\)/.test(ask) && /C\.ui\.confirm\(/.test(ask), 'it starts the same kind of round again and asks first when one is under way');
 }
 
 /* ----------------------------------------------------------- Way Out */
