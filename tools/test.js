@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4108;
+const MIN_CHECKS = 4185;
 
 function ok(cond, msg) {
   checks++;
@@ -6505,6 +6505,145 @@ function testSliding() {
 }
 
 /* ------------------------------------------------ Jigsaw (#325) */
+// Checkers (#357): classic English draughts, a bot at three levels, a daily opening
+function testCheckers() {
+  head('Checkers');
+  const t0 = Date.now();
+  const E = loadEngine('checkers', 'CheckersEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/checkers/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  // A board from eight rows: . empty, x and o the men of players 1 and 2, X and O kings
+  const B = (rows) => rows.join('').split('').map((ch) => ({ '.': 0, x: 1, o: 2, X: 3, O: 4 })[ch]);
+  const sq = (r, c) => r * 8 + c;
+  const st = (b, turn) => ({ mode: '2p', board: b, turn: turn || 1, quiet: 0, history: [], winner: -1 });
+
+  // The start: twelve men each, on the dark squares, player 1 at the bottom
+  const b0 = E.initial(), n0 = E.count(b0);
+  ok(n0.men[1] === 12 && n0.men[2] === 12 && b0.every((v, i) => !v || E.dark(i)), 'twelve men a side, all on dark squares');
+  ok(b0.slice(40).every((v) => v === 0 || v === 1) && b0.slice(0, 24).every((v) => v === 0 || v === 2), 'player 1 starts at the bottom, player 2 at the top');
+  ok(E.moves(b0, 1).length === 7 && E.moves(b0, 2).length === 7, 'each side has the seven usual opening moves');
+  ok(E.moves(b0, 1).every((m) => m.path[0] < m.from), 'player 1 moves up the board');
+
+  // A man moves forward only; a king both ways
+  const lone = B(['........', '........', '........', '....x...', '........', '........', '........', '........']);
+  ok(E.moves(lone, 1).map((m) => m.path[0]).sort().join() === [sq(2, 3), sq(2, 5)].sort().join(), 'a man steps one square diagonally forward, never back');
+  const lk = lone.slice(); lk[sq(3, 4)] = 3;
+  ok(E.moves(lk, 1).length === 4, 'a king steps one square in all four diagonal directions');
+
+  // Capturing is compulsory and runs to its end
+  // the free man comes first in board order, so a generator that adds its steps
+  // to the jumps is caught (a first version of this test put it last and missed that)
+  const forced = B(['........', '........', '......x.', '...o....', '....x...', '........', '........', '........']);
+  const fm = E.moves(forced, 1);
+  ok(fm.length === 1 && fm[0].from === sq(4, 4) && fm[0].caps.join() === String(sq(3, 3)) && fm[0].path.join() === String(sq(2, 2)), 'when a jump is open it is the only legal move, for every piece');
+  const dbl = B(['........', '........', '...o....', '........', '...o....', '..x.....', '........', '........']);
+  const dm = E.moves(dbl, 1);
+  ok(dm.length === 1 && dm[0].caps.length === 2 && dm[0].path.join() === [sq(3, 4), sq(1, 2)].join(), 'a double jump is one move that takes both pieces');
+  const S1 = st(dbl.slice());
+  ok(E.applyMove(S1, { from: sq(5, 2), path: [sq(3, 4)] }) === null, 'stopping halfway through a double jump is illegal');
+  // A man that reaches the far row on a jump is crowned and stops there
+  const crown = B(['........', '..o.o...', '.x......', '........', '........', '........', '........', '........']);
+  const cm = E.moves(crown, 1);
+  ok(cm.length === 1 && cm[0].crown && cm[0].caps.length === 1 && cm[0].path.join() === String(sq(0, 3)), 'a jump that crowns a man ends the move, even with another jump in reach');
+  const S2 = st(crown.slice());
+  E.applyMove(S2, cm[0]);
+  ok(S2.board[sq(0, 3)] === 3 && S2.board[sq(1, 2)] === 0 && S2.board[sq(2, 1)] === 0, 'the crowned piece is a king and the jumped man is gone');
+  // A player with no move has lost; forty moves each of kings shuffling is a draw
+  const last = B(['........', '........', '........', '...o....', '....x...', '........', '........', '........']);
+  const S3 = st(last.slice());
+  const r3 = E.applyMove(S3, E.moves(S3.board, 1)[0]);
+  ok(r3 && r3.over && r3.winner === 1, 'taking the last piece wins');
+  const blocked = B(['........', '........', '........', '........', '........', '........', 'o.o.....', '.x...x..']);
+  const S4 = st(blocked.slice(), 2);
+  ok(E.moves(S4.board, 2).length > 0 && E.moves(B(['.......o', '......x.', '.....x..', '........', '........', '........', '........', '........']), 2).length === 0, 'a blocked piece has no move');
+  const kings = B(['.O......', '........', '........', '........', '........', '........', '........', '......X.']);
+  const S5 = st(kings.slice());
+  for (let i = 0; i < E.DRAW_PLIES.classic && S5.winner < 0; i++) E.applyMove(S5, E.moves(S5.board, S5.turn)[0]);
+  ok(S5.winner === 0 && S5.history.length === E.DRAW_PLIES.classic, 'eighty plies without a capture or a man moving is a draw (' + S5.history.length + ')');
+
+  // Spanish draughts, as the issue asked (#357): flying kings, and the capture
+  // that takes the most pieces, then the most kings
+  const fk = B(['........', '........', '........', '....X...', '........', '........', '........', '........']);
+  ok(E.moves(fk, 1, 'classic').length === 4 && E.moves(fk, 1, 'spanish').length === 13, 'a Spanish king flies along its diagonals (13 squares from d5), a classic one steps (4)');
+  const far = B(['........', '.......X', '........', '........', '....o...', '........', '........', '........']);
+  const fm2 = E.moves(far, 1, 'spanish');
+  ok(fm2.length === 3 && fm2.every((m) => m.caps.join() === String(sq(4, 4))) && fm2.map((m) => m.path[0]).sort((a, c) => a - c).join() === [sq(5, 3), sq(6, 2), sq(7, 1)].join(),
+    'it captures from a distance and may land on any empty square beyond (' + fm2.length + ' landings)');
+  ok(E.moves(far, 1, 'classic').every((m) => !m.caps.length), 'a classic king cannot capture from a distance');
+  const qty = B(['........', '........', '.o......', '........', '.o...o..', 'x.....x.', '........', '........']);
+  ok(E.moves(qty, 1, 'classic').some((m) => m.caps.length === 1) && E.moves(qty, 1, 'spanish').every((m) => m.caps.length === 2),
+    'quantity rule: Spanish keeps only the captures taking the most pieces; classic lets you choose');
+  const qual = B(['........', '........', '........', '.O...o..', '..x...x.', '........', '........', '........']);
+  const ql = E.moves(qual, 1, 'spanish');
+  ok(ql.length === 1 && ql[0].caps.join() === String(sq(3, 1)) && E.moves(qual, 1, 'classic').length === 2, 'quality rule: of equal captures, Spanish must take the king');
+  // flying kings soon meet on a diagonal, so the count is started near its end
+  const S7 = { mode: '2p', rules: 'spanish', board: kings.slice(), turn: 1, quiet: E.DRAW_PLIES.spanish - 2, history: [], winner: -1 };
+  E.applyMove(S7, { from: sq(7, 6), path: [sq(6, 7)] });
+  const mid7 = S7.winner;
+  E.applyMove(S7, { from: sq(0, 1), path: [sq(1, 0)] });
+  ok(E.DRAW_PLIES.spanish === 40 && mid7 === -1 && S7.winner === 0 && S7.quiet === 40, 'Spanish draws on the fortieth king move without a capture, not the thirty-ninth');
+  const sp = E.newState('2p', 'spanish'), sr = (() => { let k = 7; return () => ((k = (k * 9301 + 49297) % 233280) / 233280); })();
+  let spOk = true;
+  for (let i = 0; i < 300 && sp.winner < 0; i++) if (!E.applyMove(sp, E.aiMove(sp.board, sp.turn, i % 2 ? 'hard' : 'easy', sr, 'spanish'))) { spOk = false; break; }
+  ok(spOk && sp.winner >= 0 && sp.rules === 'spanish', 'a whole Spanish game between the AIs plays only legal moves and ends (winner ' + sp.winner + ')');
+  ok(/prefs\.rules = v;/.test(html) && /var rules = daily \? 'classic' : prefRules\(\);/.test(html) && /E\.aiMove\(S\.board, 2, S\.level, rnd, S\.rules\)/.test(html), 'the page offers both rule sets, keeps the daily game classic and gives the AI the rules in play');
+
+  // Undo puts back exactly what was there, captured pieces included
+  const S6 = E.newState('2p');
+  for (let i = 0; i < 30 && S6.winner < 0; i++) E.applyMove(S6, E.aiMove(S6.board, S6.turn, 'easy', (() => { let k = i; return () => ((k = (k * 9301 + 49297) % 233280) / 233280); })()));
+  const snap = S6.board.join();
+  const took = S6.history.reduce((a, h) => a + h.took.length, 0);
+  while (S6.history.length) E.takeBack(S6);
+  ok(took > 0 && S6.board.join() === E.initial().join() && S6.turn === 1 && snap !== S6.board.join(), 'taking back every move restores the start, with ' + took + ' captures undone');
+
+  // The AI: always legal, and the levels in order. Measured over 10 games a pairing
+  // (#357): hard beat medium and easy 10 of 10 from both sides; medium beat easy 7
+  // and drew 3.
+  const rng = (seed) => { let s = seed; return () => ((s = (s * 1103515245 + 12345) % 2147483648) / 2147483648); };
+  const match = (l1, l2, seed) => {
+    const S = E.newState('2p'), r = rng(seed);
+    for (let i = 0; i < 400 && S.winner < 0; i++) {
+      const m = E.aiMove(S.board, S.turn, S.turn === 1 ? l1 : l2, r);
+      if (!E.applyMove(S, m)) return -9;
+    }
+    return S.winner;
+  };
+  const hw = [1, 2, 3, 4].map((k) => match('hard', 'easy', 50 + k)), mw = [1, 2, 3, 4].map((k) => match('medium', 'easy', 70 + k));
+  ok(hw.every((w) => w !== -9) && mw.every((w) => w !== -9), 'every AI move is legal');
+  ok(hw.filter((w) => w === 1).length >= 4, 'hard beats easy in 4 of 4 games (' + hw.join(',') + ')');
+  ok(mw.filter((w) => w === 2).length === 0 && mw.filter((w) => w === 1).length >= 2, 'medium never loses to easy and wins at least 2 of 4 (' + mw.join(',') + ')');
+  const tb = Date.now(); E.aiMove(E.initial(), 1, 'hard', rng(5)); const tHard = Date.now() - tb;
+  ok(tHard < 1500, 'a hard move from the start takes under 1.5 s here (' + tHard + ' ms)');
+
+  // The daily opening: the same for everyone on a day, and it hands player 1 the move
+  const d1 = E.dailyOpening(rng(42), 4), d2 = E.dailyOpening(rng(42), 4);
+  ok(d1.board.join() === d2.board.join() && d1.turn === 1 && E.count(d1.board).men[1] + E.count(d1.board).men[2] >= 22, 'the daily opening is seeded, four plies long and ends on player 1\'s turn');
+  ok(/var DAILY_PLIES = 4;/.test(html) && /C\.daily\('checkers', daily\)\.rng/.test(html), 'the page seeds it from the day');
+
+  // Page wiring and identity
+  const gm = games.find((g) => g.id === 'checkers');
+  ok(!!gm && gm.cat === 'board' && gm.daily !== false, 'games.json lists it under board games, with a daily game');
+  ok(!!gm && /accent: '([^']+)'/.test(html) && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/checkers/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const lin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const lab = (h) => {
+    const [R, G, Bl] = rgb(h).map(lin), f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    const X = (R * 0.4124 + G * 0.3576 + Bl * 0.1805) / 0.95047, Y = R * 0.2126 + G * 0.7152 + Bl * 0.0722, Z = (R * 0.0193 + G * 0.1192 + Bl * 0.9505) / 1.08883;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  };
+  const dE = (a, b) => { const A = lab(a), Bb = lab(b); return Math.hypot(A[0] - Bb[0], A[1] - Bb[1], A[2] - Bb[2]); };
+  const lum = (h) => rgb(h).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const near = games.filter((g) => g.id !== 'checkers').map((g) => [g.id, dE(g.color, gm.color)]).sort((x, y) => x[1] - y[1])[0];
+  ok(near[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + near[0] + ', ' + near[1].toFixed(1) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['ck-win', 'ck-hard', 'ck-clean'].every((id) => core.indexOf("id: '" + id + "'") > 0 && html.indexOf("unlock('" + id + "')") > 0), 'the three checkers awards exist and are unlocked');
+  ok(/class: 'ck-wrap ch-split'/.test(html) && /class: 'ch-fit'/.test(html) && /cv\.width !== px \|\| cv\.height !== px/.test(html), 'the board fills the screen with the core layout (#359) and checks both canvas sides');
+  ok(/if \(k === 'Escape' && sel\) \{ sel = null; draw\(\); e\.preventDefault\(\); return; \}/.test(html), 'Escape drops a pick before it would leave the game');
+  ok(Date.now() - t0 < 20000, 'the checkers tests finish in under 20 s (' + (Date.now() - t0) + ' ms)');
+}
+
 function testJigsaw() {
   head('Jigsaw');
   const t0 = Date.now();
@@ -7897,6 +8036,7 @@ testDarts();
 testBowling();
 testSliding();
 testJigsaw();
+testCheckers();
 testCoreLabels();
 testFitScreen();
 testKeyLayout();

@@ -816,6 +816,30 @@
       "soft": "#DFF0F3",
       "added": "2026-10-19",
       "files": []
+    },
+    {
+      "id": "checkers",
+      "cat": "board",
+      "name": {
+        "fa": "چکرز",
+        "en": "Checkers",
+        "zh": "西洋跳棋",
+        "de": "Dame",
+        "es": "Damas"
+      },
+      "summary": {
+        "fa": "مورب برو، از روی مهره‌ها بپر و شاه شو؛ قانون کلاسیک یا اسپانیایی. دونفره یا مقابل هوش مصنوعی.",
+        "en": "Move diagonally, jump to capture, and crown your kings; classic or Spanish rules. Two players or versus the AI.",
+        "zh": "斜着走，跳过去吃子，到底线升王；经典或西班牙规则。双人对战或对战电脑。",
+        "de": "Schräg ziehen, überspringen und zur Dame werden; klassische oder spanische Regeln. Zu zweit oder gegen den Computer.",
+        "es": "Avanza en diagonal, salta para capturar y corona tus damas; reglas clásicas o españolas. Dos jugadores o contra la IA."
+      },
+      "path": "games/checkers/index.html",
+      "icon": "games/checkers/icon.svg",
+      "color": "#B82066",
+      "soft": "#F7DDE8",
+      "added": "2026-10-19",
+      "files": []
     }
   ]
 }
