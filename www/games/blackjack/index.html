@@ -8,7 +8,8 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../../lib/chogan.css">
 <style>
-  .bj-wrap { --cw: clamp(52px, 15vw, 76px); margin-block: auto; width: 100%; max-width: 560px; display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
+  /* cards grow with the game area (#359); at 76px at most they were small on a tablet or laptop */
+  .bj-wrap { --cw: clamp(52px, min(16cqw, (100cqh - 260px) / 4), 130px); margin-block: auto; width: 100%; max-width: max(560px, calc(var(--cw) * 7.4)); display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
   .bj-top { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; align-items: center; }
   .bj-side { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .bj-who { display: flex; align-items: center; gap: var(--s-2); font-weight: 700; color: var(--c-text-dim); font-size: var(--fs-sm); }
