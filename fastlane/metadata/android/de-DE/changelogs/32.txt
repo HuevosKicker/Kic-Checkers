@@ -1,0 +1,5 @@
+Neue Spiele: Darts (501 oder 301 mit Doppel zum Schluss), Bowling (zehn Frames mit Drall), Schiebepuzzle (3×3 bis 5×5) und Puzzle (12 bis 48 Teile auf im Code gezeichneten Bildern).
+Minesweeper: Mittel und Groß passen auf den Bildschirm oder scrollen; die Pfeiltasten halten am Rand.
+Gomoku, Go und Kettenreaktion: Pfeiltasten passen auf Persisch zum Brett.
+Buchstaben-Kürzel gehen mit jeder Tastaturbelegung.
+Blocksturz: ein Knopf für eine neue Runde.
