@@ -36,7 +36,7 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "fullscreen"],
+  "display_override": ["window-controls-overlay", "standalone", "fullscreen"],
   "orientation": "any",
   "background_color": "#FBF6EF",
   "theme_color": "#FBF6EF",

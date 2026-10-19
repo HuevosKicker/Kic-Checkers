@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3870;
+const MIN_CHECKS = 3877;
 
 function ok(cond, msg) {
   checks++;
@@ -2948,6 +2948,17 @@ function testFiles() {
   const manLang = { fa: 'fa', zh: 'zh-Hans', de: 'de', es: 'es' };
   ok(LOCALE_CODES.filter((c) => c !== 'en').every((c) => man.description_localized[manLang[c]] && man.description_localized[manLang[c]].value), 'the manifest describes the app in every language');
   ok(man.name_localized.fa.value === 'چوگان', 'نام فارسی در منیفست درست است');
+  // The installed desktop app showed the browser's own title bar above the app's (#344)
+  const dov = man.display_override || [];
+  ok(dov[0] === 'window-controls-overlay' && dov.includes('standalone') && man.display === 'standalone', 'the manifest asks for the window controls overlay first and keeps standalone');
+  const wcoCss = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const wco = (wcoCss.match(/@media \(display-mode: window-controls-overlay\) \{([\s\S]*?)\n\}/) || [])[1] || '';
+  ok(wco.length > 200, 'the overlay rules sit in their own display-mode block');
+  ok(['x', 'width', 'height'].every((v) => new RegExp('env\\(titlebar-area-' + v + ', [^)]+\\)').test(wco)), 'they read the titlebar-area variables, each with a fallback');
+  ok(/\.ch-gamebar \{[^}]*max\(var\(--safe-r\), var\(--tb-r\)\)[^}]*max\(var\(--safe-l\), var\(--tb-l\)\)[^}]*app-region: drag/.test(wco), 'the game bar keeps clear of the controls on both sides and drags the window');
+  ok(/\.ch-gamebar button[^{]*\{[^}]*app-region: no-drag/.test(wco), 'its buttons stay clickable');
+  ok(/--safe-t: max\(env\(safe-area-inset-top, 0px\), var\(--tb-h\)\)/.test(wco), 'everything else clears the controls strip at the top');
+  ok(!/titlebar-area/.test(wcoCss.replace(wco, '')), 'no titlebar rule leaks outside the display-mode block');
   // Five languages in one pill ran past the card at 390px and scrolled the page sideways (#256)
   const menuSrc = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
   const cssSrc = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
