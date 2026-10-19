@@ -514,7 +514,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = ReversiEng
     var dpr = window.devicePixelRatio || 1;
     var W = boardBox.clientWidth || 320;
     var px = Math.round(W * dpr);
-    if (cv.width !== px) { cv.width = px; cv.height = px; }
+    // both sides: a new canvas is 300×150, so a board exactly 300px wide kept a
+    // 150px-high backing and was drawn squashed (#359, seen in Ludo)
+    if (cv.width !== px || cv.height !== px) { cv.width = px; cv.height = px; }
     var g = cv.getContext('2d');
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, W, W);

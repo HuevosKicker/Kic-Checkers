@@ -11,7 +11,6 @@
   /* Player colours mark whose darts are on the board; red and green are left out
      because the board itself is red and green. */
   :root { --dt-c0: #2F6FDE; --dt-c1: #E8A317; }
-  .dt-wrap { width: 100%; display: flex; flex-direction: column; gap: var(--s-3); align-items: center; }
   .dt-top { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: center; width: 100%; max-width: 560px; }
   .dt-top .ch-tap { border: 0; font: inherit; font-size: var(--fs-sm); font-weight: 700; min-height: 44px; padding-inline: var(--s-4); cursor: pointer; }
   .dt-players { width: 100%; max-width: 560px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--s-2); }
@@ -31,7 +30,7 @@
   .dt-player__darts b { flex: 1; min-width: 0; text-align: center; font-size: var(--fs-xs); font-weight: 700; border-radius: 6px; padding: 1px 4px; background: var(--c-surface-2); color: var(--c-text-dim); direction: ltr; }
   .dt-thinking { animation: dt-blink 900ms infinite; }
   @keyframes dt-blink { 50% { opacity: .55; } }
-  .dt-boardbox { width: 100%; display: flex; justify-content: center; }
+  .ch-fit > .dt-boardbox { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
   .dt-canvas { display: block; touch-action: none; cursor: crosshair; border-radius: 50%; }
   .dt-status { width: 100%; max-width: 560px; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
   .dt-status__main { font-weight: 700; font-size: var(--fs-sm); color: var(--c-text-dim); }
@@ -315,12 +314,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
   cv.setAttribute('role', 'img');
   cv.setAttribute('aria-label', C.t('boardLabel'));
   var boardBox = el('div', { class: 'dt-boardbox' }, [cv]);
-  var top = el('div', { class: 'dt-top' });
-  var playersRow = el('div', { class: 'dt-players' });
+  var top = el('div', { class: 'dt-top ch-above' });
+  var playersRow = el('div', { class: 'dt-players ch-above' });
   var statusMain = el('div', { class: 'dt-status__main', role: 'status', 'aria-live': 'polite' });
   var statusHint = el('div', { class: 'dt-status__hint' });
   var status = el('div', { class: 'dt-status' }, [statusMain, statusHint]);
-  var wrap = el('div', { class: 'dt-wrap' }, [top, playersRow, boardBox, status]);
+  var wrap = el('div', { class: 'dt-wrap ch-split' }, [el('div', { class: 'ch-fit' }, [boardBox]), el('div', { class: 'ch-side' }, [top, playersRow, status])]);
 
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
   ctx.button({ icon: 'refresh', label: C.t('newMatch'), onClick: askNew });
@@ -532,8 +531,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
   // The board fills the box; its playing area is 0.78 of the half-width, the
   // rest is the black surround with the numbers.
   function boardSize() {
-    var maxW = Math.min(boardBox.clientWidth || 360, 520);
-    var maxH = Math.max(260, window.innerHeight - boardBox.getBoundingClientRect().top - 90);
+    // the slot the core sized for the board (#359); before, 520-560px wide at most and
+    // the window's height less a guess for the rows below
+    var maxW = boardBox.clientWidth || 360, maxH = boardBox.clientHeight || maxW;
     var w = Math.floor(Math.min(maxW, maxH));
     return { w: w, r: w / 2 * 0.78 };
   }
@@ -660,7 +660,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
   function draw() {
     if (!G) return;
     var B = boardSize(), dpr = Math.min(2, window.devicePixelRatio || 1);
-    if (cv.width !== B.w * dpr) { cv.width = B.w * dpr; cv.height = B.w * dpr; }
+    // both sides: a new canvas is 300×150, so a board exactly 300px wide kept a
+    // 150px-high backing and was drawn squashed (#359, seen in Ludo)
+    if (cv.width !== B.w * dpr || cv.height !== B.w * dpr) { cv.width = B.w * dpr; cv.height = B.w * dpr; }
     cv.style.width = B.w + 'px'; cv.style.height = B.w + 'px';
     var g = cv.getContext('2d');
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -786,7 +788,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
     }
   });
 
-  window.addEventListener('resize', function () { if (G) draw(); });
+  // the board follows its slot, which changes with the window and the side column (#359)
+  if (window.ResizeObserver) new ResizeObserver(function () { if (G) draw(); }).observe(boardBox);
+  else window.addEventListener('resize', function () { if (G) draw(); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden && G) kick(); });
   // A pause mid-throw lets that dart land when the game comes back
   C.onPause(function () { stop(); aiming = null; });

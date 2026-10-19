@@ -12,7 +12,6 @@
      so they are the game's own tokens and stay the same in both themes. They differ
      in lightness as well as hue, so they can be told apart with colour blindness. */
   :root { --cr-p1: #E5484D; --cr-p2: #2F6FDE; --cr-p3: #23A26D; --cr-p4: #E8A317; --cr-cell: var(--c-surface); }
-  .cr-wrap { width: 100%; display: flex; flex-direction: column; gap: var(--s-3); align-items: center; }
   .cr-top { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: center; width: 100%; max-width: 560px; }
   .cr-players { width: 100%; max-width: 560px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--s-2); }
   .cr-player {
@@ -34,7 +33,7 @@
   .cr-players--many .cr-player__n { grid-column: 2; line-height: 1.1; }
   .cr-thinking { animation: cr-blink 900ms infinite; }
   @keyframes cr-blink { 50% { opacity: .55; } }
-  .cr-boardbox { width: 100%; display: flex; justify-content: center; }
+  .ch-fit > .cr-boardbox { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
   /* The game's settings summary; a tap opens the new-game window */
   .cr-top .ch-tap { border: 0; font: inherit; font-size: var(--fs-sm); font-weight: 700; min-height: 44px; padding-inline: var(--s-4); cursor: pointer; }
   .cr-canvas { display: block; touch-action: manipulation; cursor: pointer; border-radius: var(--r-md); box-shadow: var(--sh-2); }
@@ -375,9 +374,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = ChainEngin
   cv.setAttribute('role', 'img');
   cv.setAttribute('aria-label', C.t('boardLabel'));
   var boardBox = el('div', { class: 'cr-boardbox' }, [cv]);
-  var top = el('div', { class: 'cr-top' });
-  var playersRow = el('div', { class: 'cr-players' });
-  var wrap = el('div', { class: 'cr-wrap' }, [top, playersRow, boardBox]);
+  var top = el('div', { class: 'cr-top ch-above' });
+  var playersRow = el('div', { class: 'cr-players ch-above' });
+  var wrap = el('div', { class: 'cr-wrap ch-split' }, [el('div', { class: 'ch-fit' }, [boardBox]), el('div', { class: 'ch-side' }, [top, playersRow])]);
 
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
   ctx.button({ icon: 'undo', label: C.t('undoMove'), onClick: undo });
@@ -579,8 +578,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = ChainEngin
   function boardSize(cols, rows) {
     // The settings rows once pushed a 6×9 board's last row off a 390×844 phone; the
     // height is now what is left under the board's top edge, less a margin.
-    var maxW = Math.min(boardBox.clientWidth || 360, 560);
-    var maxH = Math.max(220, window.innerHeight - boardBox.getBoundingClientRect().top - 16);
+    // the slot the core sized for the board (#359); before, 520-560px wide at most and
+    // the window's height less a guess for the rows below
+    // the slot's shape follows the board's (6×9, 8×12…)
+    boardBox.parentNode.style.setProperty('--fit-ar', cols / rows);
+    var maxW = boardBox.clientWidth || 360, maxH = boardBox.clientHeight || maxW * rows / cols;
     var cell = Math.floor(Math.min(maxW / cols, maxH / rows));
     return { cell: cell, w: cell * cols, h: cell * rows };
   }
@@ -841,7 +843,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = ChainEngin
     }
   });
 
-  window.addEventListener('resize', function () { if (G) draw(); });
+  // the board follows its slot, which changes with the window and the side column (#359)
+  if (window.ResizeObserver) new ResizeObserver(function () { if (G) draw(); }).observe(boardBox);
+  else window.addEventListener('resize', function () { if (G) draw(); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden) kick(); });
   if (window.matchMedia) {
     var mq = window.matchMedia('(prefers-color-scheme: dark)');

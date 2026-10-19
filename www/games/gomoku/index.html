@@ -599,7 +599,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GomokuEngi
     var rect = boardBox.getBoundingClientRect();
     var W = Math.max(1, Math.floor(Math.min(rect.width, rect.height || rect.width)));
     var dpr = Math.min(2, window.devicePixelRatio || 1);
-    if (cv.width !== W * dpr) { cv.width = W * dpr; cv.height = W * dpr; }
+    // both sides: a new canvas is 300×150, so a board exactly 300px wide kept a
+    // 150px-high backing and was drawn squashed (#359, seen in Ludo)
+    if (cv.width !== W * dpr || cv.height !== W * dpr) { cv.width = W * dpr; cv.height = W * dpr; }
     cv.style.width = W + 'px'; cv.style.height = W + 'px';
     var g = cv.getContext('2d');
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
