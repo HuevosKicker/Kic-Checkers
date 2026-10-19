@@ -768,6 +768,30 @@
       "soft": "#E3E6F4",
       "added": "2026-10-19",
       "files": []
+    },
+    {
+      "id": "sliding",
+      "cat": "puzzle",
+      "name": {
+        "fa": "پازل کشویی",
+        "en": "Sliding Puzzle",
+        "zh": "数字华容道",
+        "de": "Schiebepuzzle",
+        "es": "Puzle deslizante"
+      },
+      "summary": {
+        "fa": "کاشی‌های شماره‌دار را با سُر دادن به ترتیب بچین، از ۳×۳ تا ۵×۵؛ هر چه حرکت کمتر، بهتر.",
+        "en": "Slide the numbered tiles back into order, from 3×3 to 5×5; the fewer moves, the better.",
+        "zh": "滑动数字方块，把它们排回顺序，从 3×3 到 5×5；步数越少越好。",
+        "de": "Schieb die nummerierten Plättchen wieder in Reihenfolge, von 3×3 bis 5×5; je weniger Züge, desto besser.",
+        "es": "Desliza las fichas numeradas hasta ponerlas en orden, de 3×3 a 5×5; cuantos menos movimientos, mejor."
+      },
+      "path": "games/sliding/index.html",
+      "icon": "games/sliding/icon.svg",
+      "color": "#8338B0",
+      "soft": "#EFE4F6",
+      "added": "2026-10-19",
+      "files": []
     }
   ]
 }
