@@ -546,6 +546,8 @@ a  { color: var(--c-accent); text-decoration: none; }
   animation: ch-rise var(--t-mid) var(--ease) both;
 }
 .ch-afterbar .ch-btn { gap: 6px; }
+/* "See the board" in the result window (#315) */
+.ch-seeboard { display: flex; gap: 6px; margin: var(--s-3) auto 0; }
 /* کلاس‌های خودمان display می‌گذارند و بر [hidden] مرورگر می‌چربند */
 [hidden] { display: none !important; }
 .ch-iconbtn[aria-pressed="true"] { background: var(--game-soft, var(--c-accent-soft)); color: var(--game, var(--c-accent)); }

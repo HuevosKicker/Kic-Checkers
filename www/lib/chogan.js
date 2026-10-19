@@ -281,7 +281,7 @@
       achievements: 'دستاوردها', profile: 'پروفایل', settings: 'تنظیمات',
       play: 'بازی', resume: 'ادامه', newGame: 'بازی تازه', again: 'دوباره',
       cardBack: 'پشت کارت', backCarpet: 'قالی', backTermeh: 'ترمه',
-      menu: 'منو', back: 'بازگشت', undo: 'برگرداندن', close: 'بستن', cancel: 'انصراف', result: 'نتیجه',
+      menu: 'منو', back: 'بازگشت', undo: 'برگرداندن', close: 'بستن', cancel: 'انصراف', result: 'نتیجه', seeBoard: 'دیدن صفحه‌ی بازی',
       saveImage: 'ذخیره‌ی عکس', copyText: 'کپی متن',
       updateReady: 'نسخه‌ی تازه آماده است', updateNow: 'آپدیت',
       confirm: 'تأیید', done: 'باشه', next: 'بعدی', skip: 'رد کردن',
@@ -322,7 +322,7 @@
       achievements: 'Awards', profile: 'Profile', settings: 'Settings',
       play: 'Play', resume: 'Resume', newGame: 'New game', again: 'Again',
       cardBack: 'Card back', backCarpet: 'Carpet', backTermeh: 'Termeh',
-      menu: 'Menu', back: 'Back', undo: 'Undo', close: 'Close', cancel: 'Cancel', result: 'Result',
+      menu: 'Menu', back: 'Back', undo: 'Undo', close: 'Close', cancel: 'Cancel', result: 'Result', seeBoard: 'See the board',
       saveImage: 'Save image', copyText: 'Copy text',
       updateReady: 'A new version is ready', updateNow: 'Update',
       confirm: 'Confirm', done: 'OK', next: 'Next', skip: 'Skip',
@@ -363,7 +363,7 @@
       achievements: '成就', profile: '个人', settings: '设置',
       play: '开始', resume: '继续', newGame: '新游戏', again: '再来一局',
       cardBack: '牌背', backCarpet: '波斯地毯', backTermeh: '波斯织锦',
-      menu: '菜单', back: '返回', undo: '撤销', close: '关闭', cancel: '取消', result: '结果',
+      menu: '菜单', back: '返回', undo: '撤销', close: '关闭', cancel: '取消', result: '结果', seeBoard: '查看棋盘',
       saveImage: '保存图片', copyText: '复制文字',
       updateReady: '新版本已就绪', updateNow: '更新',
       confirm: '确定', done: '好', next: '下一步', skip: '跳过',
@@ -404,7 +404,7 @@
       achievements: 'Erfolge', profile: 'Profil', settings: 'Einstellungen',
       play: 'Spielen', resume: 'Weiter', newGame: 'Neues Spiel', again: 'Nochmal',
       cardBack: 'Kartenrücken', backCarpet: 'Teppich', backTermeh: 'Termeh-Brokat',
-      menu: 'Menü', back: 'Zurück', undo: 'Rückgängig', close: 'Schließen', cancel: 'Abbrechen', result: 'Ergebnis',
+      menu: 'Menü', back: 'Zurück', undo: 'Rückgängig', close: 'Schließen', cancel: 'Abbrechen', result: 'Ergebnis', seeBoard: 'Spielfeld ansehen',
       saveImage: 'Bild speichern', copyText: 'Text kopieren',
       updateReady: 'Eine neue Version ist da', updateNow: 'Aktualisieren',
       confirm: 'Bestätigen', done: 'OK', next: 'Weiter', skip: 'Überspringen',
@@ -445,7 +445,7 @@
       achievements: 'Logros', profile: 'Perfil', settings: 'Ajustes',
       play: 'Jugar', resume: 'Seguir', newGame: 'Nueva partida', again: 'Otra vez',
       cardBack: 'Reverso', backCarpet: 'Alfombra', backTermeh: 'Termeh',
-      menu: 'Menú', back: 'Atrás', undo: 'Deshacer', close: 'Cerrar', cancel: 'Cancelar', result: 'Resultado',
+      menu: 'Menú', back: 'Atrás', undo: 'Deshacer', close: 'Cerrar', cancel: 'Cancelar', result: 'Resultado', seeBoard: 'Ver el tablero',
       saveImage: 'Guardar imagen', copyText: 'Copiar texto',
       updateReady: 'Hay una versión nueva', updateNow: 'Actualizar',
       confirm: 'Confirmar', done: 'OK', next: 'Siguiente', skip: 'Saltar',
@@ -1556,6 +1556,7 @@
     back: 'M15 5l-7 7 7 7',
     forward: 'M9 5l7 7-7 7',
     close: 'M6 6l12 12M18 6L6 18',
+    eye: 'M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
     expand: 'M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5',
     collapse: 'M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5',
     check: 'M5 12.5l4.5 4.5L19 7',
@@ -2544,6 +2545,13 @@
         if (o.stars !== undefined && o.stars !== null) body.push(starsRow(o.stars));
         if (o.note) body.push(el('p', { class: 'ch-dim ch-center', text: o.note }));
         body.push(lines);
+        // A reporter could not see how they lost (#315): the X in the corner that
+        // shows the finished board went unnoticed, so the way back to it is named.
+        var shown = null;
+        body.push(el('button', { class: 'ch-btn ch-btn--ghost ch-seeboard', type: 'button', onclick: function () {
+          Chogan.feedback('tap');
+          if (shown) shown.close('board');
+        } }, [Chogan.icon('eye', 18), el('span', { text: Chogan.t('seeBoard') })]));
 
         var cardLines = (o.lines || []).slice();
         if (rec.coins) cardLines.push({ label: Chogan.t('coins'), value: '+' + Chogan.num(rec.coins), gold: true });
@@ -2571,7 +2579,7 @@
         // بستن با ضربدر تخته را همان‌طور که تمام شد نشان می‌دهد؛ دکمه‌ی «نتیجه»
         // در نوار بالا می‌ماند تا هر وقت خواست همین پنجره را برگرداند.
         reopenResult = function () {
-          return ui.modal({
+          return (shown = ui.modal({
             title: o.title || (o.won ? Chogan.t('won') : Chogan.t('finished')),
             body: body,
             actions: actions,
@@ -2579,7 +2587,7 @@
             dismissable: false,
             closeButton: true,
             onClose: function (via) { if (via !== 'action') { showResultBtn(); showAfterBar(o); } }
-          });
+          }));
         };
         hideResultBtn();
         return reopenResult();
