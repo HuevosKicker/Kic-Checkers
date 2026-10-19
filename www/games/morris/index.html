@@ -8,7 +8,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../../lib/chogan.css">
 <style>
-  .mr-wrap { width: 100%; display: flex; flex-direction: column; gap: var(--s-2); align-items: center; }
+  .mr-wrap { gap: var(--s-2); }
   .mr-top { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: center; }
   .mr-player {
     width: 100%; max-width: 480px; display: flex; align-items: center; gap: var(--s-2);
@@ -26,7 +26,7 @@
   .mr-thinking { animation: mr-blink 900ms infinite; }
   @keyframes mr-blink { 50% { opacity: .5; } }
   .mr-boardbox {
-    width: 100%; max-width: min(94vw, 50vh, 480px); aspect-ratio: 1;
+    aspect-ratio: 1; /* fills the room it has (#359); it stopped at a fixed size before */
     background: var(--c-surface); border-radius: var(--r-lg); box-shadow: var(--sh-2);
   }
   .mr-canvas { width: 100%; height: 100%; display: block; touch-action: manipulation; cursor: pointer; }
@@ -520,11 +520,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MorrisEngi
 
   var canvas = el('canvas', { class: 'mr-canvas' });
   var boardBox = el('div', { class: 'mr-boardbox' }, [canvas]);
-  var topRow = el('div', { class: 'mr-top' });
-  var rivalCard = el('div', { class: 'mr-player' });
+  var topRow = el('div', { class: 'mr-top ch-above' });
+  var rivalCard = el('div', { class: 'mr-player ch-above' });
   var youCard = el('div', { class: 'mr-player' });
   var statusEl = el('div', { class: 'mr-status', role: 'status', 'aria-live': 'polite' });
-  var wrap = el('div', { class: 'mr-wrap' }, [topRow, rivalCard, boardBox, youCard, statusEl]);
+  var wrap = el('div', { class: 'mr-wrap ch-split' }, [el('div', { class: 'ch-fit' }, [boardBox]), el('div', { class: 'ch-side' }, [topRow, rivalCard, youCard, statusEl])]);
 
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
   ctx.button({ icon: 'undo', label: C.t('undoMove'), onClick: undo });
@@ -708,7 +708,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MorrisEngi
     pulseRaf = requestAnimationFrame(tick);
   }
 
-  window.addEventListener('resize', function () { draw(); });
+  // the board's size follows its slot, which changes with the window and the side column (#359)
+  if (window.ResizeObserver) new ResizeObserver(function () { draw(); }).observe(boardBox);
+  else window.addEventListener('resize', function () { draw(); });
   if (window.matchMedia) {
     var mq = window.matchMedia('(prefers-color-scheme: dark)');
     if (mq.addEventListener) mq.addEventListener('change', function () { setTimeout(draw, 60); });
@@ -743,8 +745,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MorrisEngi
   function playerCard(box, p) {
     var col = colors();
     box.innerHTML = '';
-    box.className = 'mr-player' + (S.turn === p && !S.done ? ' mr-player--on' : '') +
-      (p === 2 && busy() ? ' mr-thinking' : '');
+    // classList, not className: the rival's row also carries the layout's ch-above (#359)
+    box.classList.toggle('mr-player--on', S.turn === p && !S.done);
+    box.classList.toggle('mr-thinking', p === 2 && busy());
     box.style.setProperty('--pc', pcol(col, p));
     var pips = el('div', { class: 'mr-hand', title: C.t('inHand'), 'aria-label': C.t('inHand') + ' ' + C.num(S.hand[p]) });
     for (var i = 0; i < E.PIECES; i++) pips.appendChild(el('span', { class: 'mr-pip' + (i < S.hand[p] ? '' : ' mr-pip--gone') }));

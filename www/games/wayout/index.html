@@ -8,7 +8,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../../lib/chogan.css">
 <style>
-  .wo-wrap { width: 100%; max-width: 720px; display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
+  .wo-wrap { width: 100%; display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
   .wo-top { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; align-items: center; min-height: 28px; }
   /* The board is a physical grid: it is not mirrored in RTL and every arrow keeps its real direction */
   .wo-frame {
@@ -708,11 +708,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = WayOutEngi
   function fit() {
     if (!S) return;
     var ms = getComputedStyle(ctx.main), gap = parseFloat(getComputedStyle(wrap).rowGap) || 0;
-    var availW = Math.min(wrap.clientWidth || 360, 720);
+    var availW = wrap.clientWidth || 360;
     var mainH = (ctx.main.clientHeight || (window.innerHeight || 640) - 60) - parseFloat(ms.paddingTop) - parseFloat(ms.paddingBottom);
     var around = top.offsetHeight + actions.offsetHeight + status.offsetHeight;
     var availH = Math.max(96, mainH - around - 3 * gap);
-    var cell = Math.min(56, Math.floor(Math.min(availW / (S.w + 1), availH / (S.h + 1))));
+    // up to 110px a cell: at 56 the first levels were a 224px square on any screen (#359)
+    var cell = Math.min(110, Math.floor(Math.min(availW / (S.w + 1), availH / (S.h + 1))));
     var scroll = cell < FLOOR;
     if (scroll) cell = FLOOR;
     frame.classList.toggle('wo-frame--scroll', scroll);

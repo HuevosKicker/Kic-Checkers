@@ -24,11 +24,10 @@
     --sp-tray: #2E1A40; --sp-hole: #221330; --sp-tile: #E9DFCE; --sp-tile-edge: #BFAE93; --sp-ink: #2F1D42;
     --sp-home: #9A55C8; --sp-shadow: rgba(0, 0, 0, .5);
   }
-  .sp-wrap { width: 100%; max-width: 560px; display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
   .sp-top { display: flex; justify-content: center; min-height: 28px; }
   /* A tray is a physical thing: it reads 1, 2, 3 from the left in every language */
   .sp-board {
-    direction: ltr; position: relative; width: min(92vw, 58vh, 460px); aspect-ratio: 1;
+    direction: ltr; position: relative; aspect-ratio: 1; /* fills the room it has (#359); it stopped at a fixed size before */
     background: var(--sp-tray); border-radius: var(--r-lg); box-shadow: var(--sh-2), inset 0 0 0 3px rgba(255, 255, 255, .06);
     touch-action: none; user-select: none; -webkit-user-select: none;
   }
@@ -260,10 +259,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SlidingEng
   var S = null, nodes = [], busy = false, cur = -1, press = null;
   var startedAt = Date.now(), pausedAt = 0;
 
-  var top = el('div', { class: 'sp-top' });
+  var top = el('div', { class: 'sp-top ch-above' });
   var board = el('div', { class: 'sp-board', role: 'group', 'aria-label': C.t('board') }, [el('div', { class: 'sp-hole' })]);
   var status = el('div', { class: 'sp-status', 'aria-live': 'polite' });
-  var wrap = el('div', { class: 'sp-wrap' }, [top, board, status]);
+  var wrap = el('div', { class: 'sp-wrap ch-split' }, [el('div', { class: 'ch-fit' }, [board]), el('div', { class: 'ch-side' }, [top, status])]);
 
   ctx.stat('moves', C.t('moves'));
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
@@ -566,10 +565,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SlidingEng
   });
 
   var resizeT = null;
-  window.addEventListener('resize', function () {
+  function onResize() {
     clearTimeout(resizeT);
     resizeT = setTimeout(function () { if (S) place(); }, 80);
-  });
+  }
+  // the board's size follows its slot, which changes with the window and the side column (#359)
+  if (window.ResizeObserver) new ResizeObserver(onResize).observe(board);
+  else window.addEventListener('resize', onResize);
 
   /* ------------------------------------------------------------ start */
 

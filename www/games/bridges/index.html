@@ -8,10 +8,9 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../../lib/chogan.css">
 <style>
-  .br-wrap { width: 100%; display: flex; flex-direction: column; gap: var(--s-3); align-items: center; }
   .br-top { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: center; }
   .br-boardbox {
-    width: 100%; max-width: min(94vw, 62vh, 560px);
+    aspect-ratio: 1; /* fills the room it has (#359); it stopped at a fixed size before */
     background: var(--c-surface); border-radius: var(--r-lg); box-shadow: var(--sh-2);
   }
   /* کشیدن از روی جزیره با اشاره‌گر خوانده می‌شود؛ با manipulation مرورگر
@@ -411,9 +410,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BridgesEng
   var svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('class', 'br-svg');
   var boardBox = el('div', { class: 'br-boardbox' }, [svg]);
-  var top = el('div', { class: 'br-top' });
+  var top = el('div', { class: 'br-top ch-above' });
   var status = el('div', { class: 'br-status', 'aria-live': 'polite' });
-  var wrap = el('div', { class: 'br-wrap' }, [top, boardBox, status]);
+  var wrap = el('div', { class: 'br-wrap ch-split' }, [el('div', { class: 'ch-fit' }, [boardBox]), el('div', { class: 'ch-side' }, [top, status])]);
 
   ctx.stat('isl', C.t('islands'));
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });

@@ -30,14 +30,15 @@
     --gl-roof: rgba(255, 255, 255, .3); --gl-slat: rgba(255, 255, 255, .2); --gl-shadow: rgba(0, 0, 0, .5); --gl-mark: rgba(255, 255, 255, .92);
     --gl-concrete: #75716B; --gl-concrete-top: #8B877F; --gl-hint: #9DBB88;
   }
-  .gl-wrap { width: 100%; max-width: 720px; display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
+  .gl-wrap { width: 100%; display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
   .gl-top { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; align-items: center; min-height: 28px; }
   /* Upright the badges, the board, the hint button and the line of text stack; on a short, wide
      screen the board takes the left and they stand in a column beside it */
   .gl-side { display: contents; }
   .gl-top { order: 0; } .gl-frame { order: 1; } .gl-actions { order: 2; } .gl-status { order: 3; }
-  @media (orientation: landscape) and (max-height: 520px) {
-    .gl-wrap { max-width: 900px; flex-direction: row; justify-content: center; align-items: center; gap: var(--s-5); }
+  /* any wide game area, not only a short phone in landscape: a laptop has room beside the lot too (#359) */
+  @container game (min-aspect-ratio: 5 / 4) {
+    .gl-wrap { flex-direction: row; justify-content: center; align-items: center; gap: var(--s-5); }
     .gl-side { display: flex; flex-direction: column; align-items: center; gap: var(--s-3); max-width: 220px; }
   }
   /* The lot is a physical place: it is not mirrored in RTL, the exit stays on the right */
@@ -1069,14 +1070,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GridlockEn
     var availW, availH;
     if (cs.flexDirection === 'row') {
       // beside the text on a short screen: all the height, the width less the column
-      availW = Math.min(wrap.clientWidth || 640, 900) - side.offsetWidth - gap;
+      availW = (wrap.clientWidth || 640) - side.offsetWidth - gap;
       availH = mainH;
     } else {
-      availW = Math.min(wrap.clientWidth || 360, 720);
+      availW = wrap.clientWidth || 360;
       availH = mainH - (top.offsetHeight + actions.offsetHeight + status.offsetHeight) - 3 * gap;
     }
     var VW = S.cols * U + 2 * PAD + ROAD, VH = S.rows * U + 2 * PAD;
-    var k = Math.min(availW / VW, Math.max(96, availH) / VH, 1.4);
+    // up to 3x: at 1.4 the lot stopped at 367px on any screen (#359)
+    var k = Math.min(availW / VW, Math.max(96, availH) / VH, 3);
     svg.style.width = (VW * k) + 'px';
     svg.style.height = (VH * k) + 'px';
   }
