@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4071;
+const MIN_CHECKS = 4077;
 
 function ok(cond, msg) {
   checks++;
@@ -6670,6 +6670,14 @@ function testFitScreen() {
   ok(/Math\.min\(110, Math\.floor\(/.test(src('mahjong')) && !/Math\.min\(wrap\.clientWidth \|\| 360, 980\)/.test(src('mahjong')), 'mahjong: tiles up to 110px wide, no 980px cap');
   const bsBox = (src('battleship').match(/\.bs-box[^{]*\{[^}]*\}/g) || []);
   ok(bsBox.length >= 4 && bsBox.every((r) => !/max-width:[^;]*\dpx/.test(r)), 'battleship: the seas have no pixel cap (' + bsBox.length + ' rules)');
+  // Card games: the card width follows the game area's width and height, not the window's
+  // width up to 60-76px (#359), and the table widens with the cards
+  for (const [id, cls] of [['pasur', 'ps-wrap'], ['hokm', 'hk-wrap'], ['blackjack', 'bj-wrap']]) {
+    const h = src(id), cw = (h.match(new RegExp('\\.' + cls + ' \\{[^}]*--cw: ([^;]+);')) || [])[1] || '';
+    const top = +((cw.match(/(\d+)px\)$/) || [])[1] || 0);
+    ok(/cqw/.test(cw) && /cqh/.test(cw) && top >= 100, id + ': cards size by the game area\'s width and height, up to ' + top + 'px (' + cw + ')');
+    ok(new RegExp('\\.' + cls + ' \\{[^}]*max-width: max\\(560px, calc\\(var\\(--cw\\) \\* [\\d.]+\\)\\)').test(h), id + ': the table widens with the cards');
+  }
 }
 
 function testCoreLabels() {

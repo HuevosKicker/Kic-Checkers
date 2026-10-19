@@ -11,7 +11,7 @@
   :root { --ps-face: var(--c-surface); --ps-rival: #8C6BB1; --ch-pface: var(--ps-face); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ps-face: var(--c-surface-3); } }
   :root[data-theme="dark"] { --ps-face: var(--c-surface-3); }
-  .ps-wrap { margin-block: auto; width: 100%; max-width: 560px; display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
+  .ps-wrap { margin-block: auto; width: 100%; max-width: max(560px, calc(var(--cw) * 8.75)); display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
   .ps-top { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; align-items: center; }
   .ps-player {
     width: 100%; display: flex; align-items: center; gap: var(--s-2);
@@ -31,7 +31,9 @@
     min-height: calc(var(--cw) * 1.4 * 2 + 18px); align-content: center; padding: 10px;
     background: var(--c-surface-2); border-radius: var(--r-lg); box-shadow: inset 0 0 0 1px var(--c-line);
   }
-  .ps-wrap { --cw: clamp(44px, 14.5vw, 64px); }
+  /* Cards grow with the game area's width and height (#359); at 64px at most, a tablet
+     or laptop showed them tiny. The height term leaves room for the rows around them. */
+  .ps-wrap { --cw: clamp(44px, min(15.5cqw, (100cqh - 230px) / 6.2), 120px); }
   /* The card itself is drawn by the core (.ch-pcard, #178); these are Pasur's states */
   .ps-card--opt { box-shadow: 0 0 0 2px var(--game); }
   .ps-card--sel { transform: translateY(-6px); box-shadow: 0 0 0 3px var(--game), var(--sh-2); }
