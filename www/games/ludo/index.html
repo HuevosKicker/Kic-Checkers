@@ -868,7 +868,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = LudoEngine
   window.addEventListener('keydown', function (e) {
     if (!G || G.done || document.querySelector('.ch-scrim') || isBot(G.s.turn)) return;
     var k = e.key;
-    if (G.phase === 'roll' && (k === ' ' || k === 'Enter' || k === 'r' || k === 'R')) { e.preventDefault(); doRoll(); return; }
+    if (G.phase === 'roll' && (k === ' ' || k === 'Enter' || C.keyIs(e, 'r'))) { e.preventDefault(); doRoll(); return; }
     if (G.phase !== 'choose') return;
     var list = E.moves(G.s, G.roll);
     if (k === 'ArrowRight' || k === 'ArrowLeft' || k === 'ArrowUp' || k === 'ArrowDown' || k === 'Tab') {

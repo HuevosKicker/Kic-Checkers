@@ -967,7 +967,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DotsEngine
     if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
     var k = e.key;
     if (C.undoKey(e)) { undo(); e.preventDefault(); return; }
-    if (k === 'r' || k === 'R' || k === 'Tab') { flipCur(); highlight(); e.preventDefault(); return; }
+    if (C.keyIs(e, 'r') || k === 'Tab') { flipCur(); highlight(); e.preventDefault(); return; }
     // تخته یک SVG با مختصات ثابت است و در راست‌چین آینه نمی‌شود، پس
     // جهت‌نماها هم نباید برعکس شوند.
     if (k === 'ArrowUp') { moveCur(-1, 0); highlight(); e.preventDefault(); return; }

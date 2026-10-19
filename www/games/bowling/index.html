@@ -814,7 +814,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BowlingEng
     if (!kb) return;
     if (k === 'ArrowLeft' || k === 'ArrowRight') { e.preventDefault(); kb.x = Math.max(-0.4, Math.min(0.4, kb.x + (k === 'ArrowLeft' ? -0.04 : 0.04))); }
     else if (k === 'ArrowUp' || k === 'ArrowDown') { e.preventDefault(); kb.angle = Math.max(-0.06, Math.min(0.06, kb.angle + (k === 'ArrowUp' ? -0.002 : 0.002))); }
-    else if (k === 'z' || k === 'Z' || k === 'x' || k === 'X') { kb.spin = Math.max(-1, Math.min(1, kb.spin + (/z/i.test(k) ? 0.25 : -0.25))); G.msg = C.t('spinKey') + ': ' + C.num(Math.round(kb.spin * 100)) + '%'; drawStatus(); }
+    else if (C.keyIs(e, 'z') || C.keyIs(e, 'x')) { kb.spin = Math.max(-1, Math.min(1, kb.spin + (C.keyIs(e, 'z') ? 0.25 : -0.25))); G.msg = C.t('spinKey') + ': ' + C.num(Math.round(kb.spin * 100)) + '%'; drawStatus(); }
     else if (k === ' ' || k === 'Enter') { e.preventDefault(); var t = { x: kb.x, angle: kb.angle, speed: 7.5, spin: kb.spin }; kb = null; bowl(t); return; }
     draw();
   });

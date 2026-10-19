@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3824;
+const MIN_CHECKS = 3866;
 
 function ok(cond, msg) {
   checks++;
@@ -7103,6 +7103,40 @@ function testDailyResume() {
   }
 }
 
+function testKeyLayout() {
+  head('Letter shortcuts on any keyboard layout (#341)');
+  // With the Persian layout F types «ب», so `k === 'f'` never matched and every
+  // letter shortcut was dead for the app's first language (reported on #332)
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const m = core.match(/  Chogan\.keyIs = (function \(e, letter\) \{[\s\S]*?\n  \});/);
+  ok(!!m, 'the core has Chogan.keyIs');
+  const keyIs = m ? vm.runInNewContext('(' + m[1] + ')', {}) : () => null;
+  const K = (key, code) => ({ key, code });
+  const cases = [
+    [K('f', 'KeyF'), 'f', true, 'f'], [K('F', 'KeyF'), 'f', true, 'F with Shift or Caps Lock'],
+    [K('ب', 'KeyF'), 'f', true, 'the F key on the Persian layout'],
+    [K('ب', 'KeyF'), 'h', false, 'not another letter'],
+    [K('q', 'KeyA'), 'a', false, 'AZERTY: the key in the A position types q and is not A'],
+    [K('a', 'KeyQ'), 'a', true, 'AZERTY: the letter a wherever it is'],
+    [K('ArrowLeft', 'ArrowLeft'), 'a', false, 'an arrow is no letter'],
+    [K('1', 'Digit1'), 'a', false, 'a digit is no letter']
+  ];
+  for (const [e, l, want, name] of cases) ok(keyIs(e, l) === want, 'keyIs: ' + name);
+
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  let lines = 0;
+  for (const g of games) {
+    const html = fs.readFileSync(path.join(ROOT, 'www', g.path), 'utf8');
+    const bad = [];
+    html.split('\n').forEach((line, i) => {
+      if (/C\.keyIs\(e, '[a-z]'\)/.test(line)) lines++;
+      for (const x of line.matchAll(/\b(?:k|e\.key) === '([a-zA-Z])'/g)) bad.push((i + 1) + ':' + x[1]);
+    });
+    ok(bad.length === 0 && !/e\.code === 'Key/.test(html), g.id + ': every letter shortcut goes through C.keyIs' + (bad.length ? ' (line:letter ' + bad.join(', ') + ')' : ''));
+  }
+  ok(lines >= 25, 'letter shortcuts were found to check (' + lines + ' lines)');
+}
+
 function testUndoKey() {
   head('کلید برگرداندن');
   const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
@@ -7481,6 +7515,7 @@ testSnakes();
 testDarts();
 testBowling();
 testCoreLabels();
+testKeyLayout();
 testGo();
 testBackgammon();
 testMorris();

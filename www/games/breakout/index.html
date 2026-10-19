@@ -747,21 +747,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BreakoutEn
     if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
     var k = e.key;
     // زمین آینه نمی‌شود، پس جهت‌نماها در راست‌چین هم برعکس نمی‌شوند
-    if (k === 'ArrowLeft' || k === 'a' || k === 'A') { keys.left = true; e.preventDefault(); return; }
-    if (k === 'ArrowRight' || k === 'd' || k === 'D') { keys.right = true; e.preventDefault(); return; }
+    if (k === 'ArrowLeft' || C.keyIs(e, 'a')) { keys.left = true; e.preventDefault(); return; }
+    if (k === 'ArrowRight' || C.keyIs(e, 'd')) { keys.right = true; e.preventDefault(); return; }
     if (k === ' ' || k === 'Enter' || k === 'ArrowUp') {
       if (paused) setPaused(false);
       else if (S.attached && E.launch(S)) C.feedback('tap');
       e.preventDefault();
       return;
     }
-    if (k === 'p' || k === 'P') { setPaused(!paused); e.preventDefault(); return; }
-    if ((k === 'l' || k === 'L') && !S.daily) { showLevels(); e.preventDefault(); }
+    if (C.keyIs(e, 'p')) { setPaused(!paused); e.preventDefault(); return; }
+    if (C.keyIs(e, 'l') && !S.daily) { showLevels(); e.preventDefault(); }
   });
   window.addEventListener('keyup', function (e) {
     var k = e.key;
-    if (k === 'ArrowLeft' || k === 'a' || k === 'A') keys.left = false;
-    if (k === 'ArrowRight' || k === 'd' || k === 'D') keys.right = false;
+    if (k === 'ArrowLeft' || C.keyIs(e, 'a')) keys.left = false;
+    if (k === 'ArrowRight' || C.keyIs(e, 'd')) keys.right = false;
   });
   window.addEventListener('blur', function () { keys.left = keys.right = false; });
 

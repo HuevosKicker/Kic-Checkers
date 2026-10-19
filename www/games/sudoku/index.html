@@ -880,9 +880,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
     var k = e.key;
     if (k >= '1' && k <= '9') { enter(+k); e.preventDefault(); return; }
     if (k === '0' || k === 'Backspace' || k === 'Delete') { enter(0); e.preventDefault(); return; }
-    if (k === 'n' || k === 'N') { noteBtn.click(); e.preventDefault(); return; }
+    if (C.keyIs(e, 'n')) { noteBtn.click(); e.preventDefault(); return; }
     if (C.undoKey(e)) { undo(); e.preventDefault(); return; }
-    if (k === 'h' || k === 'H') { hint(); e.preventDefault(); return; }
+    if (C.keyIs(e, 'h')) { hint(); e.preventDefault(); return; }
     var d = { ArrowUp: -9, ArrowDown: 9, ArrowLeft: 1, ArrowRight: -1 }[k];
     if (d !== undefined) {
       if (document.documentElement.dir !== 'rtl' && (k === 'ArrowLeft' || k === 'ArrowRight')) d = -d;

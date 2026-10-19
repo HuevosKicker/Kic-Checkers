@@ -966,8 +966,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
     var to = E.step(cursor, k, sp.rows, sp.cols, document.documentElement.dir === 'rtl');
     if (to >= 0) { cursor = to; paint(); cells[cursor].focus(); e.preventDefault(); return; }
     if (k === ' ' || k === 'Enter') { tap(cursor); e.preventDefault(); }
-    else if (k === 'f' || k === 'F') { toggleFlag(cursor); e.preventDefault(); }
-    else if (k === 'h' || k === 'H') { hint(); e.preventDefault(); }
+    else if (C.keyIs(e, 'f')) { toggleFlag(cursor); e.preventDefault(); }
+    else if (C.keyIs(e, 'h')) { hint(); e.preventDefault(); }
   });
 
   /* ----------------------------------------------------------- شروع */

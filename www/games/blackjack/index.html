@@ -409,9 +409,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BlackjackE
   window.addEventListener('keydown', function (e) {
     if (!S || document.querySelector('.ch-scrim') || e.ctrlKey || e.metaKey || e.altKey) return;
     var k = e.key.toLowerCase();
-    if (k === 'h') { e.preventDefault(); hit(); }
-    else if (k === 's') { e.preventDefault(); stand(); }
-    else if (k === 'a') { e.preventDefault(); showAdvice(); }
+    if (C.keyIs(e, 'h')) { e.preventDefault(); hit(); }
+    else if (C.keyIs(e, 's')) { e.preventDefault(); stand(); }
+    else if (C.keyIs(e, 'a')) { e.preventDefault(); showAdvice(); }
     else if (k === 'enter' && S.H.done) { e.preventDefault(); next(); }
   });
 

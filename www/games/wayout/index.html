@@ -1124,8 +1124,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = WayOutEngi
     if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     var k = e.key;
-    if (k === 'h' || k === 'H' || e.code === 'KeyH') { showHint(); e.preventDefault(); return; }
-    if (k === 'r' || k === 'R' || e.code === 'KeyR') { askRestart(); e.preventDefault(); return; }
+    if (C.keyIs(e, 'h')) { showHint(); e.preventDefault(); return; }
+    if (C.keyIs(e, 'r')) { askRestart(); e.preventDefault(); return; }
     // the board is not mirrored, so the arrow keys are geometric in every language
     var d = { ArrowUp: 0, ArrowRight: 1, ArrowDown: 2, ArrowLeft: 3 }[k];
     if (d !== undefined) { moveCursor(d); e.preventDefault(); return; }

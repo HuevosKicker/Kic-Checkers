@@ -804,7 +804,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
     var k = e.key;
     if (C.undoKey(e)) { undo(); e.preventDefault(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (k === 'n' || k === 'N') { askNew(); e.preventDefault(); return; }
+    if (C.keyIs(e, 'n')) { askNew(); e.preventDefault(); return; }
     if (S.done) return;
     var handled = true;
     if (k === 'ArrowLeft') { cur.i = Math.max(0, cur.i - 1); cur.k = -1; }

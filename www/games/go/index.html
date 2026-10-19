@@ -783,7 +783,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GoEngineFa
       if (!S.g.board[i]) move(i);
       return;
     }
-    if (k === 'p' || k === 'P') { e.preventDefault(); move(PASS); }
+    if (C.keyIs(e, 'p')) { e.preventDefault(); move(PASS); }
   });
 
   window.addEventListener('resize', function () { if (S) draw(); });

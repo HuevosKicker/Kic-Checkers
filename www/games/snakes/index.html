@@ -679,7 +679,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SnakesEngi
   window.addEventListener('keydown', function (e) {
     if (!G || G.done || document.querySelector('.ch-scrim') || isBot(G.s.turn)) return;
     var k = e.key;
-    if (G.phase === 'roll' && (k === ' ' || k === 'Enter' || k === 'r' || k === 'R')) { e.preventDefault(); doRoll(); }
+    if (G.phase === 'roll' && (k === ' ' || k === 'Enter' || C.keyIs(e, 'r'))) { e.preventDefault(); doRoll(); }
   });
 
   window.addEventListener('resize', function () { if (G) draw(); });

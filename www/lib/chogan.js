@@ -2838,6 +2838,15 @@
   // بیشتر بازی‌ها فقط U را می‌شناختند (#111). با چیدمان فارسی e.key می‌شود «ع» یا
   // «ظ»، پس وقتی کلید حرف لاتین نیست جای فیزیکی‌اش (e.code) ملاک است.
   // Ctrl+Shift+Z در بیشتر برنامه‌ها «دوباره انجام بده» است و برنمی‌گرداند.
+  // A letter shortcut on any layout (#341). On the Persian layout F types «ب», so
+  // comparing e.key with 'f' never matched. The physical key (e.code) counts only
+  // when the typed character is not a Latin letter, so AZERTY's q key is not A.
+  Chogan.keyIs = function (e, letter) {
+    var key = (e && e.key) || '';
+    if (/^[a-z]$/i.test(key)) return key.toLowerCase() === letter;
+    return !!e && e.code === 'Key' + letter.toUpperCase();
+  };
+
   Chogan.undoKey = function (e) {
     if (!e || e.altKey) return false;
     var key = e.key || '';
