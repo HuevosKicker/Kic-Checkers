@@ -47,6 +47,7 @@
       noGames: 'هنوز بازی‌ای اضافه نشده', noGamesSub: 'به‌زودی', loadFailed: 'فهرست بازی‌ها بار نشد',
       loadFailedSub: 'اتصال را چک کن و صفحه را دوباره باز کن',
       wave: 'موج', wins: 'برد', solved: 'حل‌شده', cleared: 'پاک‌شده',
+      winsN: '{n} برد', solvedN: '{n} حل‌شده', clearedN: '{n} پاک‌شده',
       defaultPalette: 'پیش‌فرض', sea: 'دریا', sunset: 'غروب', forest: 'جنگل',
       fox: 'روباه', owl: 'جغد', cat: 'گربه', bear: 'خرس',
       seasonResult: 'نتیجه‌ی فصل گذشته',
@@ -74,6 +75,7 @@
       noGames: 'No games yet', noGamesSub: 'Coming soon', loadFailed: 'Could not load the game list',
       loadFailedSub: 'Check your connection and reopen the page',
       wave: 'Wave', wins: 'Wins', solved: 'Solved', cleared: 'Cleared',
+      winsN: '{n} wins', solvedN: '{n} solved', clearedN: '{n} cleared',
       defaultPalette: 'Default', sea: 'Sea', sunset: 'Sunset', forest: 'Forest',
       fox: 'Fox', owl: 'Owl', cat: 'Cat', bear: 'Bear',
       seasonResult: 'Last season',
@@ -101,6 +103,7 @@
       noGames: '还没有游戏', noGamesSub: '敬请期待', loadFailed: '游戏列表加载失败',
       loadFailedSub: '检查网络后重新打开页面',
       wave: '波次', wins: '胜场', solved: '已解开', cleared: '已扫清',
+      winsN: '胜场 {n}', solvedN: '已解开 {n}', clearedN: '已扫清 {n}',
       defaultPalette: '默认', sea: '海洋', sunset: '日落', forest: '森林',
       fox: '狐狸', owl: '猫头鹰', cat: '猫', bear: '熊',
       seasonResult: '上赛季',
@@ -128,6 +131,7 @@
       noGames: 'Noch keine Spiele', noGamesSub: 'Kommt bald', loadFailed: 'Spieleliste konnte nicht geladen werden',
       loadFailedSub: 'Prüf deine Verbindung und öffne die Seite neu',
       wave: 'Welle', wins: 'Siege', solved: 'Gelöst', cleared: 'Geschafft',
+      winsN: '{n} Siege', solvedN: '{n} gelöst', clearedN: '{n} geschafft',
       defaultPalette: 'Standard', sea: 'Meer', sunset: 'Abendrot', forest: 'Wald',
       fox: 'Fuchs', owl: 'Eule', cat: 'Katze', bear: 'Bär',
       seasonResult: 'Letzte Saison',
@@ -155,6 +159,7 @@
       noGames: 'Aún no hay juegos', noGamesSub: 'Muy pronto', loadFailed: 'No se pudo cargar la lista de juegos',
       loadFailedSub: 'Revisa tu conexión y vuelve a abrir la página',
       wave: 'Oleada', wins: 'Victorias', solved: 'Resueltos', cleared: 'Superados',
+      winsN: '{n} victorias', solvedN: '{n} resueltos', clearedN: '{n} superados',
       defaultPalette: 'Predeterminado', sea: 'Mar', sunset: 'Atardecer', forest: 'Bosque',
       fox: 'Zorro', owl: 'Búho', cat: 'Gato', bear: 'Oso',
       seasonResult: 'Temporada anterior',
@@ -233,15 +238,17 @@
     }
     if (g.id === 'sudoku') {
       var t = s.best && s.best['time-medium'];
-      return t ? C.t('best') + ' ' + C.time(t) : C.t('solved') + ' ' + C.num(s.wins);
+      return t ? C.t('best') + ' ' + C.time(t) : C.t('solvedN', { n: C.num(s.wins) });
     }
     if (g.id === 'minesweeper') {
       var t2 = s.best && s.best['time-medium'];
-      return t2 ? C.t('best') + ' ' + C.time(t2) : C.t('cleared') + ' ' + C.num(s.wins);
+      return t2 ? C.t('best') + ' ' + C.time(t2) : C.t('clearedN', { n: C.num(s.wins) });
     }
     // بازی‌ای که خط مخصوص ندارد شمار بردهایش را نشان می‌دهد. قبلاً هر شناسه‌ی
     // دیگر null می‌گرفت و کارت بازی تازه هیچ رکوردی نشان نمی‌داد (#85).
-    return C.t('wins') + ' ' + C.num(s.wins || 0);
+    // The count goes where each language puts it: the label then the number read
+    // «برد ۱۳» in Persian instead of «۱۳ برد» (#352).
+    return C.t('winsN', { n: C.num(s.wins || 0) });
   }
 
   function goGame(g, daily) {
