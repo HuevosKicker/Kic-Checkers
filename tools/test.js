@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3942;
+const MIN_CHECKS = 4005;
 
 function ok(cond, msg) {
   checks++;
@@ -6481,6 +6481,126 @@ function testSliding() {
   ok(Date.now() - t0 < 8000, 'the Sliding Puzzle group runs in under eight seconds (' + (Date.now() - t0) + 'ms)');
 }
 
+/* ------------------------------------------------ Jigsaw (#325) */
+function testJigsaw() {
+  head('Jigsaw');
+  const t0 = Date.now();
+  const E = loadEngine('jigsaw', 'JigsawEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/jigsaw/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  ok(['cut', 'edges', 'outline', 'layout', 'deal', 'fits', 'place', 'restore'].every((f) => typeof E[f] === 'function'), 'the engine has its API');
+  ok(JSON.stringify(E.COUNTS) === '[12,24,48]' && E.COUNTS.every((n) => E.CUTS[n][0] * E.CUTS[n][1] === n) && E.DAILY_COUNT === 24, '12, 24 and 48 pieces, each cut into whole rows and columns, and 24 for the daily one');
+
+  // Piece size on a phone, with the page's own room for the row of pieces and the bars
+  const trayH = +((html.match(/var TRAY_H = (\d+)/) || [])[1]);
+  const extra = +((html.match(/\.clientHeight \|\| window\.innerHeight\) - TRAY_H - (\d+);/) || [])[1]);
+  const side = +((html.match(/Math\.min\(ctx\.main\.clientWidth \|\| window\.innerWidth, 900\) - (\d+);/) || [])[1]);
+  ok(trayH > 0 && extra > 0 && side > 0, 'the page\'s layout numbers were found (row ' + trayH + ', bars ' + extra + ', sides ' + side + ')');
+  // a game page's top bar is about 61px; the rest of the screen is the game's
+  const sizes = [];
+  for (const [W, H] of [[390, 844], [360, 640]]) {
+    for (const n of E.COUNTS) {
+      const L = E.layout(W - side, H - 61 - trayH - extra, n);
+      sizes.push(W + 'x' + H + '/' + n + ': ' + Math.floor(Math.min(L.cw, L.ch)) + 'px');
+      ok(Math.min(L.cw, L.ch) >= 44 && L.w <= W - side && L.h <= H - 61 - trayH - extra, 'on a ' + W + '×' + H + ' phone, ' + n + ' pieces are ' + Math.floor(L.cw) + '×' + Math.floor(L.ch) + 'px: at least a fingertip, and the picture fits');
+    }
+  }
+  const L390 = E.layout(390 - side, 844 - 61 - trayH - extra, 48);
+  ok(L390.cw >= 58, 'on a 390px phone even 48 pieces are about 60px wide (' + L390.cw.toFixed(1) + ')');
+
+  // Edges: a knob on one side is a hole on the other, and the picture's border is straight
+  const r = rng(0x1650);
+  let edgeOk = 0, edgeAll = 0;
+  for (const n of E.COUNTS) {
+    const [cols, rows] = E.CUTS[n], K = E.cut(cols, rows, r);
+    for (let i = 0; i < n; i++) {
+      const e = E.edges(K, i), c = i % cols, row = Math.floor(i / cols);
+      edgeAll++;
+      const right = c === cols - 1 ? e.right === 0 : (e.right !== 0 && e.right === -E.edges(K, i + 1).left);
+      const down = row === rows - 1 ? e.bottom === 0 : (e.bottom !== 0 && e.bottom === -E.edges(K, i + cols).top);
+      const border = (row === 0) === (e.top === 0) && (c === 0) === (e.left === 0);
+      if (right && down && border) edgeOk++;
+    }
+  }
+  ok(edgeAll === 84 && edgeOk === edgeAll, 'every piece of every cut fits its neighbours and the border is straight (' + edgeOk + ' of ' + edgeAll + ')');
+
+  // The outlines meet: a piece's right side is its right neighbour's left side, point for point
+  const sides = (e, cmds) => {
+    const out = {}, order = ['top', 'right', 'bottom', 'left'];
+    let at = 1, prev = cmds[0].slice(1);
+    for (const s of order) {
+      const len = e[s] ? 6 : 1, seg = cmds.slice(at, at + len), pts = [prev];
+      seg.forEach((c) => { for (let j = 1; j < c.length; j += 2) pts.push([c[j], c[j + 1]]); });
+      out[s] = pts;
+      prev = seg[seg.length - 1].slice(-2);
+      at += len;
+    }
+    return out;
+  };
+  const key = (pts, dx, dy) => pts.map((p) => (p[0] + dx).toFixed(3) + ',' + (p[1] + dy).toFixed(3)).sort().join(' ');
+  const K2 = E.cut(4, 6, rng(9)), cw = 91, ch = 80.9;
+  let meet = 0, tried = 0;
+  for (let i = 0; i < 24; i++) {
+    const c = i % 4, row = Math.floor(i / 4), e = E.edges(K2, i), me = sides(e, E.outline(e, cw, ch));
+    if (c < 3) {
+      const en = E.edges(K2, i + 1), nb = sides(en, E.outline(en, cw, ch));
+      tried++; if (key(me.right, 0, 0) === key(nb.left, cw, 0)) meet++;
+    }
+    if (row < 5) {
+      const en = E.edges(K2, i + 4), nb = sides(en, E.outline(en, cw, ch));
+      tried++; if (key(me.bottom, 0, 0) === key(nb.top, 0, ch)) meet++;
+    }
+  }
+  ok(tried === 38 && meet === tried, 'every shared edge is the same curve from both sides (' + meet + ' of ' + tried + ')');
+  const out0 = E.outline({ top: 0, right: 1, bottom: -1, left: 0 }, 100, 100);
+  const xs = out0.flatMap((c) => c.slice(1).filter((v, j) => j % 2 === 0)), ys = out0.flatMap((c) => c.slice(1).filter((v, j) => j % 2 === 1));
+  ok(Math.max(...xs) <= 100 + E.TAB * 100 + 1e-9 && Math.max(...xs) > 125 && Math.max(...ys) <= 100 && Math.min(...ys) >= 0 && Math.min(...xs) >= 0, 'a knob reaches out about a third of its edge and a hole stays inside the piece');
+
+  // Dealing, dropping, saving
+  const S = E.deal(12, 77, rng(77), 'lake');
+  ok(S.tray.slice().sort((a, b) => a - b).join(',') === '0,1,2,3,4,5,6,7,8,9,10,11' && !S.placed.length && S.pic === 'lake' && S.cols === 3 && S.rows === 4, 'a deal puts every piece in the row once, shuffled');
+  ok(E.deal(24, 5, rng(5), 'night').tray.join() === E.deal(24, 5, rng(5), 'night').tray.join(), 'the same seed deals the same row, so the daily jigsaw is the same for everyone');
+  ok(E.fits(S, 4, 100, 100, 100, 100) && E.fits(S, 4, 129, 71, 100, 100) && !E.fits(S, 4, 131, 100, 100, 100) && !E.fits(S, 4, 100, 69, 100, 100) && !E.fits(S, 5, 100, 100, 100, 100),
+    'a piece snaps within three tenths of a cell of its own place, and nowhere else');
+  ok(E.place(S, 4) && !E.place(S, 4) && S.tray.length === 11 && S.placed[0] === 4 && !S.done, 'a placed piece leaves the row once and locks');
+  S.tray.slice().forEach((p) => E.place(S, p));
+  ok(S.done && S.placed.length === 12, 'the last piece finishes the picture');
+  const sv = { count: 24, seed: 9, pic: 'garden', tray: [3, 1, 2], placed: [0].concat(Array.from({ length: 20 }, (_, i) => i + 4)), misses: 2 };
+  ok(!!E.restore(sv) && E.restore(sv).tray.length === 3 && !E.restore(sv).done, 'a whole save is taken back');
+  ok(!E.restore(Object.assign({}, sv, { tray: [3, 3, 2] })) && !E.restore(Object.assign({}, sv, { pic: 'photo' })) && !E.restore(Object.assign({}, sv, { count: 20 })) && !E.restore(Object.assign({}, sv, { tray: [3, 1] })) && !E.restore(null),
+    'a broken save is dropped: a doubled piece, an unknown picture, a wrong count, a missing piece');
+
+  // The pictures are our own, drawn in code
+  const drawn = (html.match(/var DRAW = \{([^}]*)\}/) || [])[1] || '';
+  ok(E.PICS.length === 6 && E.PICS.every((id) => new RegExp('\\b' + id + ': ' + id + '\\b').test(drawn) && new RegExp('function ' + id + '\\(g\\)').test(html)), 'each of the six pictures has its own drawing function');
+  ok(!/<img\b|data:image|url\(|new Image\(|\.png|\.jpe?g|\.webp/i.test(html), 'the page loads no image of any kind: no photo, no file, no data URL');
+
+  // Page wiring and identity
+  const gm = games.find((x) => x.id === 'jigsaw');
+  ok(!!gm && gm.cat === 'puzzle' && gm.daily !== false, 'games.json lists it under puzzles, with a daily jigsaw');
+  ok(!!gm && /accent: '([^']+)'/.test(html) && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/jigsaw/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const lin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const lab = (h) => {
+    const [R, G, B] = rgb(h).map(lin), f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    const X = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047, Y = R * 0.2126 + G * 0.7152 + B * 0.0722, Z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  };
+  const dE = (a, b) => { const A = lab(a), B = lab(b); return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]); };
+  const lum = (h) => rgb(h).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const nearest = games.filter((x) => x.id !== 'jigsaw').map((x) => [x.id, dE(x.color, gm.color)]).sort((x, y) => x[1] - y[1])[0];
+  ok(nearest[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + nearest[0] + ', ' + nearest[1].toFixed(1) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['jg-win', 'jg-48', 'jg-clean'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '[^\\n]*des: '").test(core) && html.indexOf("unlock('" + id + "')") > 0), 'the three Jigsaw awards exist in every language and are unlocked');
+  ok(/C\.daily\('jigsaw', daily\)/.test(html) && /newGame\(E\.DAILY_COUNT, dailyDate\)/.test(html) && /C\.stats\.daily\('jigsaw', S\.daily/.test(html), 'the daily picture and cut come from the day\'s seed and the time is recorded');
+  ok(/\.jg-frame \{\s*direction: ltr;/.test(html) && /\.jg-tray \{\s*direction: ltr;/.test(html) && /touch-action: pan-x;/.test(html), 'the picture is not mirrored in Persian, and the row scrolls sideways while an upward drag lifts a piece');
+  ok(/ctx\.autosave\(/.test(html) && /ctx\.tutorialIfNew\(TUT\)/.test(html) && /function landed\(i\) \{[\s\S]*?save\(\);/.test(html) && /function missed\(i\) \{[\s\S]*?save\(\);/.test(html), 'the game saves after every drop and shows its tutorial once');
+  ok(!/[\s{,]again: '/.test(html), 'the page leaves the core\'s "again" label alone');
+  ok(Date.now() - t0 < 5000, 'the Jigsaw group runs in under five seconds (' + (Date.now() - t0) + 'ms; ' + sizes.join(', ') + ')');
+}
+
 /* ------------------------------- Core labels a game must not redefine (#318) */
 // ctx.finish labels the result window's play-again button with the core's
 // 'again'. Ludo's strings defined 'again' for "roll again after a six", so its
@@ -7666,6 +7786,7 @@ testSnakes();
 testDarts();
 testBowling();
 testSliding();
+testJigsaw();
 testCoreLabels();
 testKeyLayout();
 testGo();

@@ -1,4 +1,4 @@
-Chogan is a collection of small, finishable games in a single app. It ships with thirty-three games, and new ones arrive as updates to the same app.
+Chogan is a collection of small, finishable games in a single app. It ships with thirty-four games, and new ones arrive as updates to the same app.
 
 The games:
 
@@ -35,6 +35,7 @@ The games:
 * Darts — 501 or 301, three darts a turn, finish on a double; against a bot or two players
 * Bowling — ten frames, swipe to bowl and bend it for spin; alone, against a bot or two players
 * Sliding Puzzle — slide the numbered tiles back into order, from 3×3 to 5×5, in as few moves as you can
+* Jigsaw — drag the pieces into the frame, 12 to 48 of them, on Persian patterns and scenes drawn in code
 
 Around the games:
 

@@ -1,0 +1,981 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#FBF6EF">
+<title>جورچین — چوگان</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../lib/chogan.css">
+<style>
+  .jg-wrap { width: 100%; max-width: 900px; display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
+  .jg-top { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; align-items: center; min-height: 28px; }
+  /* A picture is a picture: it is not mirrored in RTL, and neither is the row of loose pieces */
+  .jg-frame {
+    direction: ltr; position: relative; flex: none; border-radius: 6px; overflow: hidden;
+    background: var(--c-surface-2); box-shadow: inset 0 0 0 2px var(--c-line);
+  }
+  .jg-grid { position: absolute; inset: 0; pointer-events: none; }
+  .jg-cur { position: absolute; border: 3px solid var(--c-accent); border-radius: 6px; pointer-events: none; display: none; }
+  .jg-frame--done { box-shadow: 0 0 0 3px var(--game), var(--sh-2); }
+  .jg-tray {
+    direction: ltr; width: 100%; display: flex; gap: 6px; align-items: center; padding: 4px 6px;
+    overflow-x: auto; overflow-y: hidden; overscroll-behavior: contain; scrollbar-width: thin;
+    background: var(--c-surface); border-radius: var(--r-md); box-shadow: var(--sh-1);
+    /* sideways the row scrolls, upwards a finger lifts a piece out of it */
+    touch-action: pan-x;
+  }
+  .jg-slot { flex: none; position: relative; cursor: grab; border-radius: 8px; touch-action: pan-x; }
+  .jg-slot canvas { display: block; pointer-events: none; }
+  .jg-slot--sel { outline: 3px solid var(--c-accent); outline-offset: 1px; }
+  .jg-slot--away { visibility: hidden; }
+  .jg-piece { position: absolute; left: 0; top: 0; pointer-events: none; }
+  .jg-float { position: fixed; left: 0; top: 0; z-index: 60; pointer-events: none; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .35)); }
+  .jg-snap { animation: jg-snap var(--t-mid) var(--ease); }
+  @keyframes jg-snap { 0% { filter: brightness(1.35); } 100% { filter: none; } }
+  .jg-status { min-height: 1.4em; font-weight: 700; color: var(--c-text-dim); text-align: center; font-size: var(--fs-sm); }
+  .jg-preview { display: block; margin: 0 auto; border-radius: var(--r-md); box-shadow: var(--sh-2); }
+  .jg-tut { display: block; }
+</style>
+</head>
+<body>
+<script src="../../version.js"></script>
+<script src="../../lib/chogan.js"></script>
+
+<script>
+/* ==== ENGINE START ==== */
+function JigsawEngineFactory() {
+  'use strict';
+
+  // Piece counts and their cuts. The picture is 3:4 upright, so on a 390px phone, where the
+  // picture is about 360px wide, the pieces are about 120, 90 and 60px: never under a fingertip.
+  var CUTS = { 12: [3, 4], 24: [4, 6], 48: [6, 8] };
+  var COUNTS = [12, 24, 48];
+  var DAILY_COUNT = 24;
+  var PICS = ['girih', 'carpet', 'dunes', 'lake', 'night', 'garden'];
+  var ASPECT = 4 / 3;     // height over width
+  var TAB = 0.3;          // how far a knob reaches, as a share of its edge
+  var SNAP = 0.3;         // how near its place a piece must land, as a share of a cell
+
+  // Every inner edge gets a knob on one side and a hole on the other
+  function cut(cols, rows, rnd) {
+    var h = [], v = [], i;
+    for (i = 0; i < cols * (rows - 1); i++) h.push(rnd() < 0.5 ? 1 : -1);
+    for (i = 0; i < (cols - 1) * rows; i++) v.push(rnd() < 0.5 ? 1 : -1);
+    return { cols: cols, rows: rows, h: h, v: v };
+  }
+  // A piece's four edges, +1 a knob out, -1 a hole in, 0 the picture's border.
+  // h[r * cols + c] is the edge under row r; v[r * (cols - 1) + c] the edge right of column c.
+  function edges(K, i) {
+    var c = i % K.cols, r = Math.floor(i / K.cols);
+    return {
+      top: r === 0 ? 0 : -K.h[(r - 1) * K.cols + c],
+      bottom: r === K.rows - 1 ? 0 : K.h[r * K.cols + c],
+      left: c === 0 ? 0 : -K.v[r * (K.cols - 1) + c - 1],
+      right: c === K.cols - 1 ? 0 : K.v[r * (K.cols - 1) + c]
+    };
+  }
+
+  // One edge from 0 to 1 along it, the knob reaching out to TAB. Symmetric about the middle,
+  // so a knob read from the neighbour's side, backwards, is the same curve.
+  var KNOB = [
+    ['L', 0.36, 0],
+    ['C', 0.40, 0, 0.42, 0.08, 0.38, 0.14],
+    ['C', 0.32, 0.24, 0.40, 0.30, 0.50, 0.30],
+    ['C', 0.60, 0.30, 0.68, 0.24, 0.62, 0.14],
+    ['C', 0.58, 0.08, 0.60, 0, 0.64, 0],
+    ['L', 1, 0]
+  ];
+  // The outline of a piece w by h, its body's corner at 0,0, clockwise from the top left
+  function outline(e, w, h) {
+    var out = [['M', 0, 0]];
+    function side(s, L, map) {
+      if (!s) { var p = map(L, 0); out.push(['L', p[0], p[1]]); return; }
+      KNOB.forEach(function (k) {
+        var pts = [];
+        for (var j = 1; j < k.length; j += 2) {
+          var q = map(k[j] * L, k[j + 1] * L * s);
+          pts.push(q[0], q[1]);
+        }
+        out.push([k[0]].concat(pts));
+      });
+    }
+    // u runs along the edge, v reaches out of the piece
+    side(e.top, w, function (u, v) { return [u, -v]; });
+    side(e.right, h, function (u, v) { return [w + v, u]; });
+    side(e.bottom, w, function (u, v) { return [w - u, h + v]; });
+    side(e.left, h, function (u, v) { return [-v, h - u]; });
+    return out;
+  }
+
+  // The picture's size in a space, and the room a piece's knobs need around its body
+  function layout(availW, availH, count) {
+    var cr = CUTS[count], w = Math.min(availW, availH / ASPECT);
+    w = Math.floor(w / cr[0]) * cr[0];
+    var h = Math.round(w * ASPECT), cw = w / cr[0], ch = h / cr[1];
+    return { w: w, h: h, cols: cr[0], rows: cr[1], cw: cw, ch: ch, m: Math.ceil(TAB * Math.max(cw, ch)) + 2 };
+  }
+
+  function deal(count, seed, rnd, pic) {
+    var cr = CUTS[count], n = count, tray = [];
+    for (var i = 0; i < n; i++) tray.push(i);
+    for (var k = n - 1; k > 0; k--) { var j = Math.floor(rnd() * (k + 1)), t = tray[k]; tray[k] = tray[j]; tray[j] = t; }
+    return { count: count, seed: seed >>> 0, pic: PICS.indexOf(pic) >= 0 ? pic : PICS[seed % PICS.length], tray: tray, placed: [], misses: 0, done: false, cols: cr[0], rows: cr[1] };
+  }
+  // A drop at body corner x, y in picture pixels: a piece lands only near its own place
+  function fits(S, piece, x, y, cw, ch) {
+    var c = piece % S.cols, r = Math.floor(piece / S.cols);
+    return Math.abs(x - c * cw) <= SNAP * cw && Math.abs(y - r * ch) <= SNAP * ch;
+  }
+  // The same rule for a cell picked with the keyboard
+  function fitsCell(S, piece, cell) { return piece === cell; }
+  function place(S, piece) {
+    var at = S.tray.indexOf(piece);
+    if (at < 0 || S.done) return false;
+    S.tray.splice(at, 1);
+    S.placed.push(piece);
+    if (!S.tray.length) S.done = true;
+    return true;
+  }
+  function miss(S) { S.misses++; }
+  function restore(o) {
+    if (!o || !CUTS[o.count] || PICS.indexOf(o.pic) < 0 || !Array.isArray(o.tray) || !Array.isArray(o.placed)) return null;
+    if (!(o.seed >= 0) || o.seed !== Math.floor(o.seed) || !(o.misses >= 0)) return null;
+    var all = o.tray.concat(o.placed), seen = [];
+    if (all.length !== o.count) return null;
+    for (var i = 0; i < all.length; i++) {
+      var p = all[i];
+      if (typeof p !== 'number' || p !== Math.floor(p) || p < 0 || p >= o.count || seen[p]) return null;
+      seen[p] = true;
+    }
+    var cr = CUTS[o.count];
+    return { count: o.count, seed: o.seed, pic: o.pic, tray: o.tray.slice(), placed: o.placed.slice(), misses: o.misses, done: !o.tray.length, cols: cr[0], rows: cr[1] };
+  }
+
+  var api = { CUTS: CUTS, COUNTS: COUNTS, DAILY_COUNT: DAILY_COUNT, PICS: PICS, ASPECT: ASPECT, TAB: TAB, SNAP: SNAP,
+    cut: cut, edges: edges, outline: outline, layout: layout, deal: deal, fits: fits, fitsCell: fitsCell, place: place, miss: miss, restore: restore };
+  if (typeof self !== 'undefined') self.JigsawEngine = api;
+  return api;
+}
+if (typeof module !== 'undefined' && module.exports) module.exports = JigsawEngineFactory;
+/* ==== ENGINE END ==== */
+</script>
+
+<script>
+/* The pictures, all drawn here in code on a 300 by 400 canvas: no photo, no image file, no
+   third-party art. Two Persian patterns and four scenes, each with large areas of their own
+   colour so a piece can be told apart from its neighbours. */
+function JigsawPictures() {
+  'use strict';
+  var TAU = Math.PI * 2;
+
+  function lin(g, x0, y0, x1, y1, stops) {
+    var gr = g.createLinearGradient(x0, y0, x1, y1);
+    stops.forEach(function (s) { gr.addColorStop(s[0], s[1]); });
+    return gr;
+  }
+  function poly(g, pts) {
+    g.beginPath();
+    g.moveTo(pts[0], pts[1]);
+    for (var i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]);
+    g.closePath();
+  }
+  function star(g, cx, cy, n, ro, ri, rot) {
+    var pts = [];
+    for (var i = 0; i < n * 2; i++) {
+      var a = rot + i * Math.PI / n, r = i % 2 ? ri : ro;
+      pts.push(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    }
+    poly(g, pts);
+  }
+  // a small fixed sequence instead of Math.random, so a picture is the same every time
+  function seq(seed) {
+    var a = seed >>> 0;
+    return function () { a = (a * 1664525 + 1013904223) >>> 0; return a / 4294967296; };
+  }
+
+  // Khatam tiles: eight-pointed stars and crosses in turquoise, cobalt and gold, round a
+  // large twelve-pointed rosette in the middle
+  function girih(g) {
+    g.fillStyle = '#16325C'; g.fillRect(0, 0, 300, 400);
+    var s = 50, x, y;
+    for (y = 0; y <= 400; y += s) for (x = 0; x <= 300; x += s) {
+      var odd = ((x + y) / s) % 2;
+      g.fillStyle = odd ? '#2A9D8F' : '#3E7CB1';
+      star(g, x, y, 8, 22, 15, Math.PI / 8);
+      g.fill();
+      g.strokeStyle = '#E9C46A'; g.lineWidth = 2; g.stroke();
+      g.fillStyle = '#F4E9D0';
+      star(g, x, y, 8, 9, 5, 0);
+      g.fill();
+    }
+    // the crosses between the stars
+    for (y = s / 2; y < 400; y += s) for (x = s / 2; x < 300; x += s) {
+      g.fillStyle = y < 200 ? '#C8553D' : '#8E5572';
+      poly(g, [x - 5, y - 12, x + 5, y - 12, x + 5, y - 5, x + 12, y - 5, x + 12, y + 5, x + 5, y + 5, x + 5, y + 12, x - 5, y + 12, x - 5, y + 5, x - 12, y + 5, x - 12, y - 5, x - 5, y - 5]);
+      g.fill();
+    }
+    g.fillStyle = '#0F2444';
+    g.beginPath(); g.arc(150, 200, 92, 0, TAU); g.fill();
+    g.fillStyle = '#E9C46A'; star(g, 150, 200, 12, 86, 58, 0); g.fill();
+    g.fillStyle = '#2A9D8F'; star(g, 150, 200, 12, 64, 44, Math.PI / 12); g.fill();
+    g.fillStyle = '#F4E9D0'; star(g, 150, 200, 6, 38, 22, 0); g.fill();
+    g.fillStyle = '#C8553D'; g.beginPath(); g.arc(150, 200, 14, 0, TAU); g.fill();
+    g.strokeStyle = '#E9C46A'; g.lineWidth = 8; g.strokeRect(4, 4, 292, 392);
+  }
+
+  // A lachak-toranj carpet: a red field, a medallion, four corner quarters and a navy border
+  function carpet(g) {
+    var r = seq(7), i;
+    g.fillStyle = '#1E2A4A'; g.fillRect(0, 0, 300, 400);
+    g.fillStyle = '#F1E3C6'; g.fillRect(14, 14, 272, 372);
+    g.fillStyle = '#9C2F2F'; g.fillRect(24, 24, 252, 352);
+    // border rosettes
+    for (i = 0; i < 12; i++) {
+      [[22 + i * 23, 7], [22 + i * 23, 393]].forEach(function (p) { g.fillStyle = i % 2 ? '#E0B04A' : '#F1E3C6'; star(g, p[0], p[1], 6, 5, 2.5, 0); g.fill(); });
+    }
+    for (i = 0; i < 17; i++) {
+      [[7, 22 + i * 22.5], [293, 22 + i * 22.5]].forEach(function (p) { g.fillStyle = i % 2 ? '#E0B04A' : '#F1E3C6'; star(g, p[0], p[1], 6, 5, 2.5, 0); g.fill(); });
+    }
+    // small flowers strewn over the field
+    for (i = 0; i < 70; i++) {
+      var x = 32 + r() * 236, y = 32 + r() * 336;
+      g.fillStyle = ['#E0B04A', '#F1E3C6', '#2E6E73'][i % 3];
+      star(g, x, y, 5, 4, 1.8, r() * TAU); g.fill();
+    }
+    // the four corner quarters
+    [[24, 24, 0], [276, 24, Math.PI / 2], [276, 376, Math.PI], [24, 376, -Math.PI / 2]].forEach(function (c) {
+      g.save(); g.translate(c[0], c[1]); g.rotate(c[2]);
+      g.fillStyle = '#1E2A4A'; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 70, 0, Math.PI / 2); g.closePath(); g.fill();
+      g.fillStyle = '#E0B04A'; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 52, 0, Math.PI / 2); g.closePath(); g.fill();
+      g.fillStyle = '#2E6E73'; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 34, 0, Math.PI / 2); g.closePath(); g.fill();
+      g.restore();
+    });
+    // the medallion and its two pendants
+    g.fillStyle = '#F1E3C6';
+    poly(g, [150, 70, 168, 110, 150, 120, 132, 110]); g.fill();
+    poly(g, [150, 330, 168, 290, 150, 280, 132, 290]); g.fill();
+    g.fillStyle = '#1E2A4A'; g.beginPath(); g.ellipse(150, 200, 86, 104, 0, 0, TAU); g.fill();
+    g.fillStyle = '#E0B04A'; g.beginPath(); g.ellipse(150, 200, 72, 90, 0, 0, TAU); g.fill();
+    g.fillStyle = '#F1E3C6'; g.beginPath(); g.ellipse(150, 200, 58, 74, 0, 0, TAU); g.fill();
+    g.fillStyle = '#9C2F2F'; star(g, 150, 200, 8, 50, 30, 0); g.fill();
+    g.fillStyle = '#2E6E73'; star(g, 150, 200, 8, 28, 16, Math.PI / 8); g.fill();
+    g.fillStyle = '#E0B04A'; g.beginPath(); g.arc(150, 200, 9, 0, TAU); g.fill();
+  }
+
+  // Desert dunes at sunset, a caravan on the middle ridge
+  function dunes(g) {
+    g.fillStyle = lin(g, 0, 0, 0, 230, [[0, '#5B3A7A'], [0.45, '#E07A5F'], [1, '#F6C77A']]);
+    g.fillRect(0, 0, 300, 400);
+    g.fillStyle = '#FBE3A1'; g.beginPath(); g.arc(210, 175, 34, 0, TAU); g.fill();
+    function dune(y0, col, amp, ph) {
+      g.fillStyle = col; g.beginPath(); g.moveTo(0, 400); g.lineTo(0, y0);
+      for (var x = 0; x <= 300; x += 10) g.lineTo(x, y0 + Math.sin(x / 300 * TAU * 0.8 + ph) * amp + Math.sin(x / 41 + ph) * amp * 0.25);
+      g.lineTo(300, 400); g.closePath(); g.fill();
+    }
+    dune(215, '#D9895B', 14, 0.4);
+    dune(255, '#C8703F', 20, 2.2);
+    dune(315, '#A8552E', 24, 4.1);
+    dune(365, '#8A4424', 12, 1.0);
+    // camels: a body, a hump, a neck and four legs, in one dark ink
+    g.fillStyle = '#3B2214'; g.strokeStyle = '#3B2214'; g.lineWidth = 2; g.lineCap = 'round';
+    [[70, 247, 1], [104, 251, 0.9], [134, 254, 0.8]].forEach(function (c) {
+      var x = c[0], y = c[1], k = c[2];
+      g.save(); g.translate(x, y); g.scale(k, k);
+      g.beginPath(); g.ellipse(0, 0, 13, 6, 0, 0, TAU); g.fill();
+      g.beginPath(); g.ellipse(-1, -6, 6, 5, 0, 0, TAU); g.fill();
+      g.beginPath(); g.moveTo(11, -2); g.lineTo(17, -12); g.lineTo(21, -12); g.stroke();
+      [-9, -4, 5, 10].forEach(function (lx) { g.beginPath(); g.moveTo(lx, 4); g.lineTo(lx, 15); g.stroke(); });
+      g.restore();
+    });
+  }
+
+  // A snow-capped peak over a lake, poplars on the shore and the mountain in the water
+  function lake(g) {
+    g.fillStyle = lin(g, 0, 0, 0, 220, [[0, '#6FA8DC'], [1, '#DCEFF8']]);
+    g.fillRect(0, 0, 300, 230);
+    function mountains(flip) {
+      g.save();
+      if (flip) { g.translate(0, 460); g.scale(1, -1); g.globalAlpha = 0.45; }
+      g.fillStyle = '#7C8DA6'; poly(g, [0, 230, 0, 150, 60, 120, 110, 165, 120, 230]); g.fill();
+      g.fillStyle = '#8E9FB5'; poly(g, [180, 230, 230, 140, 300, 120, 300, 230]); g.fill();
+      g.fillStyle = '#5E6E86'; poly(g, [40, 230, 150, 60, 260, 230]); g.fill();
+      g.fillStyle = '#F7FBFF'; poly(g, [116, 112, 150, 60, 184, 112, 168, 104, 156, 118, 144, 102, 130, 116]); g.fill();
+      g.fillStyle = '#5B8C51'; poly(g, [0, 230, 0, 205, 70, 196, 150, 212, 230, 198, 300, 206, 300, 230]); g.fill();
+      g.restore();
+    }
+    mountains(false);
+    g.fillStyle = lin(g, 0, 230, 0, 400, [[0, '#4F86B5'], [1, '#22476B']]);
+    g.fillRect(0, 230, 300, 170);
+    mountains(true);
+    g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 1.5;
+    for (var i = 0; i < 9; i++) { g.beginPath(); g.moveTo(20 + i * 31, 260 + i * 15 % 110); g.lineTo(46 + i * 31, 260 + i * 15 % 110); g.stroke(); }
+    // the shore and its poplars
+    g.fillStyle = '#C9B58A'; poly(g, [0, 400, 0, 352, 90, 338, 170, 356, 300, 340, 300, 400]); g.fill();
+    [[30, 352], [52, 346], [250, 344], [272, 348]].forEach(function (p) {
+      g.fillStyle = '#6B4F2E'; g.fillRect(p[0] - 1.5, p[1] - 6, 3, 10);
+      g.fillStyle = '#3F6B35'; g.beginPath(); g.ellipse(p[0], p[1] - 30, 8, 28, 0, 0, TAU); g.fill();
+    });
+  }
+
+  // Night over a city of domes and minarets, a crescent moon and the windows lit
+  function night(g) {
+    var r = seq(19), i;
+    g.fillStyle = lin(g, 0, 0, 0, 300, [[0, '#0B1430'], [1, '#3C4F9A']]);
+    g.fillRect(0, 0, 300, 400);
+    g.fillStyle = '#F4E9D0';
+    for (i = 0; i < 80; i++) { g.beginPath(); g.arc(r() * 300, r() * 220, r() * 1.4 + 0.4, 0, TAU); g.fill(); }
+    // the crescent is the full moon with a disc clipped out, so the sky shows through the gap
+    g.save();
+    g.beginPath(); g.rect(0, 0, 300, 400); g.arc(236, 68, 23, 0, TAU); g.clip('evenodd');
+    g.fillStyle = '#F6E7B0'; g.beginPath(); g.arc(225, 75, 26, 0, TAU); g.fill();
+    g.restore();
+    var ink = '#141A33', tile = '#1F6F8B';
+    // the minarets
+    [[42, 120], [258, 120]].forEach(function (m) {
+      g.fillStyle = ink; g.fillRect(m[0] - 8, m[1], 16, 280);
+      g.fillRect(m[0] - 12, m[1] + 30, 24, 8);
+      poly(g, [m[0] - 8, m[1], m[0], m[1] - 22, m[0] + 8, m[1]]); g.fill();
+      g.fillStyle = '#F2B84B'; g.fillRect(m[0] - 2, m[1] + 60, 4, 10);
+    });
+    // the great dome on its drum, two small ones beside
+    g.fillStyle = tile; g.beginPath(); g.ellipse(150, 230, 62, 70, 0, Math.PI, 0); g.fill();
+    g.fillStyle = ink; g.fillRect(96, 228, 108, 30);
+    g.fillStyle = '#E9C46A'; g.fillRect(148, 148, 4, 14);
+    [[80, 280], [220, 280]].forEach(function (d) {
+      g.fillStyle = tile; g.beginPath(); g.ellipse(d[0], d[1], 32, 34, 0, Math.PI, 0); g.fill();
+      g.fillStyle = ink; g.fillRect(d[0] - 30, d[1] - 2, 60, 18);
+    });
+    // the long front with lit arches
+    g.fillStyle = ink; g.fillRect(0, 296, 300, 104);
+    g.fillStyle = '#F2B84B';
+    for (i = 0; i < 9; i++) {
+      var x = 14 + i * 32;
+      g.beginPath(); g.moveTo(x, 360); g.lineTo(x, 330); g.quadraticCurveTo(x + 9, 314, x + 18, 330); g.lineTo(x + 18, 360); g.closePath(); g.fill();
+    }
+    g.fillStyle = '#0B1430'; g.fillRect(0, 372, 300, 28);
+    g.fillStyle = 'rgba(242,184,75,.35)';
+    for (i = 0; i < 9; i++) g.fillRect(16 + i * 32, 378, 14, 3 + (i % 3));
+  }
+
+  // A Persian garden: a pavilion's arch, a long pool, rows of cypresses and flower beds
+  function garden(g) {
+    g.fillStyle = lin(g, 0, 0, 0, 140, [[0, '#8EC5E8'], [1, '#E7F3F9']]);
+    g.fillRect(0, 0, 300, 150);
+    // the pavilion
+    g.fillStyle = '#E9D8B4'; g.fillRect(70, 40, 160, 110);
+    g.fillStyle = '#C9A66B'; g.fillRect(70, 40, 160, 10);
+    g.fillStyle = '#2A6F97';
+    g.beginPath(); g.moveTo(118, 150); g.lineTo(118, 88); g.quadraticCurveTo(150, 46, 182, 88); g.lineTo(182, 150); g.closePath(); g.fill();
+    g.fillStyle = '#E9C46A'; g.fillRect(124, 92, 52, 4);
+    [[84, 70], [196, 70]].forEach(function (w) {
+      g.fillStyle = '#2A6F97'; g.beginPath(); g.moveTo(w[0], 120); g.lineTo(w[0], w[1] + 10); g.quadraticCurveTo(w[0] + 10, w[1], w[0] + 20, w[1] + 10); g.lineTo(w[0] + 20, 120); g.closePath(); g.fill();
+    });
+    // the ground, the pool running toward us and the paths beside it
+    g.fillStyle = '#7BA05B'; g.fillRect(0, 150, 300, 250);
+    g.fillStyle = '#D8C7A1'; poly(g, [128, 150, 172, 150, 250, 400, 50, 400]); g.fill();
+    g.fillStyle = lin(g, 0, 150, 0, 400, [[0, '#5FA8C9'], [1, '#2B6E96']]);
+    poly(g, [138, 150, 162, 150, 210, 400, 90, 400]); g.fill();
+    g.fillStyle = 'rgba(233,216,180,.45)'; poly(g, [143, 150, 157, 150, 168, 230, 132, 230]); g.fill();
+    // flower beds
+    var r = seq(3);
+    for (var i = 0; i < 90; i++) {
+      var y = 170 + r() * 220, left = r() < 0.5, spread = (y - 150) / 250;
+      var x = left ? 120 - spread * 70 - r() * 50 * (0.4 + spread) : 180 + spread * 70 + r() * 50 * (0.4 + spread);
+      g.fillStyle = ['#D1495B', '#EDAE49', '#F4A6B6'][i % 3];
+      g.beginPath(); g.arc(x, y, 1.6 + spread * 2.4, 0, TAU); g.fill();
+    }
+    // two rows of cypresses, growing toward us
+    for (var k = 0; k < 5; k++) {
+      var t = k / 4, yb = 175 + t * 205, s = 0.45 + t * 0.9, dx = 22 + t * 92;
+      [150 - dx - 14 * s, 150 + dx + 14 * s].forEach(function (x) {
+        g.fillStyle = '#244B2E'; g.beginPath(); g.ellipse(x, yb - 34 * s, 9 * s, 36 * s, 0, 0, TAU); g.fill();
+        g.fillStyle = '#2F6B3C'; g.beginPath(); g.ellipse(x - 2 * s, yb - 38 * s, 4 * s, 26 * s, 0, 0, TAU); g.fill();
+      });
+    }
+  }
+
+  var DRAW = { girih: girih, carpet: carpet, dunes: dunes, lake: lake, night: night, garden: garden };
+  return {
+    ids: Object.keys(DRAW),
+    // Draws picture id into g at w by h
+    draw: function (id, g, w, h) {
+      g.save();
+      g.scale(w / 300, h / 400);
+      (DRAW[id] || girih)(g);
+      g.restore();
+    }
+  };
+}
+</script>
+
+<script>
+(function () {
+  'use strict';
+  var C = window.Chogan, el = C.el;
+  var E = JigsawEngineFactory();
+  var P = JigsawPictures();
+
+  C.boot({});
+  var ctx = C.game({
+    id: 'jigsaw',
+    name: { fa: 'جورچین', en: 'Jigsaw', zh: '拼图', de: 'Puzzle', es: 'Rompecabezas' },
+    accent: '#127C91',
+    mood: 'sudoku',
+    strings: {
+      fa: {
+        pieces: 'تکه', piecesN: '{n} تکه', left: 'مانده', wrongs: 'اشتباه', newPicture: 'تصویر تازه', preview: 'دیدن تصویر',
+        doneIt: 'جورچین کامل شد!', dailyJg: 'جورچین روزانه', board: 'قاب جورچین', tray: 'تکه‌های جدا', pieceN: 'تکه‌ی {n}',
+        noWrong: 'بی اشتباه', bestN: 'بهترین زمان: {t}',
+        keysPick: 'انتخاب تکه در ردیف پایین', keysLift: 'برداشتن و گذاشتن تکه', keysAim: 'جای تکه در قاب', keysCancel: 'پشیمان شدن',
+        pic_girih: 'کاشی خاتم', pic_carpet: 'فرش لچک‌ترنج', pic_dunes: 'تپه‌های شنی', pic_lake: 'کوه و دریاچه', pic_night: 'شب شهر', pic_garden: 'باغ ایرانی',
+        rules: 'تکه‌ها را از ردیف پایین بکش و در قاب بگذار. ردیف را با کشیدن به پهلو جابه‌جا کن و تکه را با کشیدن به بالا بردار. تکه‌ای که نزدیک جای خودش رها شود سر جایش می‌چسبد و قفل می‌شود؛ جای دیگر برمی‌گردد به ردیف و یک اشتباه حساب می‌شود. دکمه‌ی چشم تصویر کامل را کوچک نشان می‌دهد. تصویرها همه با کد کشیده شده‌اند. جورچین روزانه یک تصویر و یک برش برای همه است.',
+        tutTitle1: 'بکش و بگذار', tutText1: 'تکه را از ردیف پایین به بالا بکش و نزدیک جای خودش در قاب رها کن تا بچسبد.',
+        tutTitle2: 'تصویر را ببین', tutText2: 'با دکمه‌ی چشم تصویر کامل را ببین. لبه‌ها و گوشه‌ها، که یک طرفشان صاف است، شروع خوبی‌اند.'
+      },
+      en: {
+        pieces: 'Pieces', piecesN: '{n} pieces', left: 'Left', wrongs: 'Misses', newPicture: 'New picture', preview: 'See the picture',
+        doneIt: 'Jigsaw complete!', dailyJg: 'Daily Jigsaw', board: 'Jigsaw frame', tray: 'Loose pieces', pieceN: 'Piece {n}',
+        noWrong: 'No misses', bestN: 'Best time: {t}',
+        keysPick: 'Pick a piece in the row', keysLift: 'Lift and place a piece', keysAim: 'Its spot in the frame', keysCancel: 'Put it back',
+        pic_girih: 'Khatam tiles', pic_carpet: 'Medallion carpet', pic_dunes: 'Sand dunes', pic_lake: 'Mountain lake', pic_night: 'City at night', pic_garden: 'Persian garden',
+        rules: 'Drag pieces up from the row at the bottom into the frame. Swipe the row sideways to look along it, and drag a piece upwards to lift it out. A piece let go near its own spot snaps in and locks; anywhere else it goes back to the row and counts as a miss. The eye button shows the whole picture, small. Every picture is drawn in code. The daily jigsaw is one picture and one cut, the same for everyone.',
+        tutTitle1: 'Drag and drop', tutText1: 'Drag a piece up from the row and let go near its spot in the frame: it snaps in.',
+        tutTitle2: 'Look at the picture', tutText2: 'The eye button shows the whole picture. Edges and corners, with a straight side, are a good start.'
+      },
+      zh: {
+        pieces: '块数', piecesN: '{n} 块', left: '剩余', wrongs: '放错', newPicture: '换一张图', preview: '查看原图',
+        doneIt: '拼图完成！', dailyJg: '每日拼图', board: '拼图框', tray: '散落的拼块', pieceN: '第 {n} 块',
+        noWrong: '零失误', bestN: '最佳用时：{t}',
+        keysPick: '在下方一排中选块', keysLift: '拿起并放下拼块', keysAim: '它在框里的位置', keysCancel: '放回去',
+        pic_girih: '哈塔姆瓷砖', pic_carpet: '团花地毯', pic_dunes: '沙丘', pic_lake: '山与湖', pic_night: '城市之夜', pic_garden: '波斯花园',
+        rules: '从下方一排把拼块往上拖进框里。左右滑动那一排可以浏览，向上拖动可以拿起一块。在它自己的位置附近松手就会吸附并锁定；放在别处会回到那一排，并记一次放错。眼睛按钮会小图显示整张图。所有图片都是用代码画的。每日拼图对所有人都是同一张图、同一种切法。',
+        tutTitle1: '拖放', tutText1: '把拼块从下方一排往上拖，在框里它的位置附近松手，它就会吸附上去。',
+        tutTitle2: '看看原图', tutText2: '眼睛按钮会显示整张图。有一条直边的边块和角块是不错的起点。'
+      },
+      de: {
+        pieces: 'Teile', piecesN: '{n} Teile', left: 'Übrig', wrongs: 'Fehler', newPicture: 'Neues Bild', preview: 'Bild ansehen',
+        doneIt: 'Puzzle fertig!', dailyJg: 'Puzzle des Tages', board: 'Puzzlerahmen', tray: 'Lose Teile', pieceN: 'Teil {n}',
+        noWrong: 'Ohne Fehler', bestN: 'Bestzeit: {t}',
+        keysPick: 'Teil in der Reihe wählen', keysLift: 'Teil aufnehmen und ablegen', keysAim: 'Sein Platz im Rahmen', keysCancel: 'Zurücklegen',
+        pic_girih: 'Khatam-Fliesen', pic_carpet: 'Medaillonteppich', pic_dunes: 'Sanddünen', pic_lake: 'Bergsee', pic_night: 'Stadt bei Nacht', pic_garden: 'Persischer Garten',
+        rules: 'Zieh die Teile aus der Reihe unten nach oben in den Rahmen. Wisch die Reihe seitwärts, um sie durchzusehen, und zieh ein Teil nach oben, um es herauszunehmen. Ein Teil, das nahe seinem Platz losgelassen wird, rastet ein; anderswo geht es in die Reihe zurück und zählt als Fehler. Der Augen-Knopf zeigt das ganze Bild, klein. Jedes Bild ist im Code gezeichnet. Das Puzzle des Tages ist ein Bild und ein Schnitt, für alle gleich.',
+        tutTitle1: 'Ziehen und ablegen', tutText1: 'Zieh ein Teil aus der Reihe nach oben und lass es nahe seinem Platz im Rahmen los: Es rastet ein.',
+        tutTitle2: 'Schau aufs Bild', tutText2: 'Der Augen-Knopf zeigt das ganze Bild. Rand- und Eckteile mit einer geraden Seite sind ein guter Anfang.'
+      },
+      es: {
+        pieces: 'Piezas', piecesN: '{n} piezas', left: 'Quedan', wrongs: 'Fallos', newPicture: 'Otra imagen', preview: 'Ver la imagen',
+        doneIt: '¡Rompecabezas completo!', dailyJg: 'Rompecabezas diario', board: 'Marco del rompecabezas', tray: 'Piezas sueltas', pieceN: 'Pieza {n}',
+        noWrong: 'Sin fallos', bestN: 'Mejor tiempo: {t}',
+        keysPick: 'Elegir pieza en la fila', keysLift: 'Coger y dejar una pieza', keysAim: 'Su sitio en el marco', keysCancel: 'Devolverla',
+        pic_girih: 'Azulejos khatam', pic_carpet: 'Alfombra de medallón', pic_dunes: 'Dunas', pic_lake: 'Lago de montaña', pic_night: 'Ciudad de noche', pic_garden: 'Jardín persa',
+        rules: 'Arrastra las piezas desde la fila de abajo hasta el marco. Desliza la fila de lado para recorrerla y arrastra una pieza hacia arriba para sacarla. Una pieza soltada cerca de su sitio encaja y queda fija; en otro lugar vuelve a la fila y cuenta como fallo. El botón del ojo muestra la imagen entera, en pequeño. Todas las imágenes están dibujadas con código. El rompecabezas diario es una imagen y un corte, el mismo para todos.',
+        tutTitle1: 'Arrastra y suelta', tutText1: 'Arrastra una pieza hacia arriba desde la fila y suéltala cerca de su sitio en el marco: encaja sola.',
+        tutTitle2: 'Mira la imagen', tutText2: 'El botón del ojo muestra la imagen entera. Los bordes y las esquinas, con un lado recto, son un buen comienzo.'
+      }
+    }
+  });
+
+  var params = new URLSearchParams(location.search);
+  var dailyDate = params.get('daily');
+  var TRAY_H = 96, LIFT_PX = 8, WIN_MS = 900;
+
+  var prefs = ctx.store.get('prefs', null);
+  if (!prefs || E.COUNTS.indexOf(prefs.count) < 0) prefs = { count: 24, last: null };
+
+  var S = null, L = null, pic = null, slots = {}, placedNodes = {}, drag = null, sel = -1, aim = -1, lifted = false;
+  var startedAt = Date.now(), pausedAt = 0, busy = false;
+
+  var top = el('div', { class: 'jg-top' });
+  var frame = el('div', { class: 'jg-frame', role: 'group', 'aria-label': C.t('board') });
+  var grid = document.createElement('canvas');
+  grid.className = 'jg-grid';
+  var cursor = el('div', { class: 'jg-cur' });
+  frame.appendChild(grid);
+  frame.appendChild(cursor);
+  var tray = el('div', { class: 'jg-tray', role: 'list', 'aria-label': C.t('tray') });
+  var status = el('div', { class: 'jg-status', 'aria-live': 'polite' });
+  var wrap = el('div', { class: 'jg-wrap' }, [top, frame, tray, status]);
+
+  // one number in the bar: with two, the title had no room left on a phone
+  ctx.stat('left', C.t('left'));
+  ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
+  ctx.button({ icon: 'eye', label: C.t('preview'), onClick: showPreview });
+  var newBtn = ctx.button({ icon: 'refresh', label: C.t('newPicture'), onClick: askNew });
+  if (dailyDate) newBtn.classList.add('ch-hidden');
+  ctx.main.appendChild(wrap);
+  ctx.mount();
+
+  /* --------------------------------------------------------- drawing */
+
+  function dpr() { return Math.min(2, window.devicePixelRatio || 1); }
+
+  // The picture at frame size, drawn once per layout and cut from for every piece
+  function makePicture() {
+    var d = dpr(), cv = document.createElement('canvas');
+    cv.width = Math.round(L.w * d); cv.height = Math.round(L.h * d);
+    P.draw(S.pic, cv.getContext('2d'), cv.width, cv.height);
+    return cv;
+  }
+  function tracePath(g, cmds, ox, oy, k) {
+    g.beginPath();
+    cmds.forEach(function (c) {
+      if (c[0] === 'M') g.moveTo(ox + c[1] * k, oy + c[2] * k);
+      else if (c[0] === 'L') g.lineTo(ox + c[1] * k, oy + c[2] * k);
+      else g.bezierCurveTo(ox + c[1] * k, oy + c[2] * k, ox + c[3] * k, oy + c[4] * k, ox + c[5] * k, oy + c[6] * k);
+    });
+    g.closePath();
+  }
+  // One piece as a canvas, its body m pixels in from each side so the knobs fit, at scale k
+  function pieceCanvas(i, k) {
+    var d = dpr(), m = L.m, W = (L.cw + 2 * m) * k, H = (L.ch + 2 * m) * k;
+    var cv = document.createElement('canvas');
+    cv.width = Math.ceil(W * d); cv.height = Math.ceil(H * d);
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    var g = cv.getContext('2d'), c = i % S.cols, r = Math.floor(i / S.cols);
+    g.scale(d * k, d * k);
+    var path = E.outline(E.edges(S.cut, i), L.cw, L.ch);
+    tracePath(g, path, m, m, 1);
+    g.save();
+    g.clip();
+    g.drawImage(pic, (c * L.cw - m) * d, (r * L.ch - m) * d, (L.cw + 2 * m) * d, (L.ch + 2 * m) * d, 0, 0, L.cw + 2 * m, L.ch + 2 * m);
+    g.restore();
+    // a light rim and a dark one, so a piece reads as a piece on any part of the picture
+    g.lineJoin = 'round';
+    g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = 1.6 / k; g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 0.7 / k; g.stroke();
+    return cv;
+  }
+  function trayScale() { return Math.min(1, (TRAY_H - 8) / (L.ch + 2 * L.m)); }
+
+  function drawGrid() {
+    var d = dpr();
+    grid.width = Math.round(L.w * d); grid.height = Math.round(L.h * d);
+    grid.style.width = L.w + 'px'; grid.style.height = L.h + 'px';
+    var g = grid.getContext('2d');
+    g.scale(d, d);
+    g.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--c-line').trim() || '#ccc';
+    g.lineWidth = 1;
+    g.setLineDash([4, 4]);
+    for (var i = 0; i < S.count; i++) {
+      tracePath(g, E.outline(E.edges(S.cut, i), L.cw, L.ch), (i % S.cols) * L.cw, Math.floor(i / S.cols) * L.ch, 1);
+      g.stroke();
+    }
+  }
+
+  // Lays the frame and the row out for the space there is, and draws every piece afresh
+  function layout() {
+    var availW = Math.min(ctx.main.clientWidth || window.innerWidth, 900) - 24;
+    var availH = (ctx.main.clientHeight || window.innerHeight) - TRAY_H - 110;
+    L = E.layout(availW, Math.max(availH, 200), S.count);
+    frame.style.width = L.w + 'px';
+    frame.style.height = L.h + 'px';
+    tray.style.height = TRAY_H + 'px';
+    tray.style.maxWidth = Math.max(L.w, Math.min(availW, 900)) + 'px';
+    pic = makePicture();
+    drawGrid();
+    Object.keys(placedNodes).forEach(function (k) { placedNodes[k].remove(); });
+    placedNodes = {};
+    S.placed.forEach(function (i) { putInFrame(i, false); });
+    buildTray();
+    frame.classList.toggle('jg-frame--done', !!S.done);
+  }
+  function putInFrame(i, flash) {
+    var cv = pieceCanvas(i, 1);
+    cv.className = 'jg-piece' + (flash ? ' jg-snap' : '');
+    cv.style.transform = 'translate(' + ((i % S.cols) * L.cw - L.m) + 'px,' + (Math.floor(i / S.cols) * L.ch - L.m) + 'px)';
+    frame.insertBefore(cv, cursor);
+    placedNodes[i] = cv;
+  }
+  function buildTray() {
+    tray.innerHTML = '';
+    slots = {};
+    var k = trayScale();
+    S.tray.forEach(function (i) {
+      var s = el('div', { class: 'jg-slot', role: 'listitem', 'aria-label': C.t('pieceN', { n: C.num(i + 1) }) }, [pieceCanvas(i, k)]);
+      s._piece = i;
+      slots[i] = s;
+      tray.appendChild(s);
+    });
+    markSel();
+  }
+  function render() {
+    ctx.setStat('left', C.num(S.tray.length));
+    if (!S.done) status.textContent = S.misses ? C.t('wrongs') + ': ' + C.num(S.misses) : '';
+  }
+  function renderTop() {
+    top.innerHTML = '';
+    if (dailyDate) top.appendChild(el('span', { class: 'ch-badge', text: C.t('dailyJg') }));
+    else {
+      top.appendChild(C.ui.segmented(
+        E.COUNTS.map(function (n) { return { value: n, label: C.num(n) }; }),
+        S.count,
+        function (v) {
+          if (v === S.count) return;
+          var go = function () { prefs.count = v; ctx.store.set('prefs', prefs); newGame(v); };
+          if (S.placed.length && !S.done) {
+            C.ui.confirm({ title: C.t('newPicture'), body: C.t('resetWarn'), onOk: go, onCancel: renderTop });
+            renderTop();
+            return;
+          }
+          go();
+        }
+      ));
+    }
+    top.appendChild(el('span', { class: 'ch-badge', text: C.t('pic_' + S.pic) }));
+  }
+
+  /* ------------------------------------------------------------ moves */
+
+  function landed(i) {
+    E.place(S, i);
+    var s = slots[i];
+    if (s) s.remove();
+    delete slots[i];
+    putInFrame(i, true);
+    C.feedback('place');
+    render();
+    if (S.done) { won(); return; }
+    save();
+  }
+  function missed(i) {
+    E.miss(S);
+    C.feedback('bad');
+    if (slots[i]) C.ui.shake(slots[i]);
+    render();
+    save();
+  }
+
+  function won() {
+    busy = true;
+    sel = -1; aim = -1; showAim();
+    save();
+    frame.classList.add('jg-frame--done');
+    C.feedback('good');
+    status.textContent = C.t('doneIt');
+    setTimeout(finish, C.ui.reduceMotion() ? 0 : WIN_MS);
+  }
+
+  function finish() {
+    var elapsed = (pausedAt || Date.now()) - startedAt, n = S.count;
+    var base = n === 12 ? 4 : (n === 24 ? 9 : 16);
+    var coins = base + (S.misses ? 0 : 3), points = base * 4, note = S.misses ? null : C.t('noWrong');
+    C.achievements.unlock('jg-win');
+    if (n === 48) C.achievements.unlock('jg-48');
+    if (n >= 24 && !S.misses) C.achievements.unlock('jg-clean');
+    if (S.daily) {
+      coins += 8; points += 25;
+      if (!C.stats.daily('jigsaw', S.daily, { label: C.time(elapsed), ms: elapsed, misses: S.misses })) {
+        coins = Math.round(coins * 0.2); points = Math.round(points * 0.2);
+      }
+    } else if (C.stats.best('jigsaw', 'ms' + n, elapsed, true)) {
+      note = C.t('bestN', { t: C.time(elapsed) });
+    }
+    var id = S.pic;
+    ctx.clearSave();
+    ctx.finish({
+      won: true, title: C.t('doneIt'), note: note, timeMs: elapsed, coins: coins, points: points,
+      lines: [
+        S.daily ? { label: C.t('daily'), value: C.num(S.daily) } : { label: C.t('pieces'), value: C.num(n) },
+        { label: C.t('wrongs'), value: C.num(S.misses) },
+        { label: C.t('time'), value: C.time(elapsed) }
+      ],
+      shareText: 'چوگان · جورچین' + (S.daily ? ('\nروزانه ' + S.daily) : ('\n' + C.t('piecesN', { n: C.num(n) }))) + '\n' + C.time(elapsed),
+      // the card shows the finished picture
+      paint: function (g, w, h) {
+        var ph = Math.min(h, w * E.ASPECT), pw = ph / E.ASPECT;
+        g.save();
+        g.translate((w - pw) / 2, (h - ph) / 2);
+        C.rrect(g, 0, 0, pw, ph, pw * 0.04);
+        g.clip();
+        P.draw(id, g, pw, ph);
+        g.restore();
+      },
+      againLabel: S.daily ? null : C.t('newPicture'),
+      onAgain: S.daily ? null : function () { newGame(n); }
+    });
+  }
+
+  /* ---------------------------------------------------------- saving */
+
+  ctx.autosave(function () {
+    if (!S || S.done || busy || (!S.placed.length && !S.misses)) return { inProgress: false };
+    return { s: { count: S.count, seed: S.seed, pic: S.pic, tray: S.tray, placed: S.placed, misses: S.misses }, daily: S.daily || null, elapsed: (pausedAt || Date.now()) - startedAt };
+  });
+  function save() { ctx.save(); }
+
+  // A new picture is never the one just played; the daily one comes from the day's seed
+  function newGame(n, daily) {
+    var seed, rnd, id;
+    if (daily) {
+      var dd = C.daily('jigsaw', daily);
+      seed = dd.seed; rnd = dd.rng;
+      id = E.PICS[Math.floor(rnd() * E.PICS.length)];
+    } else {
+      seed = Math.floor(Math.random() * 4294967296) >>> 0;
+      rnd = C.rng(seed);
+      var pool = E.PICS.filter(function (p) { return p !== prefs.last; });
+      id = pool[Math.floor(rnd() * pool.length)];
+      prefs.last = id; ctx.store.set('prefs', prefs);
+    }
+    S = E.deal(n, seed, rnd, id);
+    start(S, daily || null, 0);
+    save();
+  }
+  // The cut comes from the seed after the picture and the order, so a save rebuilds it exactly
+  function start(st, daily, elapsed) {
+    S = st;
+    S.daily = daily;
+    var rnd = C.rng(S.seed ^ 0x9e3779b9);
+    S.cut = E.cut(S.cols, S.rows, rnd);
+    startedAt = Date.now() - elapsed;
+    pausedAt = 0; busy = false; sel = -1; aim = -1;
+    status.textContent = '';
+    renderTop();
+    layout();
+    render();
+    showAim();
+  }
+
+  function askNew() {
+    if (!S || busy || S.daily) return;
+    if (S.done || !S.placed.length) { newGame(S.count); return; }
+    C.ui.confirm({ title: C.t('newPicture'), body: C.t('resetWarn'), onOk: function () { newGame(S.count); } });
+  }
+
+  /* ------------------------------------------------------- dialogs */
+
+  function showPreview() {
+    if (!S) return;
+    var w = Math.min(260, window.innerWidth - 120), h = Math.round(w * E.ASPECT), d = dpr();
+    var cv = document.createElement('canvas');
+    cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    cv.style.width = w + 'px'; cv.style.height = h + 'px';
+    cv.className = 'jg-preview';
+    P.draw(S.pic, cv.getContext('2d'), cv.width, cv.height);
+    C.ui.modal({ title: C.t('pic_' + S.pic), body: [cv], actions: [{ label: C.t('done'), kind: 'primary' }] });
+  }
+
+  function showHelp() {
+    var m = C.ui.modal({
+      title: C.t('help'),
+      body: [
+        el('p', { class: 'ch-dim', text: C.t('rules') }),
+        el('h3', { style: { 'margin-top': 'var(--s-4)' }, text: C.t('keyboard') }),
+        el('div', { class: 'ch-list' }, [
+          kb('← →', C.t('keysPick')),
+          kb('Enter / Space', C.t('keysLift')),
+          kb('← ↑ → ↓', C.t('keysAim')),
+          kb('Esc', C.t('keysCancel')),
+          kb('P', C.t('preview')),
+          kb('R', C.t('newPicture'))
+        ])
+      ],
+      actions: [
+        { label: C.t('tutorial'), onClick: function () { ctx.showTutorial(TUT); } },
+        { label: C.t('done'), kind: 'primary' }
+      ]
+    });
+    if (m && m.box) { m.box.scrollTop = 0; setTimeout(function () { m.box.scrollTop = 0; }, 80); }
+  }
+  function kb(k, what) {
+    return el('div', { class: 'ch-item' }, [
+      el('div', { class: 'ch-item__label', text: what }),
+      el('span', { class: 'ch-badge', text: k })
+    ]);
+  }
+
+  // Tutorial art: a frame with a piece missing and the piece rising from the row toward it
+  function tPiece(x, y, s, e, fill) {
+    var cmds = E.outline(e, s, s), d = '';
+    cmds.forEach(function (c) { d += c[0] + c.slice(1).map(function (v, j) { return (j % 2 ? y : x) + v; }).join(' ') + ' '; });
+    return '<path d="' + d + 'Z" fill="' + fill + '" stroke="var(--c-text-faint)" stroke-width="1.2"/>';
+  }
+  var TUT = [
+    { title: C.t('tutTitle1'), text: C.t('tutText1'),
+      art: '<svg viewBox="0 0 200 110" width="100%" class="jg-tut">' +
+        '<rect x="62" y="4" width="76" height="60" rx="4" fill="var(--c-surface-2)" stroke="var(--c-line)"/>' +
+        tPiece(64, 6, 24, { top: 0, right: 1, bottom: -1, left: 0 }, 'var(--game-soft)') +
+        tPiece(112, 6, 24, { top: 0, right: 0, bottom: 1, left: -1 }, 'var(--game-soft)') +
+        '<rect x="40" y="82" width="120" height="26" rx="6" fill="var(--c-surface)" stroke="var(--c-line)"/>' +
+        tPiece(88, 86, 16, { top: 0, right: 1, bottom: -1, left: -1 }, 'var(--game)') +
+        '<path d="M96 80V48M90 54l6-6 6 6" fill="none" stroke="var(--game)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
+    { title: C.t('tutTitle2'), text: C.t('tutText2'),
+      art: '<svg viewBox="0 0 200 110" width="100%" class="jg-tut">' +
+        '<path d="M58 55S76 30 100 30 142 55 142 55 124 80 100 80 58 55 58 55Z" fill="none" stroke="var(--game)" stroke-width="5" stroke-linejoin="round"/>' +
+        '<circle cx="100" cy="55" r="11" fill="var(--game)"/></svg>' }
+  ];
+
+  /* ------------------------------------------------------------ input */
+
+  // A finger on a piece in the row: sideways it scrolls the row (the browser does that), up it lifts
+  tray.addEventListener('pointerdown', function (e) {
+    if (!S || S.done || busy || drag) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    var s = e.target.closest ? e.target.closest('.jg-slot') : null;
+    if (!s) return;
+    var r = s.getBoundingClientRect(), k = trayScale();
+    drag = { id: e.pointerId, piece: s._piece, slot: s, x0: e.clientX, y0: e.clientY, gx: (e.clientX - r.left) / k, gy: (e.clientY - r.top) / k, node: null, mouse: e.pointerType === 'mouse' };
+  });
+  window.addEventListener('pointermove', function (e) {
+    if (!drag || drag.id !== e.pointerId) return;
+    if (!drag.node) {
+      var dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+      if (Math.hypot(dx, dy) < LIFT_PX) return;
+      // a touch must move upwards more than sideways; a mouse may lift any way
+      if (!drag.mouse && Math.abs(dy) < Math.abs(dx)) { drag = null; return; }
+      lift();
+    }
+    moveFloat(e.clientX, e.clientY);
+    e.preventDefault();
+  }, { passive: false });
+  function lift() {
+    var cv = pieceCanvas(drag.piece, 1);
+    cv.className = 'jg-float';
+    document.body.appendChild(cv);
+    drag.node = cv;
+    drag.slot.classList.add('jg-slot--away');
+    try { tray.setPointerCapture(drag.id); } catch (err) { /* older WebViews */ }
+    C.haptic('tap');
+  }
+  function moveFloat(x, y) {
+    drag.node.style.transform = 'translate(' + (x - drag.gx) + 'px,' + (y - drag.gy) + 'px)';
+    drag.x = x; drag.y = y;
+  }
+  function endDrag(e, fire) {
+    if (!drag || drag.id !== e.pointerId) return;
+    var d = drag;
+    drag = null;
+    if (!d.node) return;
+    d.node.remove();
+    d.slot.classList.remove('jg-slot--away');
+    if (!fire) return;
+    var fr = frame.getBoundingClientRect();
+    // where the piece's body corner came to rest, in frame pixels
+    var bx = d.x - d.gx + L.m - fr.left, by = d.y - d.gy + L.m - fr.top;
+    var inside = bx + L.cw > 0 && by + L.ch > 0 && bx < L.w && by < L.h;
+    if (E.fits(S, d.piece, bx, by, L.cw, L.ch)) landed(d.piece);
+    else if (inside) missed(d.piece);
+  }
+  window.addEventListener('pointerup', function (e) { endDrag(e, true); });
+  window.addEventListener('pointercancel', function (e) { endDrag(e, false); });
+  // a mouse wheel scrolls the row sideways
+  tray.addEventListener('wheel', function (e) {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { tray.scrollLeft += e.deltaY; e.preventDefault(); }
+  }, { passive: false });
+
+  // Keyboard: ← → pick a piece in the row, Enter lifts it, the arrows aim at a cell, Enter drops
+  function markSel() {
+    Object.keys(slots).forEach(function (k) { slots[k].classList.toggle('jg-slot--sel', +k === sel); });
+    if (sel >= 0 && slots[sel] && slots[sel].scrollIntoView) slots[sel].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+  function showAim() {
+    if (aim < 0 || !L) { cursor.style.display = 'none'; return; }
+    cursor.style.display = 'block';
+    cursor.style.left = (aim % S.cols) * L.cw + 'px';
+    cursor.style.top = Math.floor(aim / S.cols) * L.ch + 'px';
+    cursor.style.width = L.cw + 'px';
+    cursor.style.height = L.ch + 'px';
+  }
+  window.addEventListener('keydown', function (e) {
+    if (!S || S.done || busy) return;
+    if (document.querySelector('.ch-scrim')) return;
+    var tg = e.target, tag = tg && tg.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (tg && tg.isContentEditable)) return;
+    if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var k = e.key;
+    if (C.keyIs(e, 'p')) { showPreview(); e.preventDefault(); return; }
+    if (C.keyIs(e, 'r')) { askNew(); e.preventDefault(); return; }
+    if (k === 'Escape' && lifted) { lifted = false; aim = -1; showAim(); e.preventDefault(); return; }
+    // the frame and the row are not mirrored, so the arrows are geometric in every language
+    var d = { ArrowUp: [0, -1], ArrowRight: [1, 0], ArrowDown: [0, 1], ArrowLeft: [-1, 0] }[k];
+    if (d) {
+      e.preventDefault();
+      if (lifted) {
+        var c = aim % S.cols, r = Math.floor(aim / S.cols);
+        c = Math.max(0, Math.min(S.cols - 1, c + d[0]));
+        r = Math.max(0, Math.min(S.rows - 1, r + d[1]));
+        aim = r * S.cols + c;
+        showAim();
+        return;
+      }
+      if (!d[0]) return;
+      var at = S.tray.indexOf(sel);
+      at = at < 0 ? 0 : (at + d[0] + S.tray.length) % S.tray.length;
+      sel = S.tray[at];
+      C.feedback('select');
+      markSel();
+      return;
+    }
+    if (k === 'Enter' || k === ' ') {
+      e.preventDefault();
+      if (sel < 0 || S.tray.indexOf(sel) < 0) { sel = S.tray[0]; markSel(); return; }
+      if (!lifted) {
+        lifted = true;
+        aim = 0;
+        while (aim < S.count && S.placed.indexOf(aim) >= 0) aim++;
+        if (aim >= S.count) aim = 0;
+        showAim();
+        C.feedback('select');
+        return;
+      }
+      var p = sel;
+      lifted = false;
+      if (E.fitsCell(S, p, aim)) {
+        var next = S.tray[(S.tray.indexOf(p) + 1) % S.tray.length];
+        aim = -1; showAim();
+        landed(p);
+        sel = S.done ? -1 : next;
+        markSel();
+      } else {
+        aim = -1; showAim();
+        missed(p);
+      }
+    }
+  });
+
+  // time in the background is not time spent on the picture
+  C.onPause(function () { if (!pausedAt) pausedAt = Date.now(); });
+  C.onResume(function () {
+    if (pausedAt) startedAt += Date.now() - pausedAt;
+    pausedAt = 0;
+  });
+
+  var resizeT = null, lastW = 0, lastH = 0;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeT);
+    resizeT = setTimeout(function () {
+      if (!S || drag) return;
+      // a phone's address bar sliding in and out is not a new layout
+      if (Math.abs(window.innerWidth - lastW) < 2 && Math.abs(window.innerHeight - lastH) < 60) return;
+      lastW = window.innerWidth; lastH = window.innerHeight;
+      layout();
+      showAim();
+    }, 150);
+  });
+
+  /* ------------------------------------------------------------ start */
+
+  lastW = window.innerWidth; lastH = window.innerHeight;
+  var saved = ctx.loadSave();
+  // a save that fails its checks is dropped and a fresh picture is dealt
+  var resume = saved && saved.s && (saved.daily || null) === (dailyDate || null) ? E.restore(saved.s) : null;
+  if (resume && !resume.done) {
+    start(resume, saved.daily || null, saved.elapsed || 0);
+  } else if (dailyDate) {
+    newGame(E.DAILY_COUNT, dailyDate);
+    if (C.stats.dailyDone('jigsaw', dailyDate)) {
+      var rec = C.stats.dailyOf(dailyDate).jigsaw;
+      C.ui.toast({ icon: 'check', title: C.t('dailyDone'), sub: rec.label });
+    }
+  } else {
+    newGame(prefs.count);
+  }
+  ctx.tutorialIfNew(TUT);
+  // the first layout can run before the page has its final height: lay out again once it settles
+  setTimeout(function () { if (S && !drag) layout(); }, 60);
+})();
+</script>
+</body>
+</html>
