@@ -283,7 +283,7 @@
       cardBack: 'پشت کارت', backCarpet: 'قالی', backTermeh: 'ترمه',
       menu: 'منو', back: 'بازگشت', undo: 'برگرداندن', close: 'بستن', cancel: 'انصراف', result: 'نتیجه', seeBoard: 'دیدن صفحه‌ی بازی',
       saveImage: 'ذخیره‌ی عکس', copyText: 'کپی متن',
-      updateReady: 'نسخه‌ی تازه آماده است', updateNow: 'آپدیت',
+      updateReady: 'نسخه‌ی تازه آماده است', updateNow: 'به‌روزرسانی',
       confirm: 'تأیید', done: 'باشه', next: 'بعدی', skip: 'رد کردن',
       start: 'شروع', pause: 'مکث', resumeGame: 'ادامه‌ی بازی', restart: 'شروع دوباره',
       quit: 'خروج به منو', help: 'راهنما', share: 'اشتراک‌گذاری', copied: 'در حافظه کپی شد', imageSaved: 'عکس در گالری ذخیره شد',

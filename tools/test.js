@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3804;
+const MIN_CHECKS = 3805;
 
 function ok(cond, msg) {
   checks++;
@@ -6319,6 +6319,11 @@ function testCoreLabels() {
     const html = fs.readFileSync(path.join(ROOT, 'www', g.path), 'utf8');
     ok(!/[\s{,]again: '/.test(html), g.id + ': its strings leave the core\'s "again" label alone');
   }
+  // The update button read «آپدیت», a loanword, while the privacy page already said
+  // «به‌روزرسانی» (#323). Only quoted strings count: comments may still say it.
+  const files = ['www/lib/chogan.js', 'www/index.html'].concat(games.map((g) => 'www/' + g.path));
+  const loan = files.filter((f) => /'[^'\n]*آپدیت[^'\n]*'/.test(fs.readFileSync(path.join(ROOT, f), 'utf8')));
+  ok(loan.length === 0, 'no Persian UI string says «آپدیت»' + (loan.length ? ' (' + loan.join(', ') + ')' : ''));
 }
 
 /* ------------------------------------------------------- Darts (#313) */
