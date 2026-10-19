@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3583;
+const MIN_CHECKS = 3592;
 
 function ok(cond, msg) {
   checks++;
@@ -7047,6 +7047,14 @@ function testModalFocus() {
   const bar = (core.match(/function showAfterBar\(o\) \{[\s\S]*?\n    \}\n/) || [''])[0];
   ok(/o\.againLabel \|\| Chogan\.t\('again'\), fn: o\.onAgain/.test(bar) && /Chogan\.t\('menu'\)/.test(bar) && /reopenResult\(\)/.test(bar) && /document\.body\.appendChild\(afterBar\)/.test(bar),
     'after X, a bar offers the result again and the next round (or the menu)');
+  // #315: the X that shows the finished board went unnoticed, so the window names it
+  const fin = (core.match(/finish: function \(o\) \{[\s\S]*?\n      \},\n/) || [''])[0];
+  ok(fin.length > 0, 'the finish function was found');
+  ok(/el\('button', \{ class: 'ch-btn ch-btn--ghost ch-seeboard'[\s\S]*?shown\.close\('board'\)[\s\S]*?Chogan\.t\('seeBoard'\)/.test(fin) && /body\.push\(el\('button'/.test(fin) && /return \(shown = ui\.modal\(/.test(fin),
+    'the result window has a See the board button that closes it like X, not like an action');
+  const locales = [...core.matchAll(/result: '[^']+', seeBoard: '([^']+)'/g)].map((m) => m[1]);
+  ok(locales.length === 5 && new Set(locales).size === 5, 'See the board is translated in all five languages (' + locales.length + ')');
+  ok(/\n    eye: 'M/.test(core), 'the eye icon exists');
   ok(/function hideResultBtn\(\) \{\n[^\n]*resultBtn\.hidden = true;\n[^\n]*afterBar\.remove\(\)/.test(core), 'the bar goes away when a new round starts');
   const relabel = games.filter((g) => /ch-modal__actions \.ch-btn--primary/.test(fs.readFileSync(path.join(ROOT, 'www', g.path), 'utf8'))).map((g) => g.id);
   ok(relabel.length === 0, 'no game rewrites the result button text after the fact; they pass againLabel (' + relabel.join(',') + ')');
