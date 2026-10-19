@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3819;
+const MIN_CHECKS = 3821;
 
 function ok(cond, msg) {
   checks++;
@@ -7436,6 +7436,13 @@ function testModalFocus() {
   const confirmAt = core.indexOf('ui.confirm = function');
   ok(confirmAt > 0 && core.slice(confirmAt, core.indexOf('ui.reduceMotion')).indexOf('focusPrimary') < 0,
     'confirms keep focus on Cancel, so Enter cannot start over by accident');
+  // #335: Tab walked out of an open dialog onto the buttons of the page behind it
+  const modal = core.slice(core.indexOf('ui.modal = function'), confirmAt);
+  const onKey = (modal.match(/function onKey\(e\) \{[\s\S]*?\n    \}\n/) || [''])[0];
+  ok(/e\.key === 'Tab'/.test(onKey) && /open\[open\.length - 1\] !== scrim/.test(onKey), 'Tab is handled by the topmost dialog only');
+  ok(/e\.shiftKey && \(at === first \|\| !inside\)\) \{ e\.preventDefault\(\); last\.focus\(\); \}/.test(onKey) &&
+    /!e\.shiftKey && \(at === last \|\| !inside\)\) \{ e\.preventDefault\(\); first\.focus\(\); \}/.test(onKey),
+    'Tab and Shift+Tab wrap around inside the dialog');
 }
 
 // A worker started by cueFrames() plays its share of AI frames and stops here (#297)

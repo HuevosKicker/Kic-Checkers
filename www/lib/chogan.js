@@ -2157,6 +2157,19 @@
     function onKey(e) {
       // ضربدر که باشد، Escape هم باید کار کند حتی وقتی کلیک بیرون بسته است
       if (e.key === 'Escape' && (o.dismissable !== false || o.closeButton)) close('escape');
+      // Tab walked out of the dialog onto the buttons of the page behind it (#335),
+      // so it wraps around inside the topmost dialog instead
+      if (e.key === 'Tab') {
+        var open = document.querySelectorAll('.ch-scrim');
+        if (open[open.length - 1] !== scrim) return;
+        var items = Array.prototype.filter.call(box.querySelectorAll('button, [href], input, select, textarea, [tabindex]'), function (n) {
+          return !n.disabled && n.tabIndex >= 0 && n.getClientRects().length > 0;
+        });
+        if (!items.length) { e.preventDefault(); return; }
+        var first = items[0], last = items[items.length - 1], at = document.activeElement, inside = box.contains(at);
+        if (e.shiftKey && (at === first || !inside)) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && (at === last || !inside)) { e.preventDefault(); first.focus(); }
+      }
     }
     document.addEventListener('keydown', onKey);
     if (o.dismissable !== false) {
