@@ -539,11 +539,11 @@
         "es": "Salida"
       },
       "summary": {
-        "fa": "پیکان‌ها را به ترتیب درست از تخته بیرون بفرست؛ پیکانِ راه‌بسته یک جان می‌گیرد.",
-        "en": "Send the arrows off the board in a working order; tapping a blocked one costs a heart.",
-        "zh": "按可行的顺序把箭头送出棋盘；点到被挡住的箭头会失去一颗心。",
-        "de": "Schick die Pfeile in einer passenden Reihenfolge vom Brett; ein versperrter kostet ein Herz.",
-        "es": "Saca las flechas del tablero en un orden que funcione; tocar una bloqueada cuesta un corazón."
+        "fa": "یک پازل پیکانی: پیکان‌ها را به ترتیب درست از تخته بیرون بفرست؛ پیکانِ راه‌بسته یک جان می‌گیرد.",
+        "en": "An arrow puzzle: send the arrows off the board in a working order; tapping a blocked one costs a heart.",
+        "zh": "箭头谜题：按可行的顺序把箭头送出棋盘；点到被挡住的箭头会失去一颗心。",
+        "de": "Ein Pfeil-Puzzle: Schick die Pfeile in einer passenden Reihenfolge vom Brett; ein versperrter kostet ein Herz.",
+        "es": "Un puzle de flechas: saca las flechas del tablero en un orden que funcione; tocar una bloqueada cuesta un corazón."
       },
       "path": "games/wayout/index.html",
       "icon": "games/wayout/icon.svg",

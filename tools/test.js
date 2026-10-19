@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3877;
+const MIN_CHECKS = 3880;
 
 function ok(cond, msg) {
   checks++;
@@ -3773,6 +3773,12 @@ function testWayOut() {
   head('Way Out');
   const E = loadEngine('wayout', 'WayOutEngineFactory');
   ok(['make', 'tap', 'restart', 'carryOn', 'useHint', 'levelDone', 'chain', 'pick', 'generate', 'restore'].every((f) => typeof E[f] === 'function'), 'the engine has its API');
+  // People who know the genre as "arrow puzzle" did not recognise Way Out (#326); the name stays, the summary says it
+  const woMeta = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games.find((g) => g.id === 'wayout');
+  const woWord = { fa: 'پازل پیکانی', en: 'arrow puzzle', zh: '箭头谜题', de: 'Pfeil-Puzzle', es: 'puzle de flechas' };
+  ok(woMeta && LOCALE_CODES.every((c) => woWord[c]), 'Way Out is listed and every language has a genre word');
+  ok(woMeta && LOCALE_CODES.every((c) => woMeta.summary[c].toLowerCase().includes(woWord[c].toLowerCase())), 'its summary names the genre in every language');
+  ok(woMeta && woMeta.name.fa === 'راه دررو' && woMeta.name.en === 'Way Out', 'the name stays Way Out / راه دررو');
 
   // Boards as text: one row per line, two characters a cell. '..' empty, '##' a hole,
   // 'a>' the head of arrow a and where it points, 'a1', 'a2', ... its body from the head.
