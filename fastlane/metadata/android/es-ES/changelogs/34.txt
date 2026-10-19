@@ -1,0 +1,1 @@
+Juego nuevo: Damas, con reglas clásicas o españolas (damas voladoras), contra la IA en tres niveles o para dos, con partida diaria.
