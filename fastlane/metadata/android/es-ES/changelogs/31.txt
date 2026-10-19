@@ -1,0 +1,4 @@
+Juego nuevo: Serpientes y escaleras; sube por las escaleras, baja por las serpientes y llega primero a 100, de 2 a 4 o contra bots.
+Ludo: el botón de la ventana de resultado vuelve a decir «Otra vez», no «Tira otra vez».
+Un botón «Ver el tablero» en todas las ventanas de resultado.
+Acerca de: por qué la app se llama Chogan.

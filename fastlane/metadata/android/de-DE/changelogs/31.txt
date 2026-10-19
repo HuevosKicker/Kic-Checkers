@@ -1,0 +1,4 @@
+Neues Spiel: Schlangen und Leitern – Leitern hoch, Schlangen runter und zuerst die 100 erreichen, 2 bis 4 Spieler oder gegen Bots.
+Ludo: Der Knopf im Ergebnisfenster heißt wieder „Nochmal“ statt „Nochmal würfeln“.
+Ein Knopf „Spielfeld ansehen“ in jedem Ergebnisfenster.
+Über: warum die App Chogan heißt.
