@@ -281,10 +281,22 @@ function MinesEngineFactory() {
     return r * cols + c;
   }
 
+  // Cell size for the room there is, width and height. Cells were sized by width alone, so a
+  // 16-row board at 38px ran off a 650px-high window, under a page that does not scroll, and
+  // its last rows could not be reached at all (#350). Below MIN a cell is too small to tap, so
+  // the board keeps MIN and scrolls inside its frame, limited to the height there is.
+  var CELL_MIN = 26, CELL_MAX = 42, GAP = 2;
+  function fit(roomW, roomH, rows, cols) {
+    var byW = Math.floor((roomW - cols * GAP) / cols), byH = Math.floor((roomH - rows * GAP) / rows);
+    var cs = Math.max(CELL_MIN, Math.min(CELL_MAX, byW, byH > 0 ? byH : CELL_MAX));
+    var h = rows * (cs + GAP);
+    return { cs: cs, maxH: h > roomH && roomH > 0 ? Math.max(roomH, 4 * (CELL_MIN + GAP)) : 0 };
+  }
+
   var api = {
     makeNeighbors: makeNeighbors, layMines: layMines, counts: counts,
     floodOpen: floodOpen, solvable: solvable, generate: generate, safeHint: safeHint,
-    scrollEdges: scrollEdges, step: step
+    scrollEdges: scrollEdges, step: step, fit: fit
   };
   if (typeof self !== 'undefined') self.MinesEngine = api;
   return api;
@@ -538,12 +550,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
     }
   }
 
+  // The height left for the board: the game area less its padding and everything in the
+  // column that is not the board (the size picker, the tools, the gaps between them)
+  function roomH() {
+    var cs = getComputedStyle(ctx.main);
+    var inner = ctx.main.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    return Math.floor(inner - (wrap.offsetHeight - scroll.offsetHeight) - 6);
+  }
   function sizeCells() {
     var sp = S.spec;
-    var avail = Math.min(window.innerWidth - 26, 640);
-    var cs = Math.floor((avail - sp.cols * 2) / sp.cols);
-    cs = C.clamp(cs, 26, 42);
-    board.style.setProperty('--cs', cs + 'px');
+    var f = E.fit(Math.min(window.innerWidth - 26, 640), roomH(), sp.rows, sp.cols);
+    board.style.setProperty('--cs', f.cs + 'px');
+    scroll.style.maxHeight = f.maxH ? f.maxH + 'px' : '';
     markEdges();
   }
   window.addEventListener('resize', function () { if (S) sizeCells(); });
