@@ -629,6 +629,21 @@ a  { color: var(--c-accent); text-decoration: none; }
 }
 .ch-gamemain--scroll { justify-content: flex-start; overflow-y: auto; overscroll-behavior: contain; }
 .ch-board { max-width: min(100%, 620px); width: 100%; }
+/* Boards fill the screen they are on (#359). Most games stopped their board at a
+   fixed 400-620px, so a 7-inch phone, a tablet or a laptop showed it in a third to
+   a half of the screen. The game area is a size container named game, so a game
+   can lay itself out by the room it really has (@container game, cqw/cqh), and
+   .ch-fit is a slot that takes whatever height the game's other rows leave and
+   holds the largest board of aspect --fit-ar (width / height) that fits there. */
+.ch-gamemain { container: game / size; }
+.ch-fit {
+  flex: 1 1 0; min-height: 0; min-width: 0; align-self: stretch;
+  container-type: size; display: grid; place-items: center;
+  /* never taller than the board it holds, so in a tall window the other rows stay
+     next to the board instead of being pushed to the edges */
+  max-height: calc(100cqw / var(--fit-ar, 1));
+}
+.ch-fit > * { width: min(100cqw, 100cqh * var(--fit-ar, 1)); max-width: none; }
 
 /* ---------------------------------------------------------------- سکه */
 .ch-coin {

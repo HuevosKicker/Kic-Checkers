@@ -8,7 +8,23 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../../lib/chogan.css">
 <style>
-  .sd-wrap { width: 100%; max-width: min(94vw, 62vh, 520px); display: flex; flex-direction: column; gap: var(--s-3); }
+  /* The board takes the room the rows above and below it leave (#359); before, it
+     stopped at 520px and a laptop or tablet showed it in half the screen. On a
+     wide screen the controls move beside the board, so the board can use the full
+     height. */
+  .sd-wrap { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-3); }
+  .sd-side { display: contents; }
+  .sd-top { order: -1; }
+  .sd-tools, .sd-pad { width: 100%; max-width: 560px; }
+  @container game (min-aspect-ratio: 5 / 4) {
+    .sd-wrap { flex-direction: row; justify-content: center; }
+    .sd-wrap > .ch-fit { flex: 0 1 auto; width: min(100cqh, 100cqw - 280px); height: 100%; max-height: none; }
+    .sd-side { display: flex; flex-direction: column; justify-content: center; gap: var(--s-3); width: clamp(240px, 26cqw, 360px); }
+    .sd-top { order: 0; }
+    .sd-side .sd-pad { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .sd-side .sd-pad .sd-num { min-height: clamp(36px, 10cqh, 76px); padding-block: 2px; font-size: clamp(16px, 3.4cqh, 28px); }
+    .sd-side .sd-tool { min-height: clamp(40px, 9cqh, 56px); }
+  }
   .sd-board {
     /* ردیف‌ها هم صریح‌اند: با ردیف خودکار هر ردیف به اندازه‌ی محتوایش بود و
        ردیفی که هیچ عددی نداشت تا چند پیکسل جمع می‌شد (#118). minmax(0, …) تا
@@ -16,7 +32,7 @@
     display: grid;
     grid-template-columns: repeat(9, minmax(0, 1fr));
     grid-template-rows: repeat(9, minmax(0, 1fr));
-    aspect-ratio: 1; width: 100%;
+    aspect-ratio: 1; container-type: inline-size;
     background: var(--c-line); gap: 1px; padding: 3px;
     border-radius: var(--r-md); box-shadow: var(--sh-2);
     border: 3px solid var(--c-line);
@@ -37,7 +53,7 @@
   .sd-cell {
     background: var(--c-surface); border: 0; padding: 0; font: inherit; cursor: pointer;
     display: grid; place-items: center; position: relative;
-    font-size: clamp(15px, 5vw, 26px); font-weight: 700; color: var(--c-text);
+    font-size: max(15px, 5.3cqi); font-weight: 700; color: var(--c-text);
     transition: background var(--t-fast) var(--ease);
     font-variant-numeric: tabular-nums;
   }
@@ -53,7 +69,7 @@
   .sd-cell--bad { background: var(--c-bad-soft); color: var(--c-bad); }
   .sd-cell--sel.sd-cell--bad { background: var(--c-bad); color: #fff; }
   .sd-notes { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; height: 100%; padding: 2px; }
-  .sd-notes span { font-size: clamp(7px, 2vw, 11px); font-weight: 600; color: var(--c-text-dim); display: grid; place-items: center; line-height: 1; }
+  .sd-notes span { font-size: max(7px, 2.2cqi); font-weight: 600; color: var(--c-text-dim); display: grid; place-items: center; line-height: 1; }
   .sd-pad { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; }
   .sd-num {
     border: 0; background: var(--c-surface); border-radius: var(--r-sm); cursor: pointer;
@@ -443,7 +459,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
   var pad = el('div', { class: 'sd-pad' });
   var tools = el('div', { class: 'sd-tools' });
   var topRow = el('div', { class: 'sd-top' });
-  var wrap = el('div', { class: 'sd-wrap' }, [topRow, board, tools, pad]);
+  var wrap = el('div', { class: 'sd-wrap' }, [el('div', { class: 'ch-fit' }, [board]), el('div', { class: 'sd-side' }, [topRow, tools, pad])]);
 
   for (var i = 0; i < 81; i++) {
     (function (idx) {

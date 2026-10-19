@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4027;
+const MIN_CHECKS = 4032;
 
 function ok(cond, msg) {
   checks++;
@@ -6627,6 +6627,26 @@ function testJigsaw() {
 // ctx.finish labels the result window's play-again button with the core's
 // 'again'. Ludo's strings defined 'again' for "roll again after a six", so its
 // button read "Roll again" from #303 until #318.
+// Boards fill the screen they are on (#359). Most games stopped their board at a
+// fixed 400-620px (Sudoku at min(94vw, 62vh, 520px)), so on a 7-inch phone, a
+// tablet or a laptop the board sat in a third to a half of the screen. A game
+// listed here sizes its board with the core's .ch-fit slot and keeps no fixed cap.
+const FIT_GAMES = ['sudoku'];
+function testFitScreen() {
+  head('Boards fill the screen (#359)');
+  const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
+  ok(/\.ch-gamemain \{ container: game \/ size; \}/.test(css), 'the game area is a size container named game');
+  ok(/\.ch-fit > \* \{ width: min\(100cqw, 100cqh \* var\(--fit-ar, 1\)\);/.test(css), 'a .ch-fit slot sizes its board by the width and the height it has');
+  ok(FIT_GAMES.length > 0, 'the list of fitted games is not empty');
+  for (const id of FIT_GAMES) {
+    const html = fs.readFileSync(path.join(ROOT, 'www/games', id, 'index.html'), 'utf8');
+    const style = (html.match(/<style>([\s\S]*?)<\/style>/) || [])[1] || '';
+    const caps = style.split('\n').filter((l) => /max-width:[^;]*vh[^;]*\d+px|max-width:[^;]*\d+px[^;]*vh/.test(l));
+    ok(html.indexOf("class: 'ch-fit'") > 0, id + ': the board sits in a .ch-fit slot');
+    ok(caps.length === 0, id + ': no fixed pixel cap on the board' + (caps.length ? ' (' + caps[0].trim() + ')' : ''));
+  }
+}
+
 function testCoreLabels() {
   head('Core labels');
   const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
@@ -7836,6 +7856,7 @@ testBowling();
 testSliding();
 testJigsaw();
 testCoreLabels();
+testFitScreen();
 testKeyLayout();
 testGo();
 testBackgammon();
