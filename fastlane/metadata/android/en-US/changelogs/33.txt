@@ -1,0 +1,6 @@
+Bug fixes:
+- Ludo and others: a board could be drawn squashed
+Improvements:
+- Boards and cards grow to fill tablets, laptops and big phones
+- On a wide screen the controls sit beside the board
+- Darts: a bigger dart, a curved flight and a firmer hit sound
