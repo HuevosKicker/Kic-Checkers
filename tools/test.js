@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3880;
+const MIN_CHECKS = 3942;
 
 function ok(cond, msg) {
   checks++;
@@ -6353,6 +6353,134 @@ function testSnakes() {
   ok(Date.now() - t0 < 5000, 'the Snakes and Ladders group runs in under five seconds (' + (Date.now() - t0) + 'ms)');
 }
 
+/* ------------------------------------------------ Sliding Puzzle (#324) */
+function testSliding() {
+  head('Sliding Puzzle');
+  const t0 = Date.now();
+  const E = loadEngine('sliding', 'SlidingEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/sliding/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  ok(['make', 'tap', 'step', 'line', 'solvable', 'isSolved', 'restore', 'valid'].every((f) => typeof E[f] === 'function'), 'the engine has its API');
+  ok(JSON.stringify(E.SIZES) === '[3,4,5]' && E.DAILY_SIZE === 4, 'trays from 3×3 to 5×5, and the daily one is 4×4');
+
+  // Every 3×3 tray the gap can reach from the solved one, found by walking the gap, not by any formula
+  const solved3 = E.solvedTiles(3);
+  const reach = new Set([solved3.join(',')]);
+  let frontier = [solved3];
+  while (frontier.length) {
+    const next = [];
+    for (const t of frontier) {
+      const z = t.indexOf(0), r = Math.floor(z / 3), c = z % 3;
+      for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const rr = r + dr, cc = c + dc;
+        if (rr < 0 || rr > 2 || cc < 0 || cc > 2) continue;
+        const u = t.slice(), j = rr * 3 + cc;
+        u[z] = u[j]; u[j] = 0;
+        const k = u.join(',');
+        if (!reach.has(k)) { reach.add(k); next.push(u); }
+      }
+    }
+    frontier = next;
+  }
+  ok(reach.size === 181440, 'exactly half of the 3×3 orderings can be reached (' + reach.size + ' of 362880)');
+  let agree = 0, total = 0;
+  for (const k of reach) {
+    if (total >= 20000) break;
+    const t = k.split(',').map(Number);
+    total++;
+    // the same tray with two tiles swapped is out of reach
+    const a = t[0] ? 0 : 1, b = t[a + 1] ? a + 1 : a + 2, u = t.slice();
+    [u[a], u[b]] = [u[b], u[a]];
+    if (E.solvable(t, 3) && !E.solvable(u, 3) && !reach.has(u.join(','))) agree++;
+  }
+  ok(total === 20000 && agree === total, 'on 3×3 the parity test agrees with the walk, both ways (' + agree + ' of ' + total + ')');
+
+  // On 4×4 and 5×5 the gap's row counts too: random walks from the solved tray never leave the solvable half
+  const rnd = rng(0x5117);
+  for (const n of [4, 5]) {
+    let good = 0, bad = 0;
+    for (let w = 0; w < 400; w++) {
+      const t = E.solvedTiles(n);
+      for (let s = 0; s < 120; s++) {
+        const z = t.indexOf(0), r = Math.floor(z / n), c = z % n, opts = [];
+        if (r > 0) opts.push(z - n); if (r < n - 1) opts.push(z + n); if (c > 0) opts.push(z - 1); if (c < n - 1) opts.push(z + 1);
+        const j = opts[Math.floor(rnd() * opts.length)];
+        t[z] = t[j]; t[j] = 0;
+      }
+      if (E.solvable(t, n)) good++;
+      const a = t[0] ? 0 : 1, b = t[a + 1] ? a + 1 : a + 2, u = t.slice();
+      [u[a], u[b]] = [u[b], u[a]];
+      if (!E.solvable(u, n)) bad++;
+    }
+    ok(good === 400 && bad === 400, n + '×' + n + ': every walked tray is solvable and every one with two tiles swapped is not (' + good + ', ' + bad + ')');
+  }
+
+  // The generator: only solvable trays, never close to sorted, the same for the same seed
+  for (const n of E.SIZES) {
+    let okCount = 0, far = 0;
+    const r = rng(1000 + n);
+    for (let i = 0; i < 300; i++) {
+      const S = E.make(n, r);
+      const fine = E.valid(S.tiles, n) && (n === 3 ? reach.has(S.tiles.join(',')) : E.solvable(S.tiles, n)) && S.moves === 0 && !S.done;
+      if (fine) okCount++;
+      if (E.misplaced(S.tiles) >= Math.ceil((n * n - 1) * 0.6)) far++;
+    }
+    ok(okCount === 300, n + '×' + n + ': every generated tray can be solved' + (n === 3 ? ', checked against the walk' : '') + ' (' + okCount + ' of 300)');
+    ok(far === 300, n + '×' + n + ': no generated tray starts close to sorted (' + far + ' of 300)');
+  }
+  const d1 = E.make(4, rng(42)).tiles.join(','), d2 = E.make(4, rng(42)).tiles.join(',');
+  ok(d1 === d2 && d1 !== E.make(4, rng(43)).tiles.join(','), 'the same seed deals the same tray, so the daily one is the same for everyone');
+
+  // Moves: a tap slides every tile between it and the gap, each one a move
+  const S = { n: 3, tiles: [1, 2, 3, 4, 5, 6, 0, 7, 8], start: [], moves: 0, done: false };
+  ok(JSON.stringify(E.line(S.tiles, 3, 8)) === '[7,8]' && E.line(S.tiles, 3, 4).length === 0, 'the tiles in line with the gap are found nearest first; others are not in line');
+  let r1 = E.tap(S, 4);
+  ok(r1.moved.length === 0 && S.moves === 0, 'a tile off the gap\'s row and column does not move');
+  r1 = E.tap(S, 8);
+  ok(r1.moved.length === 2 && S.moves === 2 && r1.won && S.done && E.isSolved(S.tiles), 'tapping the far tile slides two tiles, counts two moves and solves the tray');
+  ok(E.tap(S, 0).moved.length === 0, 'a solved tray takes no more moves');
+  const T = { n: 3, tiles: E.solvedTiles(3), start: [], moves: 0, done: false };
+  ok(E.step(T, 3).moved.length === 0 && E.step(T, 1).moved.length === 1 && T.tiles[8] === 8 && T.tiles[7] === 0, 'an arrow moves the tile beside the gap that way, and only if there is one');
+  ok(E.step(T, 0).moved.length === 0 && E.step(T, 2).moved.length === 1 && T.tiles[4] === 0 && T.moves === 2, 'up and down work the same way, one move each');
+
+  // Saves
+  const good = { n: 4, tiles: E.make(4, rng(7)).tiles, start: E.make(4, rng(7)).tiles, moves: 12 };
+  ok(!!E.restore(good) && E.restore(good).moves === 12, 'a whole save is taken back');
+  const dup = good.tiles.slice(); dup[0] = dup[1];
+  const swapped = good.tiles.slice(), ia = swapped[0] ? 0 : 1, ib = swapped[ia + 1] ? ia + 1 : ia + 2;
+  [swapped[ia], swapped[ib]] = [swapped[ib], swapped[ia]];
+  ok(!E.restore(Object.assign({}, good, { tiles: dup })) && !E.restore(Object.assign({}, good, { tiles: swapped })) &&
+    !E.restore(Object.assign({}, good, { n: 6 })) && !E.restore(Object.assign({}, good, { moves: -1 })) && !E.restore(null),
+    'a broken save is dropped: a doubled tile, an unsolvable tray, a wrong size, a bad count');
+
+  // Page wiring and identity
+  const gm = games.find((x) => x.id === 'sliding');
+  ok(!!gm && gm.cat === 'puzzle' && gm.daily !== false, 'games.json lists it under puzzles, with a daily tray');
+  ok(!!gm && /accent: '([^']+)'/.test(html) && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/sliding/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const lin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const lab = (h) => {
+    const [R, G, B] = rgb(h).map(lin), f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    const X = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047, Y = R * 0.2126 + G * 0.7152 + B * 0.0722, Z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  };
+  const dE = (a, b) => { const A = lab(a), B = lab(b); return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]); };
+  const lum = (h) => rgb(h).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const nearest = games.filter((x) => x.id !== 'sliding').map((x) => [x.id, dE(x.color, gm.color)]).sort((x, y) => x[1] - y[1])[0];
+  ok(nearest[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + nearest[0] + ', ' + nearest[1].toFixed(1) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['sp-win', 'sp-five', 'sp-tidy'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '[^\\n]*des: '").test(core) && html.indexOf("unlock('" + id + "')") > 0), 'the three Sliding Puzzle awards exist in every language and are unlocked');
+  ok(/C\.daily\('sliding', daily\)\.rng/.test(html) && /newGame\(E\.DAILY_SIZE, dailyDate\)/.test(html) && /C\.stats\.daily\('sliding', S\.daily/.test(html), 'the daily tray comes from the day\'s seed and its moves are recorded');
+  ok(/C\.stats\.best\('sliding', 'moves' \+ n, S\.moves, true\)/.test(html), 'the best is the fewest moves, kept per size');
+  // A tray reads 1, 2, 3 from the left in every language, so neither the board nor the arrows flip in RTL
+  ok(/\.sp-board \{\s*direction: ltr;/.test(html) && /\{ ArrowUp: 0, ArrowRight: 1, ArrowDown: 2, ArrowLeft: 3 \}\[k\]/.test(html) && !/rtl/.test(html.slice(html.indexOf('window.addEventListener(\'keydown\''))), 'the tray and its arrows stay left to right in Persian');
+  ok(/ctx\.autosave\(/.test(html) && /ctx\.tutorialIfNew\(TUT\)/.test(html) && /after\(r\) \{[\s\S]*?save\(\);/.test(html), 'the game saves after every move and shows its tutorial once');
+  ok(!/[\s{,]again: '/.test(html), 'the page leaves the core\'s "again" label alone');
+  ok(Date.now() - t0 < 8000, 'the Sliding Puzzle group runs in under eight seconds (' + (Date.now() - t0) + 'ms)');
+}
+
 /* ------------------------------- Core labels a game must not redefine (#318) */
 // ctx.finish labels the result window's play-again button with the core's
 // 'again'. Ludo's strings defined 'again' for "roll again after a six", so its
@@ -7537,6 +7665,7 @@ testLudo();
 testSnakes();
 testDarts();
 testBowling();
+testSliding();
 testCoreLabels();
 testKeyLayout();
 testGo();

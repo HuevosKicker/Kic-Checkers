@@ -46,6 +46,7 @@ Ways to play:
 | Snakes and Ladders | Roll, climb the ladders, slide down the snakes and reach 100 first, on our own board; 2 to 4 players on one phone or against bots, with an optional exact finish |
 | Darts | 501 or 301 with three darts a turn and a double to finish; aim with a wobbling hand, against a bot at three levels or two players, and a daily 301 in as few darts as you can |
 | Bowling | Ten frames on a lane seen from behind: swipe to bowl, bend the swipe for spin, and pins that carry like real ones; alone, against a bot at three levels or two players, and a daily lane |
+| Sliding Puzzle | Slide the numbered tiles back into order on a 3×3, 4×4 or 5×5 tray, every shuffle solvable, in as few moves as you can, and a daily tray |
 
 Around the games: a daily challenge that is identical on every device with no server at all, a weekly offline league with five tiers, over eighty awards, a shared coin that is only ever spent on hints and cosmetics, stats and a profile, and a Persian, English, Simplified Chinese, German and Spanish interface with light and dark themes.
 
@@ -148,6 +149,7 @@ MIT, see [LICENSE](LICENSE). The Vazirmatn font is under the OFL; its licence te
 | مار و پله | تاس بریز، از نردبان بالا برو، از مار پایین بیا و اول به ۱۰۰ برس، روی صفحه‌ی خود ما؛ ۲ تا ۴ نفر روی یک گوشی یا با ربات، با پایان دقیق به انتخاب |
 | دارت | ۵۰۱ یا ۳۰۱، سه دارت در هر نوبت و پایان روی دوبرابر؛ با دستی که کمی می‌لرزد نشانه بگیر، با ربات در سه سطح یا دو نفره، و چالش روزانه‌ی ۳۰۱ با کمترین دارت |
 | بولینگ | ده فریم روی مسیری که از پشت دیده می‌شود: انگشت بکش تا پرتاب کنی، کج بکش تا پیچ بخورد، و پین‌هایی که مثل واقعی می‌افتند؛ تنها، با ربات در سه سطح یا دو نفره، و مسیر روزانه |
+| پازل کشویی | کاشی‌های شماره‌دار را روی سینی ۳×۳، ۴×۴ یا ۵×۵ با سُر دادن به ترتیب بچین، همه‌ی چیدمان‌ها حل‌شدنی، با کمترین حرکت، و سینی روزانه |
 
 بیرون از بازی‌ها: چالش روزانه‌ی مشترک برای همه‌ی دستگاه‌ها بدون هیچ سروری، لیگ هفتگی آفلاین با پنج رده، بیش از هشتاد دستاورد، سکه‌ی مشترک که فقط خرج راهنمایی و تزئینات می‌شود، آمار و پروفایل، و رابط فارسی، انگلیسی، چینی ساده‌شده، آلمانی و اسپانیایی با تم روشن و تاریک.
 
