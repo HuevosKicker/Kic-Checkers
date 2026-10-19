@@ -1,4 +1,4 @@
-Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Dreißig Spiele sind dabei, und neue kommen als Updates derselben App dazu.
+Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Einunddreißig Spiele sind dabei, und neue kommen als Updates derselben App dazu.
 
 Die Spiele:
 
@@ -32,6 +32,7 @@ Die Spiele:
 * Kettenreaktion — Kugeln legen, bis Felder platzen und Ketten übers Brett laufen; 2 bis 4 Spieler an einem Handy oder gegen Bots
 * Ludo — würfeln, mit einer Sechs raus, schlagen und alle Figuren ins Ziel bringen; 2 bis 4 Spieler oder gegen Bots
 * Schlangen und Leitern — würfeln, Leitern hoch, Schlangen runter und zuerst die 100 erreichen; 2 bis 4 Spieler oder gegen Bots
+* Darts — 501 oder 301, drei Darts pro Aufnahme, Finish auf Doppel; gegen einen Bot oder zu zweit
 
 Rund um die Spiele:
 

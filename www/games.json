@@ -720,6 +720,30 @@
       "soft": "#E6EFD9",
       "added": "2026-10-19",
       "files": []
+    },
+    {
+      "id": "darts",
+      "cat": "skill",
+      "name": {
+        "fa": "دارت",
+        "en": "Darts",
+        "zh": "飞镖",
+        "de": "Darts",
+        "es": "Dardos"
+      },
+      "summary": {
+        "fa": "۵۰۱ یا ۳۰۱، سه دارت در هر نوبت و پایان روی دوبرابر؛ با ربات یا دو نفره، و چالش روزانه.",
+        "en": "501 or 301, three darts a turn, finish on a double; against a bot or two players, and a daily challenge.",
+        "zh": "501或301，每轮三镖，以双倍区收镖；对战电脑或双人，还有每日挑战。",
+        "de": "501 oder 301, drei Darts pro Aufnahme, Finish auf Doppel; gegen einen Bot oder zu zweit, mit Tagesaufgabe.",
+        "es": "501 o 301, tres dardos por turno y cierre en doble; contra un bot o a dos, y un reto diario."
+      },
+      "path": "games/darts/index.html",
+      "icon": "games/darts/icon.svg",
+      "color": "#B8322A",
+      "soft": "#F8E3E0",
+      "added": "2026-10-19",
+      "files": []
     }
   ]
 }

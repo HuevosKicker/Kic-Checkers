@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3681;
+const MIN_CHECKS = 3746;
 
 function ok(cond, msg) {
   checks++;
@@ -6321,6 +6321,122 @@ function testCoreLabels() {
   }
 }
 
+/* ------------------------------------------------------- Darts (#313) */
+function testDarts() {
+  head('Darts');
+  const t0 = Date.now();
+  const E = loadEngine('darts', 'DartsEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/darts/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+
+  // The board: numbers clockwise from 20 at the top, rings at their real radii
+  ok(E.ORDER.join() === '20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5', 'the numbers run clockwise in the standard order');
+  ok(E.hit(0, 0).label === 'BULL' && E.hit(0, 0).score === 50 && E.hit(0, 0).m === 2, 'the bullseye scores 50 and counts as a double');
+  ok(E.hit(0.07, 0).label === '25' && E.hit(0, -0.6).label === 'T20' && E.hit(0, -0.98).label === 'D20' && E.hit(0, -0.8).label === 'S20' && E.hit(0, -1.02).label === 'MISS',
+    'bull ring, treble, double, single and outside, straight up from the centre');
+  ok(E.hit(0.6, 0).label === 'T6' && E.hit(0, 0.6).label === 'T3' && E.hit(-0.6, 0).label === 'T11', 'right is 6, down is 3, left is 11');
+  const labels = [];
+  for (const n of E.ORDER) for (const m of ['S', 'D', 'T']) labels.push(m + n);
+  labels.push('25', 'BULL');
+  const off = labels.filter((l) => { const p = E.aimPoint(l); return E.hit(p[0], p[1]).label !== l; });
+  ok(labels.length === 62 && off.length === 0, 'aiming at the middle of each of the 62 beds hits that bed' + (off.length ? ' (' + off.join(',') + ')' : ''));
+
+  // Checkouts: every score from 2 to 170 that can be finished in three darts
+  const none = [];
+  let wrong = 0;
+  for (let r = 2; r <= 170; r++) {
+    const co = E.checkout(r, 3);
+    if (!co) { none.push(r); continue; }
+    const hits = co.map((l) => { const p = E.aimPoint(l); return E.hit(p[0], p[1]); });
+    if (hits.reduce((a, h) => a + h.score, 0) !== r || hits[hits.length - 1].m !== 2) wrong++;
+  }
+  ok(none.join() === '159,162,163,165,166,168,169', 'exactly the seven scores with no three-dart finish have none (' + none.join(',') + ')');
+  ok(wrong === 0, 'every suggested finish adds up and ends on a double');
+  ok(E.checkout(170, 3).join() === 'T20,T20,BULL' && E.checkout(40, 1).join() === 'D20' && E.checkout(50, 1).join() === 'BULL' && E.checkout(100, 2).join() === 'T20,D20',
+    'the classic finishes: 170, 40, 50 and 100');
+  ok(E.checkout(1, 3) === null && E.checkout(171, 3) === null && E.checkout(41, 1) === null, 'no finish from 1, above 170, or an odd score with one dart');
+
+  // Scoring, busts and turns
+  const H = (l) => { const p = E.aimPoint(l); return E.hit(p[0], p[1]); };
+  let S = E.newGame(2, 501), r = E.throwDart(S, H('T20'));
+  ok(r.state.rem[0] === 441 && r.state.turn === 0 && !r.over, 'a dart comes off the score and the turn goes on');
+  r = E.throwDart(E.throwDart(r.state, H('T20')).state, H('T20'));
+  ok(r.over && r.state.rem[0] === 321 && r.state.turn === 1 && r.state.last.total === 180 && r.state.darts.length === 0, 'three darts end the turn; 180 is the turn\'s total');
+  S = E.newGame(2, 501); S.rem[0] = 40; S.turnStart = 40;
+  r = E.throwDart(S, H('S20'));
+  r = E.throwDart(r.state, H('T20'));
+  ok(r.bust && r.over && r.state.rem[0] === 40 && r.state.turn === 1, 'going below zero is a bust: the score goes back to the turn\'s start');
+  S = E.newGame(2, 501); S.rem[0] = 21; S.turnStart = 21;
+  ok(E.throwDart(S, H('S20')).bust, 'leaving one is a bust');
+  S = E.newGame(2, 501); S.rem[0] = 20; S.turnStart = 20;
+  ok(E.throwDart(S, H('S20')).bust && !E.throwDart(S, H('D10')).bust && E.throwDart(S, H('D10')).won, 'zero needs a double');
+  S.rem[0] = 50; S.turnStart = 50;
+  ok(E.throwDart(S, H('BULL')).won && E.throwDart(E.throwDart(S, H('BULL')).state, H('T20')) === null, 'the bullseye finishes 50, and nothing is thrown after the win');
+  S = E.newGame(1, 301);
+  r = E.throwDart(E.throwDart(E.throwDart(S, H('S1')).state, H('S1')).state, H('S1'));
+  ok(r.state.turn === 0 && r.state.rem[0] === 298 && r.state.thrown[0] === 3, 'alone, every turn is yours');
+
+  // Bots: legal aims, full games end, and the levels are in order
+  let aimBad = 0;
+  for (let rem = 2; rem <= 501; rem++) {
+    const st = E.newGame(1, 501); st.rem[0] = rem; st.turnStart = rem;
+    const h = H(E.think(st)), left = rem - h.score, co = E.checkout(rem, 3);
+    if (co ? h.label !== co[0] : (left < 2 && left !== 0)) aimBad++;
+  }
+  ok(aimBad === 0, 'a bot aims at a finish when it has one, and never at a bust otherwise (' + aimBad + ' wrong)');
+  const solo = (lv, seed) => {
+    const rr = rng(seed);
+    let st = E.newGame(1, 501), k = 0;
+    while (st.winner < 0 && k++ < 600) { const p = E.aimPoint(E.think(st)), d = E.land(p[0], p[1], E.SPREAD[lv], rr); st = E.throwDart(st, d.hit).state; }
+    return st.winner === 0 ? st.thrown[0] : Infinity;
+  };
+  const med = (lv) => { const a = []; for (let i = 0; i < 120; i++) a.push(solo(lv, 7000 + i)); a.sort((x, y) => x - y); return a[60]; };
+  const me = med('easy'), mm = med('medium'), mh = med('hard');
+  // Top professionals finish 501 in about 15 to 18 darts; a bot at that level
+  // (the first tuning, 17) beat a steady human every time, so hard stays above 20
+  ok(isFinite(me) && me > mm && mm > mh && mh >= 20, 'harder bots finish 501 in fewer darts, and even hard is no world champion (' + me + ', ' + mm + ', ' + mh + ')');
+  ok(me <= 70, 'the easy bot still finishes a 501 in a sensible number of darts (median ' + me + ')');
+  let hw = 0;
+  for (let i = 0; i < 120; i++) {
+    const rr = rng(9000 + i), first = i % 2;
+    let st = E.newGame(2, 301), k = 0;
+    while (st.winner < 0 && k++ < 800) {
+      const lv = (st.turn === 0) !== !!first ? 'hard' : 'medium';
+      const p = E.aimPoint(E.think(st)), d = E.land(p[0], p[1], E.SPREAD[lv], rr);
+      st = E.throwDart(st, d.hit).state;
+    }
+    if ((st.winner === 0) !== !!first) hw++;
+  }
+  ok(hw >= 72, 'hard beats medium in most games of 301 (' + hw + ' of 120)');
+
+  // Page wiring and identity
+  const gm = games.find((g) => g.id === 'darts');
+  ok(!!gm && gm.cat === 'skill' && gm.daily !== false, 'games.json lists it under skill games, with a daily challenge');
+  ok(!!gm && /accent: '([^']+)'/.test(html) && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/darts/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const lin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const lab = (h) => {
+    const [R, G, B] = rgb(h).map(lin), f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    const X = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047, Y = R * 0.2126 + G * 0.7152 + B * 0.0722, Z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  };
+  const dE = (a, b) => { const A = lab(a), B = lab(b); return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]); };
+  const lum = (h) => rgb(h).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const near = games.filter((g) => g.id !== 'darts').map((g) => [g.id, dE(g.color, gm.color)]).sort((x, y) => x[1] - y[1])[0];
+  ok(near[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + near[0] + ', ' + near[1].toFixed(1) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['dt-win', 'dt-hard', 'dt-180'].every((id) => core.indexOf("id: '" + id + "'") > 0 && html.indexOf("unlock('" + id + "')") > 0), 'the three darts awards exist and are unlocked');
+  // The reporter asked for real sounds: a whoosh on the throw and a thud on the board, from the core
+  ok(/    whoosh: function \(\) \{\n      noise\(/.test(core) && /    thud: function \(\) \{[\s\S]{0,80}noise\(/.test(core) && /whoosh: \['whoosh', null\], thud: \['thud', 'tap'\]/.test(core), 'the core has a whoosh and a thud, the whoosh without a buzz');
+  ok(/if \(m\[1\]\) Chogan\.haptic\(m\[1\]\);/.test(core), 'feedback with no vibration does not fall back to a tap buzz');
+  ok(/C\.feedback\('whoosh'\)/.test(html) && /C\.feedback\(h\.m \? 'thud' : 'tap'\)/.test(html), 'a throw whooshes and a dart on the board thuds');
+  ok(/C\.daily\('darts', G\.daily \+ '\|' \+ G\.s\.thrown\[0\]\)\.rng/.test(html) && /C\.stats\.daily\('darts', G\.daily/.test(html) && /DAILY_DARTS = 60/.test(html), 'the daily scatter comes from the day and the dart number, is recorded, and stops after 60 darts');
+  ok(/ctx\.autosave\(/.test(html) && /ctx\.tutorialIfNew\(TUT\)/.test(html), 'the game autosaves and shows its tutorial once');
+  ok(Date.now() - t0 < 8000, 'the Darts group runs in under eight seconds (' + (Date.now() - t0) + 'ms)');
+}
+
 function testGomoku() {
   head('Gomoku');
   const E = loadEngine('gomoku', 'GomokuEngineFactory');
@@ -7219,6 +7335,7 @@ testGomoku();
 testChain();
 testLudo();
 testSnakes();
+testDarts();
 testCoreLabels();
 testGo();
 testBackgammon();
