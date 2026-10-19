@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3592;
+const MIN_CHECKS = 3650;
 
 function ok(cond, msg) {
   checks++;
@@ -6190,6 +6190,123 @@ function testLudo() {
   ok(Date.now() - t0 < 6000, 'the Ludo group runs in under six seconds (' + (Date.now() - t0) + 'ms)');
 }
 
+/* ------------------------------------------- Snakes and Ladders (#314) */
+function testSnakes() {
+  head('Snakes and Ladders');
+  const t0 = Date.now();
+  const E = loadEngine('snakes', 'SnakesEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/snakes/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+
+  // The board: 1 bottom left, rows running back and forth, 100 top left
+  const cells = [];
+  for (let n = 1; n <= 100; n++) cells.push(E.cell(n));
+  ok(new Set(cells.map((q) => q.join())).size === 100 && cells.every((q) => q[0] >= 0 && q[0] < 10 && q[1] >= 0 && q[1] < 10), 'the 100 squares fill the 10×10 grid once each');
+  ok(cells.every((q, i) => i === 0 || Math.abs(q[0] - cells[i - 1][0]) + Math.abs(q[1] - cells[i - 1][1]) === 1), 'every square touches the next one');
+  ok(E.cell(1).join() === '0,9' && E.cell(10).join() === '9,9' && E.cell(11).join() === '9,8' && E.cell(100).join() === '0,0', 'square 1 is bottom left, the second row runs back, 100 is top left');
+
+  // Ladders and snakes
+  const L = Object.entries(E.LADDERS).map(([a, b]) => [+a, b]), S = Object.entries(E.SNAKES).map(([a, b]) => [+a, b]);
+  ok(L.length >= 6 && S.length >= 6, 'the board has ladders and snakes (' + L.length + ' and ' + S.length + ')');
+  ok(L.every(([a, b]) => a >= 1 && b > a && b <= 99) && S.every(([a, b]) => a <= 99 && b < a && b >= 1), 'ladders go up, snakes go down, and none starts or ends on 100');
+  const starts = new Set([...L, ...S].map((x) => x[0]));
+  ok(starts.size === L.length + S.length, 'no square holds two ladders or snakes');
+  ok([...L, ...S].every(([, b]) => !starts.has(b)), 'no ladder or snake ends where another one starts');
+  ok([...L, ...S].every(([a, b]) => E.cell(a)[1] !== E.cell(b)[1]), 'every ladder and snake crosses at least one row');
+  // The first draft had ladders and snakes crossing into a tangle nobody could
+  // follow; drawn as straight lines between square middles, every pair stays a
+  // square apart.
+  const seg = (a, b, c, d) => {
+    const sub = (u, v) => [u[0] - v[0], u[1] - v[1]], dot = (u, v) => u[0] * v[0] + u[1] * v[1];
+    const cr = (o, p, q) => (p[0] - o[0]) * (q[1] - o[1]) - (p[1] - o[1]) * (q[0] - o[0]);
+    if (cr(a, b, c) * cr(a, b, d) < 0 && cr(c, d, a) * cr(c, d, b) < 0) return 0;
+    const pd = (p, x, y) => { const v = sub(y, x), t = Math.max(0, Math.min(1, dot(sub(p, x), v) / dot(v, v))); return Math.hypot(p[0] - x[0] - v[0] * t, p[1] - x[1] - v[1] * t); };
+    return Math.min(pd(a, c, d), pd(b, c, d), pd(c, a, b), pd(d, a, b));
+  };
+  const J = [...L, ...S];
+  let close = 99, pair = '';
+  for (let i = 0; i < J.length; i++) for (let j = i + 1; j < J.length; j++) {
+    const d = seg(E.cell(J[i][0]), E.cell(J[i][1]), E.cell(J[j][0]), E.cell(J[j][1]));
+    if (d < close) { close = d; pair = J[i].join('→') + ' and ' + J[j].join('→'); }
+  }
+  ok(close >= 1, 'no two ladders or snakes cross or run closer than a square (closest ' + pair + ', ' + close.toFixed(2) + ')');
+
+  // Moves
+  let S0 = E.newGame(2, false);
+  ok(S0.pos.join() === '0,0' && S0.turn === 0 && S0.winner === -1, 'everyone starts off the board');
+  let r = E.play(S0, 5);
+  ok(r.state.pos[0] === 5 && r.steps.join() === '1,2,3,4,5' && !r.jump && !r.again && r.state.turn === 1, 'a five from the start walks to square 5 and passes the turn');
+  r = E.play(S0, 4);
+  ok(r.jump && r.jump.kind === 'ladder' && r.jump.from === 4 && r.state.pos[0] === E.LADDERS[4], 'the foot of a ladder takes the token to its top');
+  S0 = E.newGame(2, false); S0.pos[0] = 24;
+  r = E.play(S0, 6);
+  ok(r.jump && r.jump.kind === 'snake' && r.state.pos[0] === E.SNAKES[30] && r.again && r.state.turn === 0, 'a snake\'s head takes the token to its tail, and a six still rolls again');
+  S0 = E.newGame(3, false); S0.turn = 2; S0.pos[2] = 4;
+  r = E.play(S0, 2);
+  ok(r.state.turn === 0 && r.state.rolls === 1, 'the turn wraps round to the first player');
+  S0 = E.newGame(2, false); S0.pos[1] = 9;
+  r = E.play(S0, 6);
+  ok(r.state.pos[0] === 6 && r.state.pos[1] === 9, 'a move never touches another player\'s token');
+
+  // The finish, plain and exact
+  S0 = E.newGame(2, false); S0.pos[0] = 97;
+  r = E.play(S0, 6);
+  ok(r.state.winner === 0 && r.state.pos[0] === 100 && r.steps.join() === '98,99,100' && !r.again, 'in a plain game passing 100 wins, on a six too');
+  S0 = E.newGame(2, true); S0.pos[0] = 96;
+  r = E.play(S0, 5);
+  ok(r.state.winner < 0 && r.bounced && r.steps.join() === '97,98,99,100,99' && r.state.pos[0] === E.SNAKES[99], 'in an exact game the rest bounces back, onto the snake at 99 here');
+  S0 = E.newGame(2, true); S0.pos[0] = 97;
+  r = E.play(S0, 3);
+  ok(r.state.winner === 0 && !r.bounced, 'in an exact game the exact roll wins');
+  ok(E.play(r.state, 2) === null && E.play(E.newGame(2, false), 7) === null, 'no move after the game is won, and no roll outside 1 to 6');
+
+  // Whole games: every one ends, and a plain two-player game stays short
+  let ended = 0, legal = true;
+  const lengths = { 2: [], 4: [] };
+  for (let g = 0; g < 600; g++) {
+    const n = g % 2 ? 4 : 2, exact = g % 3 === 0, rr = rng(900 + g);
+    let st = E.newGame(n, exact), k = 0;
+    while (st.winner < 0 && k++ < 3000) {
+      const res = E.play(st, E.roll(rr));
+      if (!res || !res.state.pos.every((p) => p >= 0 && p <= 100)) { legal = false; break; }
+      st = res.state;
+    }
+    if (st.winner >= 0 && st.pos[st.winner] === 100) ended++;
+    if (!exact) lengths[n].push(st.rolls);
+  }
+  const median = (a) => a.slice().sort((x, y) => x - y)[a.length >> 1];
+  ok(legal && ended === 600, 'every game of 2 and 4 players, plain and exact, ends with a winner on 100 (' + ended + ' of 600)');
+  ok(lengths[2].length > 100 && median(lengths[2]) <= 45, 'a plain two-player game is short: median ' + median(lengths[2]) + ' rolls');
+  ok(lengths[4].length > 100 && median(lengths[4]) <= 70, 'a plain four-player game: median ' + median(lengths[4]) + ' rolls');
+
+  // Page wiring and identity
+  const gm = games.find((g) => g.id === 'snakes');
+  ok(!!gm && gm.cat === 'board' && gm.daily === false, 'games.json lists it under board games, with no daily challenge: the dice decide everything, so a daily result would be the same for everyone');
+  ok(!!gm && /accent: '([^']+)'/.test(html) && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/snakes/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  // Thirty games leave no hue 15° from all the others, so the accent is held
+  // apart by colour difference (CIE76 ΔE) instead of hue alone.
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const lin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const lab = (h) => {
+    const [R, G, B] = rgb(h).map(lin), f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    const X = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047, Y = R * 0.2126 + G * 0.7152 + B * 0.0722, Z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  };
+  const dE = (a, b) => { const A = lab(a), B = lab(b); return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]); };
+  const lum = (h) => rgb(h).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const near = games.filter((g) => g.id !== 'snakes').map((g) => [g.id, dE(g.color, gm.color)]).sort((x, y) => x[1] - y[1])[0];
+  ok(near[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + near[0] + ', ' + near[1].toFixed(1) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['sl-win', 'sl-ladder', 'sl-snake'].every((id) => core.indexOf("id: '" + id + "'") > 0 && html.indexOf("unlock('" + id + "')") > 0), 'the three Snakes and Ladders awards exist and are unlocked');
+  ok(/ctx\.autosave\(/.test(html) && /ctx\.tutorialIfNew\(TUT\)/.test(html) && /G\.roll = v;\s*\/\/[^\n]*\n[^\n]*\n\s*save\(\);/.test(html), 'the game autosaves, also the moment the die lands, and shows its tutorial once');
+  // The result window labels its play-again button with the core's 'again'; a
+  // game string of that name relabelled it "A six: roll again"
+  ok(!/[\s{,]again: '/.test(html), 'the page leaves the core\'s "again" label alone');
+  ok(Date.now() - t0 < 5000, 'the Snakes and Ladders group runs in under five seconds (' + (Date.now() - t0) + 'ms)');
+}
+
 function testGomoku() {
   head('Gomoku');
   const E = loadEngine('gomoku', 'GomokuEngineFactory');
@@ -7087,6 +7204,7 @@ testReversi();
 testGomoku();
 testChain();
 testLudo();
+testSnakes();
 testGo();
 testBackgammon();
 testMorris();
