@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3814;
+const MIN_CHECKS = 3817;
 
 function ok(cond, msg) {
   checks++;
@@ -190,6 +190,10 @@ function testMines() {
     ok(st(4, 'Enter') === -1, 'any other key is not a move');
   }
   ok(/E\.step\(cursor, k, sp\.rows, sp\.cols, document\.documentElement\.dir === 'rtl'\)/.test(msHtml), 'the page moves its cursor with the engine step');
+  // Tab focused one cell while the arrows moved another, and Enter opened the focused one (#331)
+  ok(/b\.tabIndex = i === cursor \? 0 : -1;/.test(msHtml), 'the board is one Tab stop, on the cursor cell');
+  ok(/b\.addEventListener\('focus', function \(\) \{\s*if \(cursor !== idx\) \{ cursor = idx; paint\(\); \}/.test(msHtml), 'focusing a cell puts the cursor on it');
+  ok(/cursor = to; paint\(\); cells\[cursor\]\.focus\(\)/.test(msHtml), 'an arrow moves focus along with the cursor');
 }
 
 /* ------------------------------------------------------- نقطه‌بازی */

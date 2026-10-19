@@ -483,6 +483,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
     for (var i = 0; i < sp.rows * sp.cols; i++) {
       (function (idx) {
         var b = el('button', { class: 'ms-cell', type: 'button', role: 'gridcell' });
+        // Tab and the arrows used to select two different cells, and Enter opened the
+        // tabbed one (#331): focus and the cursor are now always the same cell
+        b.addEventListener('focus', function () {
+          if (cursor !== idx) { cursor = idx; paint(); }
+        });
         b.addEventListener('pointerdown', function (e) {
           longFired = false;
           if (e.pointerType !== 'mouse') {
@@ -599,6 +604,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
       }
       if (i === cursor && document.documentElement.dataset.kb === '1') cls += ' ms-cell--cursor';
       b.className = cls;
+      b.tabIndex = i === cursor ? 0 : -1;
     }
     ctx.setStat('mines', Math.max(0, sp.mines - S.flags));
   }
@@ -958,7 +964,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
     cursor = C.clamp(cursor, 0, sp.rows * sp.cols - 1);
     document.documentElement.dataset.kb = '1';
     var to = E.step(cursor, k, sp.rows, sp.cols, document.documentElement.dir === 'rtl');
-    if (to >= 0) { cursor = to; paint(); e.preventDefault(); return; }
+    if (to >= 0) { cursor = to; paint(); cells[cursor].focus(); e.preventDefault(); return; }
     if (k === ' ' || k === 'Enter') { tap(cursor); e.preventDefault(); }
     else if (k === 'f' || k === 'F') { toggleFlag(cursor); e.preventDefault(); }
     else if (k === 'h' || k === 'H') { hint(); e.preventDefault(); }
