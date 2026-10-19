@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3821;
+const MIN_CHECKS = 3824;
 
 function ok(cond, msg) {
   checks++;
@@ -6347,6 +6347,14 @@ function testCoreLabels() {
   const files = ['www/lib/chogan.js', 'www/index.html'].concat(games.map((g) => 'www/' + g.path));
   const loan = files.filter((f) => /'[^'\n]*آپدیت[^'\n]*'/.test(fs.readFileSync(path.join(ROOT, f), 'utf8')));
   ok(loan.length === 0, 'no Persian UI string says «آپدیت»' + (loan.length ? ' (' + loan.join(', ') + ')' : ''));
+  // #338: a canvas board is drawn left to right in every language, so an arrow
+  // that flips in RTL moves the wrong way there (Gomoku, Go, Chain Reaction)
+  const canvasArrows = ['gomoku', 'go', 'chain'];
+  for (const id of canvasArrows) {
+    const html = fs.readFileSync(path.join(ROOT, 'www/games', id, 'index.html'), 'utf8');
+    ok(/createElement\('canvas'\)/.test(html) && /ArrowLeft: \[0, -1\], ArrowRight: \[0, 1\]/.test(html) && !/ArrowLeft[^\n]*isRtl/.test(html),
+      id + ': left and right move left and right on its canvas board in every language');
+  }
 }
 
 /* ------------------------------------------------------- Darts (#313) */

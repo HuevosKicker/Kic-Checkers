@@ -823,7 +823,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = ChainEngin
     if (!G || document.querySelector('.ch-scrim')) return;
     if (C.undoKey(e)) { undo(); e.preventDefault(); return; }
     if (G.done || busy()) return;
-    var k = e.key, d = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, C.isRtl() ? 1 : -1], ArrowRight: [0, C.isRtl() ? -1 : 1] }[k];
+    // The board is drawn left to right in every language; flipping the arrows
+    // in RTL made them run backwards in Persian (#338)
+    var k = e.key, d = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[k];
     if (d) {
       e.preventDefault();
       kbOn = true;
