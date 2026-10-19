@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4018;
+const MIN_CHECKS = 4021;
 
 function ok(cond, msg) {
   checks++;
@@ -7531,14 +7531,19 @@ function testMenu() {
   };
   const fakeC = {
     stats: { get: () => ({ byGame }) },
-    t: (k) => '<' + k + '>', num: (n) => String(n), time: (n) => 't' + n
+    // the label's parameters show too, so a count passed into a template is checked as well (#352)
+    t: (k, p) => '<' + k + '>' + (p && p.n !== undefined ? '(' + p.n + ')' : ''), num: (n) => String(n), time: (n) => 't' + n
   };
   let bestLine = () => undefined;
   try { bestLine = vm.runInNewContext('(function (C) { ' + menu.slice(at, end) + ' return bestLine; })', {})(fakeC); }
   catch (e) { ok(false, 'bestLine اجرا نشد: ' + e.message); }
-  ok(bestLine({ id: 'new-game' }) === '<wins> 2', 'بازی بدون خط مخصوص شمار بردهایش را نشان می‌دهد');
-  ok(bestLine({ id: 'no-wins' }) === '<wins> 0', 'بازی بی‌برد هم مثل قبلِ نقطه‌بازی «برد ۰» نشان می‌دهد');
-  ok(bestLine({ id: 'dots' }) === '<wins> 3', 'نقطه‌بازی همان خط قبلی را نشان می‌دهد');
+  ok(bestLine({ id: 'new-game' }) === '<winsN>(2)', 'بازی بدون خط مخصوص شمار بردهایش را نشان می‌دهد');
+  ok(bestLine({ id: 'no-wins' }) === '<winsN>(0)', 'بازی بی‌برد هم مثل قبلِ نقطه‌بازی «۰ برد» نشان می‌دهد');
+  ok(bestLine({ id: 'dots' }) === '<winsN>(3)', 'نقطه‌بازی همان خط قبلی را نشان می‌دهد');
+  // «برد ۱۳» read backwards in Persian: the count now comes first where the language puts it (#352)
+  ok(/winsN: '\{n\} برد', solvedN: '\{n\} حل‌شده', clearedN: '\{n\} پاک‌شده'/.test(menu) && /winsN: '\{n\} wins'/.test(menu), 'Persian says «۱۳ برد», «۱۳ حل‌شده», «۱۳ پاک‌شده», and English "13 wins"');
+  ok((menu.match(/\bwinsN: '[^']*\{n\}[^']*'/g) || []).length === 5 && (menu.match(/\bsolvedN: '[^']*\{n\}/g) || []).length === 5 && (menu.match(/\bclearedN: '[^']*\{n\}/g) || []).length === 5, 'every language has the three counts as templates');
+  ok(!/C\.t\('(wins|solved|cleared)'\) \+ ' ' \+ C\.num/.test(menu), 'no label is glued to a number in front of it any more');
   ok(bestLine({ id: 'never-played' }) === null, 'بازی بازی‌نشده خطی ندارد');
 
   const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
