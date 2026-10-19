@@ -353,6 +353,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Codebreake
   if (!dailyDate) ctx.button({ icon: 'refresh', label: C.t('newCode'), onClick: askNew });
   ctx.main.appendChild(wrap);
   ctx.mount();
+  // pegs and slots have fixed sizes, so the whole column is zoomed to fill the game
+  // area: at 440px it sat in a third of a tablet, and phone landscape cut its last rows (#359)
+  var refit = C.ui.zoomFit(wrap, ctx.main);
 
   function L() { return E.LEVELS[S.level]; }
 
@@ -381,6 +384,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Codebreake
     submitBtn.setAttribute('aria-disabled', (!full || S.done) ? 'true' : 'false');
     submitBtn.style.opacity = full ? '' : '.6';
     eraseBtn.disabled = S.done;
+    // a level with more rows or pegs changes the column's natural size
+    if (refit) refit();
   }
 
   function renderTop() {

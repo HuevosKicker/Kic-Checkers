@@ -2386,6 +2386,45 @@
     return m;
   };
 
+  // The zoom at which a layout of natural size w x h fills a room of roomW x roomH
+  // without passing it, between lo and hi; 1 when nothing is known.
+  ui.fitScale = function (w, h, roomW, roomH, lo, hi) {
+    if (!(w > 0 && h > 0 && roomW > 0 && roomH > 0)) return 1;
+    return Math.max(lo, Math.min(hi, roomW / w, roomH / h));
+  };
+
+  // Scales a game laid out at fixed pixel sizes (pegs, cards) to fill the game area
+  // (#359). Those layouts stopped at their phone size, so a tablet or a laptop
+  // showed them in a third of the screen, and in phone landscape their bottom
+  // rows were cut off. The node is measured at its natural size and zoomed up to
+  // opt.max (2) or down to opt.min (0.7), whenever the game area changes size.
+  // Returns a function to call after the layout itself changes size.
+  ui.zoomFit = function (node, main, opt) {
+    opt = opt || {};
+    var lo = opt.min || 0.7, hi = opt.max || 2, busy = false;
+    function run() {
+      if (busy || !node.isConnected) return;
+      busy = true;
+      node.style.zoom = '';
+      var cs = getComputedStyle(main);
+      var roomW = main.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      var roomH = main.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+      var w0 = node.offsetWidth, h0 = node.offsetHeight;
+      var k = ui.fitScale(w0, h0, roomW, roomH, lo, hi);
+      // smaller than lo is too small to tap: if even that does not fit, the layout
+      // keeps its size (or the width's) and the game area scrolls instead
+      var tooTall = h0 * lo > roomH + 1;
+      if (tooTall) k = Math.min(1, roomW / w0);
+      if (Math.abs(k - 1) > 0.02) node.style.zoom = String(Math.round(k * 100) / 100);
+      main.classList.toggle('ch-gamemain--scroll', tooTall);
+      busy = false;
+    }
+    if (window.ResizeObserver) new ResizeObserver(function () { run(); }).observe(main);
+    else window.addEventListener('resize', run);
+    run();
+    return run;
+  };
+
   Chogan.ui = ui;
 
   /* ================================================ ناوبری و چرخه‌ی عمر */

@@ -18,8 +18,9 @@
   .bs-status--wait { animation: bs-blink 900ms infinite; }
   @keyframes bs-blink { 50% { opacity: .45; } }
   .bs-seas { width: 100%; display: flex; flex-direction: column; align-items: center; gap: var(--s-2); }
-  .bs-box { width: 100%; max-width: min(94vw, 50vh, 460px); }
-  .bs-box--small { max-width: min(46vw, 21vh, 200px); }
+  /* only the window's width and height limit the seas; a 460px cap left a laptop's sea at half its height (#359) */
+  .bs-box { width: 100%; max-width: min(94vw, 50vh); }
+  .bs-box--small { max-width: min(46vw, 21vh); }
   .bs-box[hidden] { display: none; }
   .bs-label {
     display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);
@@ -45,8 +46,8 @@
   /* روی صفحه‌ی افقی پهن دو دریا کنار هم می‌نشینند تا هیچ‌کدام کوچک نشود */
   @media (orientation: landscape) and (min-width: 720px) {
     .bs-seas { flex-direction: row; justify-content: center; align-items: flex-end; }
-    .bs-box { max-width: min(46vw, 62vh, 460px); }
-    .bs-box--small { max-width: min(30vw, 34vh, 260px); }
+    .bs-box { max-width: min(46vw, 62vh); }
+    .bs-box--small { max-width: min(30vw, 34vh); }
   }
 </style>
 </head>

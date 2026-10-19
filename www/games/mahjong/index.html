@@ -10,7 +10,7 @@
 <style>
   /* کاشی شیء فیزیکی است و در هر دو تم رنگ عاج دارد تا نقش‌ها همیشه خوانا باشند */
   :root { --mj-face: #FBF7EE; --mj-side: #D9CDB4; --mj-edge: #B9AB8E; }
-  .mj-wrap { width: 100%; max-width: 980px; display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
+  .mj-wrap { width: 100%; display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
   .mj-top { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; align-items: center; }
   .mj-clock { font-variant-numeric: tabular-nums; min-width: 52px; justify-content: center; }
   .mj-clock--out { color: var(--c-bad); }
@@ -548,10 +548,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
   // height is what is left under the top bar once the buttons and status below
   // the board are counted, instead of a fixed guess that wasted a third of a phone.
   function sizeBoard(L) {
-    var avail = Math.min(wrap.clientWidth || 360, 980) - 8;
+    // the whole width and tiles up to 110px wide: 980px and 72px kept a big screen's board at 600px (#359)
+    var avail = (wrap.clientWidth || 360) - 8;
     depth = 4;
     for (var it = 0; it < 2; it++) {
-      tw = Math.max(18, Math.min(72, Math.floor((avail - L.z * depth - 6) / L.cols)));
+      tw = Math.max(18, Math.min(110, Math.floor((avail - L.z * depth - 6) / L.cols)));
       depth = Math.max(3, Math.round(tw * 0.14));
     }
     th = Math.round(tw * 1.3);

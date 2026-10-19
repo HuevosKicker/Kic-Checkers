@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4052;
+const MIN_CHECKS = 4071;
 
 function ok(cond, msg) {
   checks++;
@@ -211,14 +211,15 @@ function testMines() {
     for (const [w, h] of rooms) for (const [rows, cols] of boards) {
       const f = E.fit(w, h, rows, cols), tall = rows * (f.cs + 2);
       all++;
-      if (f.cs >= 26 && f.cs <= 42 && (tall <= h ? f.maxH === 0 : f.maxH > 0 && f.maxH <= Math.max(h, 112))) fine++;
+      if (f.cs >= 26 && f.cs <= 64 && (tall <= h ? f.maxH === 0 : f.maxH > 0 && f.maxH <= Math.max(h, 112))) fine++;
     }
     ok(all === 20 && fine === all, 'on every room tried the board either fits its height or scrolls inside a frame no taller than the room (' + fine + ' of ' + all + ')');
     const lap = E.fit(1340, 437, 16, 16);
     ok(lap.cs === 26 && lap.maxH === 437, 'medium on a 1366×650 window: cells shrink to 26px and the last few pixels scroll');
-    ok(E.fit(1340, 700, 9, 9).cs === 42 && E.fit(1340, 700, 9, 9).maxH === 0, 'a small board on a big screen keeps its large cells and does not scroll');
+    ok(E.fit(1340, 700, 9, 9).cs === 64 && E.fit(1340, 700, 9, 9).maxH === 0, 'a small board on a big screen grows to 64px cells and does not scroll (#359)');
+    ok(E.fit(1236, 620, 16, 16).cs === 36, 'medium on a 1280×800 laptop gets 36px cells, not the old 42px-capped 394px board (#359)');
   }
-  ok(/var f = E\.fit\(Math\.min\(window\.innerWidth - 26, 640\), roomH\(\), sp\.rows, sp\.cols\);/.test(msHtml) && /scroll\.style\.maxHeight = f\.maxH \? f\.maxH \+ 'px' : '';/.test(msHtml), 'the page sizes the board by the room left under the picker and above the tools');
+  ok(/var f = E\.fit\(roomW\(\), roomH\(\), sp\.rows, sp\.cols\);/.test(msHtml) && !/640\)/.test(msHtml) && /scroll\.style\.maxHeight = f\.maxH \? f\.maxH \+ 'px' : '';/.test(msHtml), 'the page sizes the board by the room left under the picker and above the tools, at the game area\'s full width (#359)');
   // Holding Space or Enter opened the cell at once instead of flagging it like a long press (#346)
   ok(/var LONG_MS = 420/.test(msHtml) && (msHtml.match(/\}, LONG_MS\);/g) || []).length === 2, 'a long press on the screen and a held key share one delay');
   ok(/hold\.timer = setTimeout\(function \(\) \{ hold\.fired = true; if \(S && !S\.done\) toggleFlag\(hold\.at\); \}, LONG_MS\);\s*keyHold = hold;\s*return;/.test(msHtml) &&
@@ -6631,7 +6632,7 @@ function testJigsaw() {
 // fixed 400-620px (Sudoku at min(94vw, 62vh, 520px)), so on a 7-inch phone, a
 // tablet or a laptop the board sat in a third to a half of the screen. A game
 // listed here sizes its board with the core's .ch-fit slot and keeps no fixed cap.
-const FIT_GAMES = ['sudoku', 'reversi', 'dots', 'peg', 'gomoku', 'go', 'chess'];
+const FIT_GAMES = ['sudoku', 'reversi', 'dots', 'peg', 'gomoku', 'go', 'chess', 'bridges', 'morris', 'sliding'];
 function testFitScreen() {
   head('Boards fill the screen (#359)');
   const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
@@ -6648,6 +6649,27 @@ function testFitScreen() {
     // className = '…' on a row would drop its ch-above and move it below the board (chess, #359)
     ok(!/\b(box|row|top\w*|playersRow)\.className = /.test(html), id + ': layout rows keep their classes (classList, not className)');
   }
+  // Layouts at fixed pixel sizes are zoomed to the game area by the core
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const fsSrc = (core.match(/  ui\.fitScale = (function \(w, h, roomW, roomH, lo, hi\) \{[\s\S]*?\n  \});/) || [])[1];
+  ok(!!fsSrc, 'the core has fitScale');
+  if (fsSrc) {
+    const fitScale = vm.runInNewContext('(' + fsSrc + ')');
+    ok(Math.abs(fitScale(440, 640, 1236, 1180, 0.7, 2) - 1.84) < 0.01, 'a 440×640 column on a 10-inch tablet zooms to 1.84, limited by its height');
+    ok(fitScale(440, 640, 1856, 1400, 0.7, 2) === 2, 'on a big desktop it stops at 2');
+    ok(fitScale(366, 600, 366, 700, 0.7, 2) === 1, 'on the phone it was made for it stays at 1');
+    ok(fitScale(440, 640, 820, 300, 0.7, 2) === 0.7 && fitScale(0, 640, 820, 300, 0.7, 2) === 1, 'it never goes below the floor, and an unmeasured layout stays at 1');
+  }
+  const mm = fs.readFileSync(path.join(ROOT, 'www/games/mastermind/index.html'), 'utf8');
+  ok(/var refit = C\.ui\.zoomFit\(wrap, ctx\.main\);/.test(mm) && /if \(refit\) refit\(\);/.test(mm), 'mastermind zooms its column to the game area and refits after each render');
+  // Games that size their board in code: no fixed cap on the width or the cell
+  const src = (id) => fs.readFileSync(path.join(ROOT, 'www/games', id, 'index.html'), 'utf8');
+  ok(/var cell = Math\.min\(110, /.test(src('wayout')) && !/720/.test(src('wayout')), 'way out: cells up to 110px, no 720px cap (its first levels were a 224px square)');
+  ok(/var k = Math\.min\(availW \/ VW, Math\.max\(96, availH\) \/ VH, 3\);/.test(src('gridlock')) && !/Math\.min\(wrap\.clientWidth \|\| \d+, \d+\)/.test(src('gridlock')) && /@container game \(min-aspect-ratio: 5 \/ 4\)/.test(src('gridlock')),
+    'gridlock: the lot scales up to 3x, has no width cap, and moves its column beside the lot in any wide game area');
+  ok(/Math\.min\(110, Math\.floor\(/.test(src('mahjong')) && !/Math\.min\(wrap\.clientWidth \|\| 360, 980\)/.test(src('mahjong')), 'mahjong: tiles up to 110px wide, no 980px cap');
+  const bsBox = (src('battleship').match(/\.bs-box[^{]*\{[^}]*\}/g) || []);
+  ok(bsBox.length >= 4 && bsBox.every((r) => !/max-width:[^;]*\dpx/.test(r)), 'battleship: the seas have no pixel cap (' + bsBox.length + ' rules)');
 }
 
 function testCoreLabels() {

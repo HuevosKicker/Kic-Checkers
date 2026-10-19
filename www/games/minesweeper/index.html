@@ -285,7 +285,8 @@ function MinesEngineFactory() {
   // 16-row board at 38px ran off a 650px-high window, under a page that does not scroll, and
   // its last rows could not be reached at all (#350). Below MIN a cell is too small to tap, so
   // the board keeps MIN and scrolls inside its frame, limited to the height there is.
-  var CELL_MIN = 26, CELL_MAX = 42, GAP = 2;
+  // Cells grow to 64px on a big screen; at 42 a laptop showed the board in half its height (#359)
+  var CELL_MIN = 26, CELL_MAX = 64, GAP = 2;
   function fit(roomW, roomH, rows, cols) {
     var byW = Math.floor((roomW - cols * GAP) / cols), byH = Math.floor((roomH - rows * GAP) / rows);
     var cs = Math.max(CELL_MIN, Math.min(CELL_MAX, byW, byH > 0 ? byH : CELL_MAX));
@@ -559,9 +560,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
     var inner = ctx.main.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
     return Math.floor(inner - (wrap.offsetHeight - scroll.offsetHeight) - 6);
   }
+  // and the width: the game area's, less its padding, not a fixed 640px (#359)
+  function roomW() {
+    var cs = getComputedStyle(ctx.main);
+    return Math.floor(ctx.main.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 6);
+  }
   function sizeCells() {
     var sp = S.spec;
-    var f = E.fit(Math.min(window.innerWidth - 26, 640), roomH(), sp.rows, sp.cols);
+    var f = E.fit(roomW(), roomH(), sp.rows, sp.cols);
     board.style.setProperty('--cs', f.cs + 'px');
     scroll.style.maxHeight = f.maxH ? f.maxH + 'px' : '';
     markEdges();
