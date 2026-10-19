@@ -1,4 +1,4 @@
-Chogan is a collection of small, finishable games in a single app. It ships with thirty games, and new ones arrive as updates to the same app.
+Chogan is a collection of small, finishable games in a single app. It ships with thirty-one games, and new ones arrive as updates to the same app.
 
 The games:
 
@@ -32,6 +32,7 @@ The games:
 * Chain Reaction — add orbs until cells burst and chain across the board; 2 to 4 players on one phone or against bots
 * Ludo — roll, come out on a six, capture and race your tokens home; quick or full game, 2 to 4 players or against bots
 * Snakes and Ladders — roll, climb the ladders, slide down the snakes and reach 100 first; 2 to 4 players or against bots
+* Darts — 501 or 301, three darts a turn, finish on a double; against a bot or two players
 
 Around the games:
 
