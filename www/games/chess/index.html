@@ -1616,7 +1616,7 @@ function ChessBotFactory() {
     var k = e.key;
     if (C.undoKey(e)) { undo(); e.preventDefault(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if ((k === 'f' || k === 'F' || e.code === 'KeyF') && G.mode === 'two') { prefs.flip = !prefs.flip; ctx.store.set('prefs', prefs); render(); e.preventDefault(); return; }
+    if (C.keyIs(e, 'f') && G.mode === 'two') { prefs.flip = !prefs.flip; ctx.store.set('prefs', prefs); render(); e.preventDefault(); return; }
     // An unconsumed Escape goes back to the menu (#206), so only consume it when it undid a selection
     if (k === 'Escape') { if (sel >= 0) { select(-1); paint(); e.preventDefault(); } return; }
     var d = { ArrowUp: -8, ArrowDown: 8, ArrowLeft: -1, ArrowRight: 1 }[k];

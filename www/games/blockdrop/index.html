@@ -744,11 +744,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BlockDropE
     }
     if (k === 'ArrowDown') { e.preventDefault(); if (!e.repeat && wake()) held.soft = true; return; }
     if (e.repeat) return;
-    if (k === 'ArrowUp' || k === 'x' || k === 'X') { act('cw'); e.preventDefault(); return; }
-    if (k === 'z' || k === 'Z' || k === 'Control') { act('ccw'); e.preventDefault(); return; }
+    if (k === 'ArrowUp' || C.keyIs(e, 'x')) { act('cw'); e.preventDefault(); return; }
+    if (C.keyIs(e, 'z') || k === 'Control') { act('ccw'); e.preventDefault(); return; }
     if (k === ' ') { act('drop'); e.preventDefault(); return; }
-    if (k === 'c' || k === 'C' || k === 'Shift') { act('hold'); e.preventDefault(); return; }
-    if (k === 'p' || k === 'P' || k === 'Escape') {
+    if (C.keyIs(e, 'c') || k === 'Shift') { act('hold'); e.preventDefault(); return; }
+    if (C.keyIs(e, 'p') || k === 'Escape') {
       if (!S.started) return;
       if (paused) wake(); else { paused = true; save(); draw(); }
       e.preventDefault();

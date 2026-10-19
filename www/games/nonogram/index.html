@@ -916,7 +916,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = NonogramEn
       return;
     }
     if (k === ' ' || k === 'Enter') { cursor.show = true; keyAct('fill'); e.preventDefault(); return; }
-    if (k === 'x' || k === 'X') { cursor.show = true; keyAct('mark'); e.preventDefault(); }
+    if (C.keyIs(e, 'x')) { cursor.show = true; keyAct('mark'); e.preventDefault(); }
   });
 
   if (window.ResizeObserver) new ResizeObserver(function () { layout(); }).observe(boardBox);

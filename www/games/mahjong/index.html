@@ -989,8 +989,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MahjongEng
     var k = e.key;
     if (C.undoKey(e)) { undo(); e.preventDefault(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (k === 'h' || k === 'H' || e.code === 'KeyH') { showHint(); e.preventDefault(); return; }
-    if (k === 's' || k === 'S' || e.code === 'KeyS') { doShuffle(); e.preventDefault(); return; }
+    if (C.keyIs(e, 'h')) { showHint(); e.preventDefault(); return; }
+    if (C.keyIs(e, 's')) { doShuffle(); e.preventDefault(); return; }
     if (k === 'ArrowLeft' || k === 'ArrowRight') {
       var pos = E.LAYOUTS[S.layout];
       var free = E.freeTiles(S).sort(function (a, b) { return pos[a][0] - pos[b][0] || pos[a][1] - pos[b][1] || pos[b][2] - pos[a][2]; });

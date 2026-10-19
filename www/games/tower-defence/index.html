@@ -1527,7 +1527,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (tg && tg.isContentEditable)) return;
     if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
     if (e.key === ' ') { startBtn.click(); e.preventDefault(); }
-    else if (e.key === 's' || e.key === 'S') { speedBtn.click(); e.preventDefault(); }
+    else if (C.keyIs(e, 's')) { speedBtn.click(); e.preventDefault(); }
   });
 
   C.onPause(function () { if (raf) { cancelAnimationFrame(raf); raf = null; } });

@@ -1058,8 +1058,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
       return;
     }
     if (!placing) return;
-    if (k === 'r' || k === 'R') { rotateSel(); e.preventDefault(); return; }
-    if (k === 'x' || k === 'X') { randomize(); e.preventDefault(); return; }
+    if (C.keyIs(e, 'r')) { rotateSel(); e.preventDefault(); return; }
+    if (C.keyIs(e, 'x')) { randomize(); e.preventDefault(); return; }
     var n = parseInt(k, 10);
     if (n >= 1 && n <= E.FLEET.length) { selectShip(n - 1); e.preventDefault(); }
   });
