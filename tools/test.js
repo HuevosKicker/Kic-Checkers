@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4005;
+const MIN_CHECKS = 4010;
 
 function ok(cond, msg) {
   checks++;
@@ -203,6 +203,22 @@ function testMines() {
   ok(!/تخته/.test(msFa), 'Persian Minesweeper says «زمین», never «تخته»');
   ok(/newBoard: 'بازی تازه'/.test(msFa), 'the restart dialog is titled «بازی تازه», as in chess');
   ok(/guessy: 'این زمین ممکن است حدس بخواهد'/.test(msFa) && /tutText3: 'زمین‌ها طوری/.test(msFa), 'the guess warning and the no-guess help say «زمین»');
+  // Medium ran off a 650px-high window with nothing to scroll, so its last rows could not be reached (#350)
+  ok(typeof E.fit === 'function', 'the engine sizes cells for the room there is');
+  if (typeof E.fit === 'function') {
+    const rooms = [[1340, 437], [364, 620], [818, 160], [1254, 520], [600, 900]], boards = [[9, 9], [16, 16], [16, 30], [24, 24]];
+    let fine = 0, all = 0;
+    for (const [w, h] of rooms) for (const [rows, cols] of boards) {
+      const f = E.fit(w, h, rows, cols), tall = rows * (f.cs + 2);
+      all++;
+      if (f.cs >= 26 && f.cs <= 42 && (tall <= h ? f.maxH === 0 : f.maxH > 0 && f.maxH <= Math.max(h, 112))) fine++;
+    }
+    ok(all === 20 && fine === all, 'on every room tried the board either fits its height or scrolls inside a frame no taller than the room (' + fine + ' of ' + all + ')');
+    const lap = E.fit(1340, 437, 16, 16);
+    ok(lap.cs === 26 && lap.maxH === 437, 'medium on a 1366×650 window: cells shrink to 26px and the last few pixels scroll');
+    ok(E.fit(1340, 700, 9, 9).cs === 42 && E.fit(1340, 700, 9, 9).maxH === 0, 'a small board on a big screen keeps its large cells and does not scroll');
+  }
+  ok(/var f = E\.fit\(Math\.min\(window\.innerWidth - 26, 640\), roomH\(\), sp\.rows, sp\.cols\);/.test(msHtml) && /scroll\.style\.maxHeight = f\.maxH \? f\.maxH \+ 'px' : '';/.test(msHtml), 'the page sizes the board by the room left under the picker and above the tools');
 }
 
 /* ------------------------------------------------------- نقطه‌بازی */
