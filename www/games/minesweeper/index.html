@@ -314,7 +314,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
     strings: {
       fa: {
         small: 'کوچک', medium: 'متوسط', large: 'بزرگ', custom: 'سفارشی',
-        minesLeft: 'مین', flagMode: 'حالت پرچم', noGuess: 'بدون حدس',
+        minesLeft: 'مین', flagMode: 'حالت پرچم', flagCell: 'پرچم روی خانه', noGuess: 'بدون حدس',
         guessy: 'این تخته ممکن است حدس بخواهد', boom: 'روی مین رفتی',
         rows: 'سطر', cols: 'ستون', mineCount: 'تعداد مین', newBoard: 'تخته‌ی تازه',
         chordHint: 'روی عدد باز بزن تا خانه‌های اطرافش باز شوند', move: 'جابه‌جایی',
@@ -326,7 +326,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
       },
       en: {
         small: 'Small', medium: 'Medium', large: 'Large', custom: 'Custom',
-        minesLeft: 'Mines', flagMode: 'Flag mode', noGuess: 'No guessing',
+        minesLeft: 'Mines', flagMode: 'Flag mode', flagCell: 'Flag a cell', noGuess: 'No guessing',
         guessy: 'This board may require a guess', boom: 'You hit a mine',
         rows: 'Rows', cols: 'Columns', mineCount: 'Mines', newBoard: 'New board',
         chordHint: 'Tap an open number to clear around it', move: 'Move',
@@ -338,7 +338,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
       },
       zh: {
         small: '小', medium: '中', large: '大', custom: '自定义',
-        minesLeft: '地雷', flagMode: '旗帜模式', noGuess: '无需猜测',
+        minesLeft: '地雷', flagMode: '旗帜模式', flagCell: '插旗', noGuess: '无需猜测',
         guessy: '这个棋盘可能需要猜', boom: '你踩到地雷了',
         rows: '行', cols: '列', mineCount: '地雷数', newBoard: '新棋盘',
         chordHint: '点击已翻开的数字可打开周围格子', move: '移动',
@@ -350,7 +350,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
       },
       de: {
         small: 'Klein', medium: 'Mittel', large: 'Groß', custom: 'Eigenes',
-        minesLeft: 'Minen', flagMode: 'Flaggen', noGuess: 'Ohne Raten',
+        minesLeft: 'Minen', flagMode: 'Flaggen', flagCell: 'Feld markieren', noGuess: 'Ohne Raten',
         guessy: 'Dieses Brett braucht evtl. Raten', boom: 'Du hast eine Mine erwischt',
         rows: 'Zeilen', cols: 'Spalten', mineCount: 'Minen', newBoard: 'Neues Brett',
         chordHint: 'Tippe auf eine offene Zahl, um ringsum aufzudecken', move: 'Bewegen',
@@ -362,7 +362,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
       },
       es: {
         small: 'Pequeño', medium: 'Mediano', large: 'Grande', custom: 'Personal',
-        minesLeft: 'Minas', flagMode: 'Banderas', noGuess: 'Sin adivinar',
+        minesLeft: 'Minas', flagMode: 'Banderas', flagCell: 'Poner bandera', noGuess: 'Sin adivinar',
         guessy: 'Este tablero puede requerir adivinar', boom: 'Pisaste una mina',
         rows: 'Filas', cols: 'Columnas', mineCount: 'Minas', newBoard: 'Nuevo tablero',
         chordHint: 'Toca un número abierto para despejar a su alrededor', move: 'Mover',
@@ -909,7 +909,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
         el('h3', { style: { 'margin-top': 'var(--s-4)' }, text: C.t('keyboard') }),
         el('div', { class: 'ch-list' }, [
           row(C.t('play'), 'Space / Enter'),
-          row(C.t('flagMode'), 'F'),
+          row(C.t('flagCell'), 'F'),
           row(C.t('hint'), 'H'),
           row(C.t('move'), '← ↑ → ↓')
         ])
