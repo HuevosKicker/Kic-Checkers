@@ -43,6 +43,7 @@ Ways to play:
 | Gridlock | Slide the cars out of the way and drive yours out of the lot, one drag a move, levels without end and a daily puzzle |
 | Chain Reaction | Add orbs until cells burst and chain across the board; the last colour left wins, 2 to 4 players on one phone or against bots, and a daily game |
 | Ludo | Roll, come out on a six, capture and race your tokens home; a quick game with two tokens each or the full one with four, 2 to 4 players or against bots, and a daily game |
+| Snakes and Ladders | Roll, climb the ladders, slide down the snakes and reach 100 first, on our own board; 2 to 4 players on one phone or against bots, with an optional exact finish |
 
 Around the games: a daily challenge that is identical on every device with no server at all, a weekly offline league with five tiers, over eighty awards, a shared coin that is only ever spent on hints and cosmetics, stats and a profile, and a Persian, English, Simplified Chinese, German and Spanish interface with light and dark themes.
 
@@ -142,6 +143,7 @@ MIT, see [LICENSE](LICENSE). The Vazirmatn font is under the OFL; its licence te
 | راه‌بندان | ماشین‌ها را کنار بزن و ماشینت را از پارکینگ بیرون ببر، هر کشیدن یک حرکت، مرحله‌های بی‌پایان و بازی روزانه |
 | واکنش زنجیره‌ای | گوی بگذار تا خانه‌ها بترکند و زنجیروار پخش شوند؛ آخرین رنگ برنده است، ۲ تا ۴ نفر روی یک گوشی یا با ربات، و بازی روزانه |
 | منچ | تاس بریز، با شش بیرون بیا، حریف را بزن و مهره‌هایت را به خانه برسان؛ بازی سریع با دو مهره یا کامل با چهار مهره، ۲ تا ۴ نفر یا با ربات، و بازی روزانه |
+| مار و پله | تاس بریز، از نردبان بالا برو، از مار پایین بیا و اول به ۱۰۰ برس، روی صفحه‌ی خود ما؛ ۲ تا ۴ نفر روی یک گوشی یا با ربات، با پایان دقیق به انتخاب |
 
 بیرون از بازی‌ها: چالش روزانه‌ی مشترک برای همه‌ی دستگاه‌ها بدون هیچ سروری، لیگ هفتگی آفلاین با پنج رده، بیش از هشتاد دستاورد، سکه‌ی مشترک که فقط خرج راهنمایی و تزئینات می‌شود، آمار و پروفایل، و رابط فارسی، انگلیسی، چینی ساده‌شده، آلمانی و اسپانیایی با تم روشن و تاریک.
 

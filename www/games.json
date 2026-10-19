@@ -695,6 +695,31 @@
       "soft": "#F2EDD6",
       "added": "2026-10-18",
       "files": []
+    },
+    {
+      "id": "snakes",
+      "cat": "board",
+      "daily": false,
+      "name": {
+        "fa": "مار و پله",
+        "en": "Snakes and Ladders",
+        "zh": "蛇梯棋",
+        "de": "Schlangen und Leitern",
+        "es": "Serpientes y escaleras"
+      },
+      "summary": {
+        "fa": "تاس بریز، از نردبان بالا برو، از مار پایین بیا و اول به ۱۰۰ برس؛ ۲ تا ۴ نفر یا با ربات.",
+        "en": "Roll, climb the ladders, slide down the snakes and reach 100 first; 2 to 4 players or against bots.",
+        "zh": "掷骰子，爬梯子，碰蛇就滑下，先到100者胜；2到4人或对战电脑。",
+        "de": "Würfeln, Leitern hoch, Schlangen runter und zuerst die 100 erreichen; 2 bis 4 Spieler oder gegen Bots.",
+        "es": "Tira, sube por las escaleras, baja por las serpientes y llega primero a 100; de 2 a 4 jugadores o contra bots."
+      },
+      "path": "games/snakes/index.html",
+      "icon": "games/snakes/icon.svg",
+      "color": "#5A7716",
+      "soft": "#E6EFD9",
+      "added": "2026-10-19",
+      "files": []
     }
   ]
 }
