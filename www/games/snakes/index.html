@@ -11,7 +11,6 @@
   /* Player colours tell the tokens apart and stay the same in both themes; green
      is left out because the snakes are green. */
   :root { --sl-c0: #E5484D; --sl-c1: #2F6FDE; --sl-c2: #E8A317; --sl-c3: #8E4EC6; }
-  .sl-wrap { width: 100%; display: flex; flex-direction: column; gap: var(--s-3); align-items: center; }
   .sl-top { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: center; width: 100%; max-width: 560px; }
   .sl-top .ch-tap { border: 0; font: inherit; font-size: var(--fs-sm); font-weight: 700; min-height: 44px; padding-inline: var(--s-4); cursor: pointer; }
   .sl-players { width: 100%; max-width: 560px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--s-2); }
@@ -30,7 +29,8 @@
   .sl-players--many .sl-player__n { grid-column: 2; line-height: 1.1; }
   .sl-thinking { animation: sl-blink 900ms infinite; }
   @keyframes sl-blink { 50% { opacity: .55; } }
-  .sl-boardbox { width: 100%; display: flex; justify-content: center; }
+  .ch-fit > .sl-boardbox { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+  .sl-wrap > .ch-fit { --fit-ar: calc(10 / 10.9); }
   .sl-canvas { display: block; border-radius: var(--r-md); box-shadow: var(--sh-2); }
   .sl-bar { display: flex; align-items: center; justify-content: center; gap: var(--s-3); width: 100%; max-width: 560px; }
   .sl-status { flex: 1; min-width: 0; font-weight: 700; font-size: var(--fs-sm); color: var(--c-text-dim); text-align: center; }
@@ -217,12 +217,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SnakesEngi
   cv.setAttribute('role', 'img');
   cv.setAttribute('aria-label', C.t('boardLabel'));
   var boardBox = el('div', { class: 'sl-boardbox' }, [cv]);
-  var top = el('div', { class: 'sl-top' });
-  var playersRow = el('div', { class: 'sl-players' });
+  var top = el('div', { class: 'sl-top ch-above' });
+  var playersRow = el('div', { class: 'sl-players ch-above' });
   var status = el('div', { class: 'sl-status', role: 'status', 'aria-live': 'polite' });
   var die = el('button', { class: 'sl-die', type: 'button', 'aria-label': C.t('roll') });
   var bar = el('div', { class: 'sl-bar' }, [status, die]);
-  var wrap = el('div', { class: 'sl-wrap' }, [top, playersRow, boardBox, bar]);
+  var wrap = el('div', { class: 'sl-wrap ch-split' }, [el('div', { class: 'ch-fit' }, [boardBox]), el('div', { class: 'ch-side' }, [top, playersRow, bar])]);
 
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
   ctx.button({ icon: 'refresh', label: C.t('newMatch'), onClick: settings });
@@ -445,8 +445,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SnakesEngi
   // tokens wait before their first roll.
   var TALL = 10.9;
   function boardSize() {
-    var maxW = Math.min(boardBox.clientWidth || 360, 560);
-    var maxH = Math.max(260, window.innerHeight - boardBox.getBoundingClientRect().top - 100);
+    // the slot the core sized for the board (#359); before, 520-560px wide at most and
+    // the window's height less a guess for the rows below
+    var maxW = boardBox.clientWidth || 360, maxH = boardBox.clientHeight || maxW * TALL / 10;
     var u = Math.floor(Math.min(maxW / 10, maxH / TALL));
     return { u: u, w: u * 10, h: Math.round(u * TALL) };
   }
@@ -682,7 +683,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SnakesEngi
     if (G.phase === 'roll' && (k === ' ' || k === 'Enter' || C.keyIs(e, 'r'))) { e.preventDefault(); doRoll(); }
   });
 
-  window.addEventListener('resize', function () { if (G) draw(); });
+  // the board follows its slot, which changes with the window and the side column (#359)
+  if (window.ResizeObserver) new ResizeObserver(function () { if (G) draw(); }).observe(boardBox);
+  else window.addEventListener('resize', function () { if (G) draw(); });
   if (window.matchMedia) {
     var mq = window.matchMedia('(prefers-color-scheme: dark)');
     if (mq.addEventListener) mq.addEventListener('change', function () { if (G) draw(); });

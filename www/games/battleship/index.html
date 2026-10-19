@@ -620,7 +620,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
     var w = cv.clientWidth || 300;
     var d = window.devicePixelRatio || 1;
     var px = Math.round(w * d);
-    if (cv.width !== px) { cv.width = px; cv.height = px; }
+    // both sides: a new canvas is 300×150, so a board exactly 300px wide kept a
+    // 150px-high backing and was drawn squashed (#359, seen in Ludo)
+    if (cv.width !== px || cv.height !== px) { cv.width = px; cv.height = px; }
     var g = cv.getContext('2d');
     g.setTransform(d, 0, 0, d, 0, 0);
     g.clearRect(0, 0, w, w);

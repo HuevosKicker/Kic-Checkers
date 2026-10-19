@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4077;
+const MIN_CHECKS = 4094;
 
 function ok(cond, msg) {
   checks++;
@@ -6632,7 +6632,7 @@ function testJigsaw() {
 // fixed 400-620px (Sudoku at min(94vw, 62vh, 520px)), so on a 7-inch phone, a
 // tablet or a laptop the board sat in a third to a half of the screen. A game
 // listed here sizes its board with the core's .ch-fit slot and keeps no fixed cap.
-const FIT_GAMES = ['sudoku', 'reversi', 'dots', 'peg', 'gomoku', 'go', 'chess', 'bridges', 'morris', 'sliding'];
+const FIT_GAMES = ['sudoku', 'reversi', 'dots', 'peg', 'gomoku', 'go', 'chess', 'bridges', 'morris', 'sliding', 'ludo', 'snakes', 'darts', 'chain'];
 function testFitScreen() {
   head('Boards fill the screen (#359)');
   const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
@@ -6670,6 +6670,13 @@ function testFitScreen() {
   ok(/Math\.min\(110, Math\.floor\(/.test(src('mahjong')) && !/Math\.min\(wrap\.clientWidth \|\| 360, 980\)/.test(src('mahjong')), 'mahjong: tiles up to 110px wide, no 980px cap');
   const bsBox = (src('battleship').match(/\.bs-box[^{]*\{[^}]*\}/g) || []);
   ok(bsBox.length >= 4 && bsBox.every((r) => !/max-width:[^;]*\dpx/.test(r)), 'battleship: the seas have no pixel cap (' + bsBox.length + ' rules)');
+  // A new canvas is 300×150: resizing only when the width differed left a 300px-wide
+  // board with a 150px backing, drawn squashed (Ludo in phone landscape, #359)
+  const gameIds = fs.readdirSync(path.join(ROOT, 'www/games')).filter((d) => fs.existsSync(path.join(ROOT, 'www/games', d, 'index.html')));
+  // canvas games size the board from the slot, not from a fixed 520-560px and a guess at the window
+  for (const id of ['ludo', 'snakes', 'darts', 'chain']) ok(/var maxW = boardBox\.clientWidth \|\| 360, maxH = boardBox\.clientHeight \|\| /.test(src(id)), id + ': the board is sized from its slot');
+  const widthOnly = gameIds.filter((id) => /if \(\w+\.width !== [^|{]*\) \{/.test(src(id)));
+  ok(gameIds.length >= 30 && widthOnly.length === 0, 'every canvas checks both sides before reusing its backing (' + (widthOnly.join(', ') || gameIds.length + ' games') + ')');
   // Card games: the card width follows the game area's width and height, not the window's
   // width up to 60-76px (#359), and the table widens with the cards
   for (const [id, cls] of [['pasur', 'ps-wrap'], ['hokm', 'hk-wrap'], ['blackjack', 'bj-wrap']]) {
