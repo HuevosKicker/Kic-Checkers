@@ -1,0 +1,7 @@
+New games:
+- Snakes and Ladders: climb the ladders, slide down the snakes and reach 100 first, 2 to 4 players or against bots
+Bug fixes:
+- Ludo: the result window's button reads "Again" again, not "Roll again"
+Improvements:
+- A "See the board" button in every result window
+- About: why the app is called Chogan
