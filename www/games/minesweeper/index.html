@@ -330,7 +330,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
         guessy: 'این زمین ممکن است حدس بخواهد', boom: 'روی مین رفتی',
         rows: 'سطر', cols: 'ستون', mineCount: 'تعداد مین', newBoard: 'بازی تازه',
         chordHint: 'روی عدد باز بزن تا خانه‌های اطرافش باز شوند', move: 'جابه‌جایی',
-        longPress: 'لمس طولانی برای پرچم', safeShown: 'یک خانه‌ی امن نشان داده شد',
+        longPress: 'لمس طولانی برای پرچم', holdFlag: 'نگه داشتن برای پرچم', safeShown: 'یک خانه‌ی امن نشان داده شد',
         dailyMines: 'مین‌روب روزانه',
         tutTitle1: 'هدف', tutText1: 'همه‌ی خانه‌های بدون مین را باز کن. هر عدد می‌گوید چند مین دور تا دورش هست.',
         tutTitle2: 'پرچم', tutText2: 'روی خانه‌ای که مطمئنی مین است پرچم بگذار: دکمه‌ی حالت پرچم یا لمس طولانی.',
@@ -342,7 +342,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
         guessy: 'This board may require a guess', boom: 'You hit a mine',
         rows: 'Rows', cols: 'Columns', mineCount: 'Mines', newBoard: 'New board',
         chordHint: 'Tap an open number to clear around it', move: 'Move',
-        longPress: 'Long press to flag', safeShown: 'A safe cell was revealed',
+        longPress: 'Long press to flag', holdFlag: 'Hold to flag', safeShown: 'A safe cell was revealed',
         dailyMines: 'Daily minesweeper',
         tutTitle1: 'The goal', tutText1: 'Open every cell without a mine. Each number tells you how many mines touch that cell.',
         tutTitle2: 'Flags', tutText2: 'Mark a cell you are sure about: use flag mode or a long press.',
@@ -354,7 +354,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
         guessy: '这个棋盘可能需要猜', boom: '你踩到地雷了',
         rows: '行', cols: '列', mineCount: '地雷数', newBoard: '新棋盘',
         chordHint: '点击已翻开的数字可打开周围格子', move: '移动',
-        longPress: '长按插旗', safeShown: '已显示一个安全格',
+        longPress: '长按插旗', holdFlag: '按住插旗', safeShown: '已显示一个安全格',
         dailyMines: '每日扫雷',
         tutTitle1: '目标', tutText1: '翻开所有没有地雷的格子。每个数字表示它周围有几颗雷。',
         tutTitle2: '旗帜', tutText2: '确定是雷的格子插上旗：用旗帜模式或长按。',
@@ -366,7 +366,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
         guessy: 'Dieses Brett braucht evtl. Raten', boom: 'Du hast eine Mine erwischt',
         rows: 'Zeilen', cols: 'Spalten', mineCount: 'Minen', newBoard: 'Neues Brett',
         chordHint: 'Tippe auf eine offene Zahl, um ringsum aufzudecken', move: 'Bewegen',
-        longPress: 'Lange drücken für Flagge', safeShown: 'Ein sicheres Feld wurde aufgedeckt',
+        longPress: 'Lange drücken für Flagge', holdFlag: 'Halten für Flagge', safeShown: 'Ein sicheres Feld wurde aufgedeckt',
         dailyMines: 'Tages-Minesweeper',
         tutTitle1: 'Das Ziel', tutText1: 'Deck alle Felder ohne Mine auf. Jede Zahl sagt dir, wie viele Minen das Feld berühren.',
         tutTitle2: 'Flaggen', tutText2: 'Markier ein Feld, bei dem du sicher bist: mit dem Flaggenmodus oder lange drücken.',
@@ -378,7 +378,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
         guessy: 'Este tablero puede requerir adivinar', boom: 'Pisaste una mina',
         rows: 'Filas', cols: 'Columnas', mineCount: 'Minas', newBoard: 'Nuevo tablero',
         chordHint: 'Toca un número abierto para despejar a su alrededor', move: 'Mover',
-        longPress: 'Mantén pulsado para poner bandera', safeShown: 'Se reveló una casilla segura',
+        longPress: 'Mantén pulsado para poner bandera', holdFlag: 'Mantén pulsado para bandera', safeShown: 'Se reveló una casilla segura',
         dailyMines: 'Buscaminas diario',
         tutTitle1: 'El objetivo', tutText1: 'Abre todas las casillas sin mina. Cada número indica cuántas minas tocan esa casilla.',
         tutTitle2: 'Banderas', tutText2: 'Marca una casilla de la que estés seguro: con el modo bandera o manteniendo pulsado.',
@@ -392,6 +392,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
   var prefs = ctx.store.get('prefs', { size: 'small', custom: { rows: 12, cols: 12, mines: 24 } });
 
   var S = null, cells = [], timerId = null, flagMode = false, cursor = 0, pressTimer = null, longFired = false;
+  // how long a press must last to flag, on the screen and on Space or Enter alike (#346)
+  var LONG_MS = 420, keyHold = null;
 
   var board = el('div', { class: 'ms-board', role: 'grid' });
   var scroll = el('div', { class: 'ms-scroll' }, [board]);
@@ -503,7 +505,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
         b.addEventListener('pointerdown', function (e) {
           longFired = false;
           if (e.pointerType !== 'mouse') {
-            pressTimer = setTimeout(function () { longFired = true; toggleFlag(idx); }, 420);
+            pressTimer = setTimeout(function () { longFired = true; toggleFlag(idx); }, LONG_MS);
           }
         });
         b.addEventListener('pointerup', function () { clearTimeout(pressTimer); });
@@ -928,6 +930,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
         el('div', { class: 'ch-list' }, [
           row(C.t('play'), 'Space / Enter'),
           row(C.t('flagCell'), 'F'),
+          row(C.t('holdFlag'), 'Space / Enter'),
           row(C.t('hint'), 'H'),
           row(C.t('move'), '← ↑ → ↓')
         ])
@@ -976,6 +979,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
     if (document.querySelector('.ch-scrim')) return;
     var tg = e.target, tag = tg && tg.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (tg && tg.isContentEditable)) return;
+    // Holding Space or Enter flags, like a long press on the screen (#346). The cell acts
+    // when the key is let go, so a short press still opens it and a held one is not opened
+    // first; the button's own click is held back, or Enter would open it at once.
+    var onCell = !!(tg && tg.classList && tg.classList.contains('ms-cell'));
+    if ((e.key === ' ' || e.key === 'Enter') && (onCell || tag !== 'BUTTON')) {
+      e.preventDefault();
+      if (e.repeat || keyHold) return;
+      var at = onCell ? cells.indexOf(tg) : cursor;
+      cursor = C.clamp(at < 0 ? cursor : at, 0, S.spec.rows * S.spec.cols - 1);
+      var hold = { key: e.key, at: cursor, fired: false };
+      hold.timer = setTimeout(function () { hold.fired = true; if (S && !S.done) toggleFlag(hold.at); }, LONG_MS);
+      keyHold = hold;
+      return;
+    }
     // دکمه‌های بیرون تخته باید Enter و Space خودشان را نگه دارند
     if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
     var sp = S.spec, k = e.key;
@@ -983,10 +1000,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
     document.documentElement.dataset.kb = '1';
     var to = E.step(cursor, k, sp.rows, sp.cols, document.documentElement.dir === 'rtl');
     if (to >= 0) { cursor = to; paint(); cells[cursor].focus(); e.preventDefault(); return; }
-    if (k === ' ' || k === 'Enter') { tap(cursor); e.preventDefault(); }
-    else if (C.keyIs(e, 'f')) { toggleFlag(cursor); e.preventDefault(); }
+    if (C.keyIs(e, 'f')) { toggleFlag(cursor); e.preventDefault(); }
     else if (C.keyIs(e, 'h')) { hint(); e.preventDefault(); }
   });
+  window.addEventListener('keyup', function (e) {
+    if (!keyHold || e.key !== keyHold.key) return;
+    var h = keyHold;
+    keyHold = null;
+    clearTimeout(h.timer);
+    e.preventDefault();
+    if (h.fired || !S || S.done || document.querySelector('.ch-scrim')) return;
+    if (flagMode && !S.revealed[h.at]) toggleFlag(h.at);
+    else tap(h.at);
+  });
+  // a key held while the window loses focus never sends its keyup
+  window.addEventListener('blur', function () { if (keyHold) { clearTimeout(keyHold.timer); keyHold = null; } });
 
   /* ----------------------------------------------------------- شروع */
 

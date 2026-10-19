@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4010;
+const MIN_CHECKS = 4018;
 
 function ok(cond, msg) {
   checks++;
@@ -219,6 +219,12 @@ function testMines() {
     ok(E.fit(1340, 700, 9, 9).cs === 42 && E.fit(1340, 700, 9, 9).maxH === 0, 'a small board on a big screen keeps its large cells and does not scroll');
   }
   ok(/var f = E\.fit\(Math\.min\(window\.innerWidth - 26, 640\), roomH\(\), sp\.rows, sp\.cols\);/.test(msHtml) && /scroll\.style\.maxHeight = f\.maxH \? f\.maxH \+ 'px' : '';/.test(msHtml), 'the page sizes the board by the room left under the picker and above the tools');
+  // Holding Space or Enter opened the cell at once instead of flagging it like a long press (#346)
+  ok(/var LONG_MS = 420/.test(msHtml) && (msHtml.match(/\}, LONG_MS\);/g) || []).length === 2, 'a long press on the screen and a held key share one delay');
+  ok(/hold\.timer = setTimeout\(function \(\) \{ hold\.fired = true; if \(S && !S\.done\) toggleFlag\(hold\.at\); \}, LONG_MS\);\s*keyHold = hold;\s*return;/.test(msHtml) &&
+    /addEventListener\('keyup', function \(e\) \{[\s\S]{0,260}if \(h\.fired \|\| !S \|\| S\.done[^\n]*return;\s*if \(flagMode && !S\.revealed\[h\.at\]\) toggleFlag\(h\.at\);\s*else tap\(h\.at\);/.test(msHtml),
+    'Space and Enter flag when held and open only when let go early');
+  ok((msHtml.match(/\bholdFlag: '[^']+'/g) || []).length === 5 && /row\(C\.t\('holdFlag'\), 'Space \/ Enter'\)/.test(msHtml), 'the help names it, in all five languages');
 }
 
 /* ------------------------------------------------------- نقطه‌بازی */
