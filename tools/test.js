@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3866;
+const MIN_CHECKS = 3870;
 
 function ok(cond, msg) {
   checks++;
@@ -197,6 +197,12 @@ function testMines() {
   // F flagged the cell, but the help called it "Flag mode", so the key looked missing (#332)
   ok(/row\(C\.t\('flagCell'\), 'F'\)/.test(msHtml) && !/row\(C\.t\('flagMode'\), 'F'\)/.test(msHtml), 'the help names F as the key that flags a cell');
   ok((msHtml.match(/\bflagCell: '[^']+'/g) || []).length === 5, 'that label exists in all five languages');
+  // Persian called the minefield «تخته» (a board game's board) and the restart dialog «تخته‌ی تازه» (#340)
+  const msFa = (msHtml.match(/strings: \{\s*fa: \{([\s\S]*?)\n      \}/) || [])[1] || '';
+  ok(msFa.length > 200, 'the Persian strings of Minesweeper were found');
+  ok(!/تخته/.test(msFa), 'Persian Minesweeper says «زمین», never «تخته»');
+  ok(/newBoard: 'بازی تازه'/.test(msFa), 'the restart dialog is titled «بازی تازه», as in chess');
+  ok(/guessy: 'این زمین ممکن است حدس بخواهد'/.test(msFa) && /tutText3: 'زمین‌ها طوری/.test(msFa), 'the guess warning and the no-guess help say «زمین»');
 }
 
 /* ------------------------------------------------------- نقطه‌بازی */
