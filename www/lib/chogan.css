@@ -503,6 +503,48 @@ a  { color: var(--c-accent); text-decoration: none; }
   flex: 0 0 auto;
   z-index: 10;
 }
+/* Installed desktop app with the title bar hidden (#344). The browser's
+   title bar took a strip of the window, so the manifest asks for the window
+   controls overlay; the minimise/maximise/close buttons then float over the
+   page's top corner, on the left or the right depending on the OS. Everything
+   that clears the top edge (menu, welcome, toasts) clears the controls' strip
+   instead, and the game bar moves up into it, padded away from the controls on
+   both sides. Its empty part drags the window, its buttons stay clickable.
+   Scoped to the display mode, so phones, the Android app and browsers without
+   the overlay are untouched. --tb-* exist so a test can stand in for env(). */
+@media (display-mode: window-controls-overlay) {
+  :root {
+    --tb-h: env(titlebar-area-height, 0px);
+    --tb-l: env(titlebar-area-x, 0px);
+    --tb-r: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
+  }
+  :root, body { --safe-t: max(env(safe-area-inset-top, 0px), var(--tb-h)); }
+  body.ch-menu::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--tb-h);
+    background: var(--c-bg);
+    z-index: 30;
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+  .ch-gamebar {
+    padding:
+      var(--s-2)
+      calc(var(--s-3) + max(var(--safe-r), var(--tb-r)))
+      var(--s-2)
+      calc(var(--s-3) + max(var(--safe-l), var(--tb-l)));
+    /* the controls are painted in theme-color, which is --c-bg */
+    background: var(--c-bg);
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+  .ch-gamebar button, .ch-gamebar a, .ch-gamebar input, .ch-gamebar select {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+}
 .ch-gamebar__title {
   font-weight: 800;
   font-size: var(--fs-md);
