@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3650;
+const MIN_CHECKS = 3681;
 
 function ok(cond, msg) {
   checks++;
@@ -6307,6 +6307,20 @@ function testSnakes() {
   ok(Date.now() - t0 < 5000, 'the Snakes and Ladders group runs in under five seconds (' + (Date.now() - t0) + 'ms)');
 }
 
+/* ------------------------------- Core labels a game must not redefine (#318) */
+// ctx.finish labels the result window's play-again button with the core's
+// 'again'. Ludo's strings defined 'again' for "roll again after a six", so its
+// button read "Roll again" from #303 until #318.
+function testCoreLabels() {
+  head('Core labels');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  ok(games.length > 0, 'games.json lists games');
+  for (const g of games) {
+    const html = fs.readFileSync(path.join(ROOT, 'www', g.path), 'utf8');
+    ok(!/[\s{,]again: '/.test(html), g.id + ': its strings leave the core\'s "again" label alone');
+  }
+}
+
 function testGomoku() {
   head('Gomoku');
   const E = loadEngine('gomoku', 'GomokuEngineFactory');
@@ -7205,6 +7219,7 @@ testGomoku();
 testChain();
 testLudo();
 testSnakes();
+testCoreLabels();
 testGo();
 testBackgammon();
 testMorris();
