@@ -8,7 +8,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../../lib/chogan.css">
 <style>
-  .bg-wrap { width: 100%; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--s-2); align-items: center; }
+  .bg-wrap { gap: var(--s-2); }
   .bg-top { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: center; }
   .bg-players { display: flex; gap: var(--s-2); width: 100%; max-width: 520px; }
   .bg-player {
@@ -23,7 +23,8 @@
   .bg-player__pips { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
   .bg-player__pips b { font-weight: 800; font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
   .bg-player__pips span { font-size: var(--fs-xs); color: var(--c-text-dim); }
-  .bg-boardbox { flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; }
+  /* the board's slot (#359): on a wide screen the rows stand beside it, and the 560px cap is gone */
+  .bg-boardbox { --fit-ar: 0.64; display: flex; align-items: center; justify-content: center; }
   .bg-canvas { display: block; touch-action: manipulation; border-radius: var(--r-md); cursor: pointer; }
   .bg-actions { display: flex; gap: var(--s-2); width: 100%; max-width: 520px; align-items: center; }
   .bg-status { flex: 1; min-width: 0; text-align: center; font-size: var(--fs-sm); color: var(--c-text-dim); }
@@ -544,14 +545,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
   var S = null, sel = null, kf = -1, aiTimer = null, aiPass = false, lastTo = null;
 
   var canvas = el('canvas', { class: 'bg-canvas', 'aria-label': C.t('pickChecker') });
-  var boardBox = el('div', { class: 'bg-boardbox' }, [canvas]);
-  var top = el('div', { class: 'bg-top' });
-  var playersRow = el('div', { class: 'bg-players' });
+  var boardBox = el('div', { class: 'bg-boardbox ch-fit' }, [canvas]);
+  var top = el('div', { class: 'bg-top ch-above' });
+  var playersRow = el('div', { class: 'bg-players ch-above' });
   var statusEl = el('div', { class: 'bg-status' });
   var undoBtn = el('button', { class: 'ch-btn ch-btn--soft', type: 'button', 'aria-label': C.t('undoMove') }, [C.icon('undo', 20)]);
   var doneBtn = el('button', { class: 'ch-btn ch-btn--primary', type: 'button', text: C.t('endTurn') });
   var actions = el('div', { class: 'bg-actions' }, [undoBtn, statusEl, doneBtn]);
-  var wrap = el('div', { class: 'bg-wrap' }, [top, playersRow, boardBox, actions]);
+  var wrap = el('div', { class: 'bg-wrap ch-split' }, [boardBox, el('div', { class: 'ch-side' }, [top, playersRow, actions])]);
   undoBtn.addEventListener('click', function () { undo(); });
   doneBtn.addEventListener('click', function () { endTurn(); });
 
@@ -802,7 +803,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
     var bw = boardBox.clientWidth, bh = boardBox.clientHeight;
     if (!bw || !bh) return;
     // نسبت تخته حدود ۹ به ۱۴ است؛ بوم بیشتر از آن جا نمی‌گیرد تا لمس دقیق بماند
-    cw = Math.floor(Math.min(bw, bh * 0.66, 560));
+    cw = Math.floor(Math.min(bw, bh * 0.66));
     ch = Math.floor(Math.min(bh, cw / 0.62));
     var dpr = Math.min(window.devicePixelRatio || 1, 3);
     canvas.width = Math.floor(cw * dpr); canvas.height = Math.floor(ch * dpr);

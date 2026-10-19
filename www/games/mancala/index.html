@@ -14,7 +14,7 @@
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --mc-rival: #88A7CE; } }
   :root[data-theme="dark"] { --mc-rival: #88A7CE; }
 
-  .mc-wrap { width: 100%; display: flex; flex-direction: column; gap: var(--s-3); align-items: center; }
+  .mc-wrap { width: 100%; height: 100%; display: flex; flex-direction: column; gap: var(--s-3); align-items: center; justify-content: center; }
   .mc-top { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: center; }
   .mc-player {
     width: 100%; max-width: 520px; display: flex; align-items: center; gap: var(--s-2);
@@ -26,7 +26,7 @@
   .mc-player__dot { width: 14px; height: 14px; border-radius: 50%; background: var(--pc); flex: 0 0 14px; }
   .mc-player__name { flex: 1; min-width: 0; font-weight: 700; font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mc-player__score { font-weight: 800; font-size: var(--fs-lg); font-variant-numeric: tabular-nums; color: var(--pc); }
-  .mc-boardbox { width: 100%; max-width: min(96vw, 720px); }
+  /* .mc-boardbox is sized by its .ch-fit slot (#359); it stopped at 720px before */
   .mc-canvas { width: 100%; display: block; touch-action: manipulation; cursor: pointer;
     border-radius: var(--r-lg); box-shadow: var(--sh-2); }
   .mc-status { min-height: 1.6em; font-weight: 700; color: var(--c-text-dim); text-align: center; }
@@ -376,7 +376,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MancalaEng
   var rivalRow = el('div', { class: 'mc-player' });
   var youRow = el('div', { class: 'mc-player' });
   var status = el('div', { class: 'mc-status', 'aria-live': 'polite' });
-  var wrap = el('div', { class: 'mc-wrap' }, [top, rivalRow, boardBox, youRow, status]);
+  var boardFit = el('div', { class: 'ch-fit' }, [boardBox]);
+  var wrap = el('div', { class: 'mc-wrap' }, [top, rivalRow, boardFit, youRow, status]);
 
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
   ctx.button({ icon: 'undo', label: C.t('undoMove'), onClick: undo });
@@ -404,6 +405,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MancalaEng
   // خانه‌ها باریک‌ترند تا روی گوشی ۳۶۰ پیکسلی هر گودال هنوز حدود ۴۴ پیکسل باشد.
   var PADU = 0.15, STW = 0.8, CELLH = 1.25, GAPU = 0.1;
   var WU = PADU * 2 + STW * 2 + 6, HU = PADU * 2 + CELLH * 2 + GAPU;
+  // the slot takes the board's shape, so the board fills the room the rows leave (#359)
+  boardFit.style.setProperty('--fit-ar', WU / HU);
   // دانه‌ها شیء فیزیکی‌اند و در هر دو تم یک رنگ دارند؛ همه میان‌رنگ‌اند تا روی
   // گودال روشن و تیره هر دو دیده شوند
   var STONES = ['#B5838D', '#C9A15A', '#7A9E7E', '#6F8FB8', '#C77D5E'];
@@ -683,8 +686,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MancalaEng
     [[rivalRow, 1, 'var(--mc-rival)'], [youRow, 0, 'var(--game)']].forEach(function (r) {
       var box = r[0], p = r[1];
       box.innerHTML = '';
-      box.className = 'mc-player' + (S.turn === p && !S.done ? ' mc-player--on' : '') +
-        (p === 1 && busy() ? ' mc-thinking' : '');
+      // classList, not className, like the other games' rows (#359)
+      box.classList.toggle('mc-player--on', S.turn === p && !S.done);
+      box.classList.toggle('mc-thinking', p === 1 && busy());
       box.style.setProperty('--pc', r[2]);
       box.appendChild(el('div', { class: 'mc-player__dot' }));
       box.appendChild(el('div', { class: 'mc-player__name', text: pname(p) }));
@@ -961,7 +965,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MancalaEng
     }
   });
 
-  window.addEventListener('resize', layout);
+  // the board follows its slot (#359)
+  if (window.ResizeObserver) new ResizeObserver(function () { layout(); }).observe(boardBox);
+  else window.addEventListener('resize', layout);
   // تم با ویژگی data-theme یا تنظیم سیستم عوض می‌شود و بوم خودش نمی‌فهمد
   new MutationObserver(paint).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style'] });
   if (window.matchMedia) {

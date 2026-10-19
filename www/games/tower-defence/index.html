@@ -14,11 +14,11 @@
     :root:not([data-theme="light"]) { --td-grass: #262019; --td-grass2: #2E271E; --td-path: #5C4726; }
   }
   :root[data-theme="dark"] { --td-grass: #262019; --td-grass2: #2E271E; --td-path: #5C4726; }
-  .td-wrap { width: 100%; height: 100%; display: flex; flex-direction: column; gap: var(--s-2); align-items: center; }
+  .td-wrap { gap: var(--s-2); }
   .td-top { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: center; }
-  .td-canvasbox {
-    flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center;
-  }
+  /* the map's slot: all the room the rows leave, and on a wide screen the rows stand
+     beside it, so a laptop no longer shows the tall map in 60% of its height (#359) */
+  .td-canvasbox { --fit-ar: calc(10 / 15); display: flex; align-items: center; justify-content: center; }
   canvas { border-radius: var(--r-md); box-shadow: var(--sh-2); touch-action: manipulation; display: block; }
   .td-bottom { width: 100%; max-width: 520px; display: flex; align-items: center; gap: var(--s-2); }
   .td-auto--on { background: var(--game); color: #fff; }
@@ -641,8 +641,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
     };
   }
 
-  var cbox = el('div', { class: 'td-canvasbox' }, [canvas]);
-  var top = el('div', { class: 'td-top' });
+  var cbox = el('div', { class: 'td-canvasbox ch-fit' }, [canvas]);
+  var top = el('div', { class: 'td-top ch-above' });
   var preview = el('div', { class: 'td-preview' });
   var startBtn = el('button', { class: 'ch-btn ch-btn--primary', type: 'button', text: C.t('startWave') });
   var speedBtn = el('button', { class: 'ch-btn ch-btn--soft ch-btn--sm', type: 'button', text: '×' + C.num(1) });
@@ -652,7 +652,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
   var bottom = el('div', { class: 'td-bottom' }, [preview, autoBtn, speedBtn, startBtn]);
   var dock = el('div', { class: 'td-dock' });
   var note = el('div', { class: 'td-note', 'aria-live': 'polite' });
-  var wrap = el('div', { class: 'td-wrap' }, [top, cbox, dock, note, bottom]);
+  var wrap = el('div', { class: 'td-wrap ch-split' }, [cbox, el('div', { class: 'ch-side' }, [top, dock, note, bottom])]);
 
   /* ----------------------------- نشان برج‌ها ----------------------------- */
   // هر برج یک شکل پایه‌ی جدا و یک نماد سفید دارد، روی دکمه و روی نقشه یکی.
@@ -955,7 +955,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
     canvas.style.height = h + 'px';
     ox = 0; oy = 0;
   }
-  window.addEventListener('resize', function () { resize(); });
+  // the map follows its slot, which changes with the window and the side column (#359)
+  if (window.ResizeObserver) new ResizeObserver(function () { resize(); }).observe(cbox);
+  else window.addEventListener('resize', function () { resize(); });
 
   function draw() {
     if (!S) return;

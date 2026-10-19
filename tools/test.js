@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4094;
+const MIN_CHECKS = 4108;
 
 function ok(cond, msg) {
   checks++;
@@ -6632,7 +6632,7 @@ function testJigsaw() {
 // fixed 400-620px (Sudoku at min(94vw, 62vh, 520px)), so on a 7-inch phone, a
 // tablet or a laptop the board sat in a third to a half of the screen. A game
 // listed here sizes its board with the core's .ch-fit slot and keeps no fixed cap.
-const FIT_GAMES = ['sudoku', 'reversi', 'dots', 'peg', 'gomoku', 'go', 'chess', 'bridges', 'morris', 'sliding', 'ludo', 'snakes', 'darts', 'chain'];
+const FIT_GAMES = ['sudoku', 'reversi', 'dots', 'peg', 'gomoku', 'go', 'chess', 'bridges', 'morris', 'sliding', 'ludo', 'snakes', 'darts', 'chain', 'bowling', 'tower-defence', 'mancala', 'backgammon'];
 function testFitScreen() {
   head('Boards fill the screen (#359)');
   const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
@@ -6644,7 +6644,7 @@ function testFitScreen() {
     const html = fs.readFileSync(path.join(ROOT, 'www/games', id, 'index.html'), 'utf8');
     const style = (html.match(/<style>([\s\S]*?)<\/style>/) || [])[1] || '';
     const caps = style.split('\n').filter((l) => /max-width:[^;]*vh[^;]*\d+px|max-width:[^;]*\d+px[^;]*vh/.test(l));
-    ok(html.indexOf("class: 'ch-fit'") > 0, id + ': the board sits in a .ch-fit slot');
+    ok(/class: '(?:[\w-]+ )?ch-fit'/.test(html), id + ': the board sits in a .ch-fit slot');
     ok(caps.length === 0, id + ': no fixed pixel cap on the board' + (caps.length ? ' (' + caps[0].trim() + ')' : ''));
     // className = '…' on a row would drop its ch-above and move it below the board (chess, #359)
     ok(!/\b(box|row|top\w*|playersRow)\.className = /.test(html), id + ': layout rows keep their classes (classList, not className)');
@@ -6674,6 +6674,8 @@ function testFitScreen() {
   // board with a 150px backing, drawn squashed (Ludo in phone landscape, #359)
   const gameIds = fs.readdirSync(path.join(ROOT, 'www/games')).filter((d) => fs.existsSync(path.join(ROOT, 'www/games', d, 'index.html')));
   // canvas games size the board from the slot, not from a fixed 520-560px and a guess at the window
+  ok(/var maxW = laneBox\.clientWidth \|\| 360, maxH = laneBox\.clientHeight \|\| /.test(src('bowling')), 'bowling: the lane is sized from its slot, not 460px and a guess at the window');
+  ok(/cw = Math\.floor\(Math\.min\(bw, bh \* 0\.66\)\);/.test(src('backgammon')), 'backgammon: no 560px cap on the board');
   for (const id of ['ludo', 'snakes', 'darts', 'chain']) ok(/var maxW = boardBox\.clientWidth \|\| 360, maxH = boardBox\.clientHeight \|\| /.test(src(id)), id + ': the board is sized from its slot');
   const widthOnly = gameIds.filter((id) => /if \(\w+\.width !== [^|{]*\) \{/.test(src(id)));
   ok(gameIds.length >= 30 && widthOnly.length === 0, 'every canvas checks both sides before reusing its backing (' + (widthOnly.join(', ') || gameIds.length + ' games') + ')');

@@ -10,7 +10,8 @@
 <style>
   /* Ball colours tell the players apart and stay the same in both themes */
   :root { --bw-c0: #2F6FDE; --bw-c1: #8E4EC6; }
-  .bw-wrap { width: 100%; display: flex; flex-direction: column; gap: var(--s-2); align-items: center; }
+  .bw-wrap { gap: var(--s-2); }
+  .bw-wrap > .ch-fit { --fit-ar: calc(1 / 1.35); }
   .bw-top { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: center; width: 100%; max-width: 560px; }
   .bw-top .ch-tap { border: 0; font: inherit; font-size: var(--fs-sm); font-weight: 700; min-height: 44px; padding-inline: var(--s-4); cursor: pointer; }
   .bw-cards { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 6px; }
@@ -32,7 +33,7 @@
   .bw-f__t { text-align: center; font-size: 12px; font-weight: 800; min-height: 17px; font-variant-numeric: tabular-nums; }
   .bw-thinking { animation: bw-blink 900ms infinite; }
   @keyframes bw-blink { 50% { opacity: .55; } }
-  .bw-lanebox { width: 100%; display: flex; justify-content: center; }
+  .ch-fit > .bw-lanebox { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
   .bw-canvas { display: block; touch-action: none; border-radius: var(--r-md); box-shadow: var(--sh-2); cursor: grab; }
   .bw-status { width: 100%; max-width: 560px; min-height: 40px; text-align: center; font-weight: 700; font-size: var(--fs-sm); color: var(--c-text-dim); }
 </style>
@@ -361,10 +362,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BowlingEng
   cv.setAttribute('role', 'img');
   cv.setAttribute('aria-label', C.t('laneLabel'));
   var laneBox = el('div', { class: 'bw-lanebox' }, [cv]);
-  var top = el('div', { class: 'bw-top' });
-  var cards = el('div', { class: 'bw-cards' });
+  var top = el('div', { class: 'bw-top ch-above' });
+  var cards = el('div', { class: 'bw-cards ch-above' });
   var status = el('div', { class: 'bw-status', role: 'status', 'aria-live': 'polite' });
-  var wrap = el('div', { class: 'bw-wrap' }, [top, cards, laneBox, status]);
+  var wrap = el('div', { class: 'bw-wrap ch-split' }, [el('div', { class: 'ch-fit' }, [laneBox]), el('div', { class: 'ch-side' }, [top, cards, status])]);
 
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
   ctx.button({ icon: 'refresh', label: C.t('newMatch'), onClick: askNew });
@@ -544,8 +545,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BowlingEng
   // too small to see fall; at 22 the far end keeps over half the width.
   var D = 22;
   function view() {
-    var maxW = Math.min(laneBox.clientWidth || 360, 460);
-    var maxH = Math.max(320, window.innerHeight - laneBox.getBoundingClientRect().top - 70);
+    // the slot the core sized for the lane (#359); before, 460px wide at most and the
+    // window's height less a guess for the rows below
+    var maxW = laneBox.clientWidth || 360, maxH = laneBox.clientHeight || maxW * 1.35;
     var w = Math.floor(Math.min(maxW, maxH / 1.35)), h = Math.floor(w * 1.35);
     var near = w * 0.56, yB = h * 0.94, yH = h * 0.11;
     var s = function (y) { return D / (D + y); };
@@ -819,7 +821,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BowlingEng
     draw();
   });
 
-  window.addEventListener('resize', function () { if (G) draw(); });
+  // the lane follows its slot, which changes with the window and the side column (#359)
+  if (window.ResizeObserver) new ResizeObserver(function () { if (G) draw(); }).observe(laneBox);
+  else window.addEventListener('resize', function () { if (G) draw(); });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (G) draw(); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden && G) kick(); });
   // A pause mid-roll finishes the roll at once when the game comes back
