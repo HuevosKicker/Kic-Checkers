@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4021;
+const MIN_CHECKS = 4027;
 
 function ok(cond, msg) {
   checks++;
@@ -6670,6 +6670,27 @@ function testDarts() {
   const off = labels.filter((l) => { const p = E.aimPoint(l); return E.hit(p[0], p[1]).label !== l; });
   ok(labels.length === 62 && off.length === 0, 'aiming at the middle of each of the 62 beds hits that bed' + (off.length ? ' (' + off.join(',') + ')' : ''));
 
+  // The dart is big enough to see (#358): the first drawing was 0.19 board radii
+  // long with a 0.026 barrel, and on a phone the owner could barely find it
+  ok(E.DART && E.DART.barrel + E.DART.shaft + E.DART.fin >= 0.35 && E.DART.width >= 0.05,
+    'a dart on the board is drawn at least 0.35 board radii long and 0.05 wide (' + JSON.stringify(E.DART) + ')');
+  // The flight is an arc, not the first straight line (#358): halfway, the dart is
+  // well above the straight line from the hand to the board, it starts and ends
+  // where it should, and it points up while rising and down while dropping in
+  ok(typeof E.arc === 'function', 'the engine describes the flight path');
+  if (typeof E.arc === 'function') {
+    const a0 = E.arc(0, 0, 1.3, 0.2, -0.6, 0.75), a5 = E.arc(0.5, 0, 1.3, 0.2, -0.6, 0.75), a1 = E.arc(1, 0, 1.3, 0.2, -0.6, 0.75);
+    const lineY = (1.3 + -0.6) / 2;
+    ok(Math.abs(a0.x) < 1e-9 && Math.abs(a0.y - 1.3) < 1e-9 && Math.abs(a1.x - 0.2) < 1e-9 && Math.abs(a1.y + 0.6) < 1e-9, 'the flight starts at the hand and ends on the hit point');
+    ok(lineY - a5.y >= 0.5, 'halfway, the dart is at least half a board radius above the straight line (' + (lineY - a5.y).toFixed(2) + ')');
+    ok(Math.abs(a0.dir) < Math.PI / 2 && Math.abs(a1.dir) > Math.PI / 2, 'it points upward as it leaves the hand and downward as it lands');
+  }
+  // The hit sound's tones sit where phone speakers play them (#358): a body at
+  // 150 Hz and below came out as only a tick
+  const thud = (fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8').match(/\n    thud: function \(\) \{([\s\S]*?)\n    \},/) || [])[1] || '';
+  const thudTones = [...thud.matchAll(/tone\(\{ freq: (\d+)/g)].map((m) => +m[1]);
+  ok(thudTones.length >= 1 && thudTones.every((f) => f >= 180), 'every tone of the dart hit starts at 180 Hz or more (' + thudTones.join(', ') + ')');
+
   // Checkouts: every score from 2 to 170 that can be finished in three darts
   const none = [];
   let wrong = 0;
@@ -6758,7 +6779,7 @@ function testDarts() {
   const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
   ok(['dt-win', 'dt-hard', 'dt-180'].every((id) => core.indexOf("id: '" + id + "'") > 0 && html.indexOf("unlock('" + id + "')") > 0), 'the three darts awards exist and are unlocked');
   // The reporter asked for real sounds: a whoosh on the throw and a thud on the board, from the core
-  ok(/    whoosh: function \(\) \{\n      noise\(/.test(core) && /    thud: function \(\) \{[\s\S]{0,80}noise\(/.test(core) && /whoosh: \['whoosh', null\], thud: \['thud', 'tap'\]/.test(core), 'the core has a whoosh and a thud, the whoosh without a buzz');
+  ok(/    whoosh: function \(\) \{\n(      var b = now\(\);\n)?      noise\(/.test(core) && /    thud: function \(\) \{[\s\S]{0,80}noise\(/.test(core) && /whoosh: \['whoosh', null\], thud: \['thud', 'tap'\]/.test(core), 'the core has a whoosh and a thud, the whoosh without a buzz');
   ok(/if \(m\[1\]\) Chogan\.haptic\(m\[1\]\);/.test(core), 'feedback with no vibration does not fall back to a tap buzz');
   ok(/C\.feedback\('whoosh'\)/.test(html) && /C\.feedback\(h\.m \? 'thud' : 'tap'\)/.test(html), 'a throw whooshes and a dart on the board thuds');
   ok(/C\.daily\('darts', G\.daily \+ '\|' \+ G\.s\.thrown\[0\]\)\.rng/.test(html) && /C\.stats\.daily\('darts', G\.daily/.test(html) && /DAILY_DARTS = 60/.test(html), 'the daily scatter comes from the day and the dart number, is recorded, and stops after 60 darts');
