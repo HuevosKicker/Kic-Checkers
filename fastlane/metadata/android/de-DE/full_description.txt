@@ -1,4 +1,4 @@
-Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Dreiunddreißig Spiele sind dabei, und neue kommen als Updates derselben App dazu.
+Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Vierunddreißig Spiele sind dabei, und neue kommen als Updates derselben App dazu.
 
 Die Spiele:
 
@@ -34,7 +34,8 @@ Die Spiele:
 * Schlangen und Leitern — würfeln, Leitern hoch, Schlangen runter und zuerst die 100 erreichen; 2 bis 4 Spieler oder gegen Bots
 * Darts — 501 oder 301, drei Darts pro Aufnahme, Finish auf Doppel; gegen einen Bot oder zu zweit
 * Bowling — zehn Frames, wischen zum Werfen, biegen für Drall; allein, gegen einen Bot oder zu zweit
-* Schiebepuzzle — schieb die nummerierten Plättchen wieder in Reihenfolge, von 3×3 bis 5×5, mit so wenigen Zügen wie möglich
+* Schiebepuzzle — nummerierte Plättchen wieder ordnen, 3×3 bis 5×5, mit wenigen Zügen
+* Puzzle — 12 bis 48 Teile in den Rahmen ziehen; persische Muster und Landschaften, im Code gezeichnet
 
 Rund um die Spiele:
 

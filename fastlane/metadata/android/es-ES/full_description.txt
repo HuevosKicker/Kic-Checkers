@@ -1,4 +1,4 @@
-Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae treinta y tres juegos, y los nuevos llegan como actualizaciones de la misma app.
+Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae treinta y cuatro juegos, y los nuevos llegan como actualizaciones de la misma app.
 
 Los juegos:
 
@@ -34,7 +34,8 @@ Los juegos:
 * Serpientes y escaleras — tira, sube por las escaleras, baja por las serpientes y llega primero a 100; de 2 a 4 jugadores o contra bots
 * Dardos — 501 o 301, tres dardos por turno y cierre en doble; contra un bot o a dos
 * Bolos — diez juegos, desliza para lanzar y curva para dar efecto; solo, contra un bot o a dos
-* Puzle deslizante — desliza las fichas numeradas hasta ponerlas en orden, de 3×3 a 5×5, con los menos movimientos posibles
+* Puzle deslizante — ordena las fichas numeradas, de 3×3 a 5×5, con pocos movimientos
+* Rompecabezas — de 12 a 48 piezas al marco; motivos persas y paisajes dibujados con código
 
 Alrededor de los juegos:
 

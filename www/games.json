@@ -792,6 +792,30 @@
       "soft": "#EFE4F6",
       "added": "2026-10-19",
       "files": []
+    },
+    {
+      "id": "jigsaw",
+      "cat": "puzzle",
+      "name": {
+        "fa": "جورچین",
+        "en": "Jigsaw",
+        "zh": "拼图",
+        "de": "Puzzle",
+        "es": "Rompecabezas"
+      },
+      "summary": {
+        "fa": "تکه‌ها را از ردیف پایین بکش و تصویر را کامل کن، از ۱۲ تا ۴۸ تکه، با نقش‌های ایرانی و منظره‌هایی که با کد کشیده شده‌اند.",
+        "en": "Drag the pieces up from the row and finish the picture, 12 to 48 pieces, with Persian patterns and scenes drawn in code.",
+        "zh": "把拼块从下方一排拖上来拼完整张图，12 到 48 块，波斯图案和风景都是用代码画的。",
+        "de": "Zieh die Teile aus der Reihe nach oben und mach das Bild fertig, 12 bis 48 Teile, mit persischen Mustern und Landschaften, im Code gezeichnet.",
+        "es": "Arrastra las piezas desde la fila y completa la imagen, de 12 a 48 piezas, con motivos persas y paisajes dibujados con código."
+      },
+      "path": "games/jigsaw/index.html",
+      "icon": "games/jigsaw/icon.svg",
+      "color": "#127C91",
+      "soft": "#DFF0F3",
+      "added": "2026-10-19",
+      "files": []
     }
   ]
 }
