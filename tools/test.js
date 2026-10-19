@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 3817;
+const MIN_CHECKS = 3819;
 
 function ok(cond, msg) {
   checks++;
@@ -194,6 +194,9 @@ function testMines() {
   ok(/b\.tabIndex = i === cursor \? 0 : -1;/.test(msHtml), 'the board is one Tab stop, on the cursor cell');
   ok(/b\.addEventListener\('focus', function \(\) \{\s*if \(cursor !== idx\) \{ cursor = idx; paint\(\); \}/.test(msHtml), 'focusing a cell puts the cursor on it');
   ok(/cursor = to; paint\(\); cells\[cursor\]\.focus\(\)/.test(msHtml), 'an arrow moves focus along with the cursor');
+  // F flagged the cell, but the help called it "Flag mode", so the key looked missing (#332)
+  ok(/row\(C\.t\('flagCell'\), 'F'\)/.test(msHtml) && !/row\(C\.t\('flagMode'\), 'F'\)/.test(msHtml), 'the help names F as the key that flags a cell');
+  ok((msHtml.match(/\bflagCell: '[^']+'/g) || []).length === 5, 'that label exists in all five languages');
 }
 
 /* ------------------------------------------------------- نقطه‌بازی */
