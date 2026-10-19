@@ -8,9 +8,8 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../../lib/chogan.css">
 <style>
-  .pg-wrap { width: 100%; display: flex; flex-direction: column; gap: var(--s-3); align-items: center; }
   .pg-top { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: center; min-height: 28px; }
-  .pg-boardbox { width: 100%; max-width: min(94vw, 58vh, 520px); }
+  .pg-boardbox { aspect-ratio: 1; } /* fills the room it has (#359); it stopped at a fixed size before */
   .pg-svg { width: 100%; height: auto; display: block; touch-action: none; user-select: none; -webkit-user-select: none; }
   .pg-shape { fill: var(--c-surface); }
   .pg-hole { fill: var(--c-surface-3); }
@@ -316,9 +315,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PegEngineF
   svg.setAttribute('class', 'pg-svg');
   svg.setAttribute('viewBox', '0 0 700 700');
   var boardBox = el('div', { class: 'pg-boardbox' }, [svg]);
-  var top = el('div', { class: 'pg-top' });
+  var top = el('div', { class: 'pg-top ch-above' });
   var status = el('div', { class: 'pg-status', 'aria-live': 'polite' });
-  var wrap = el('div', { class: 'pg-wrap' }, [top, boardBox, status]);
+  var wrap = el('div', { class: 'pg-wrap ch-split' }, [el('div', { class: 'ch-fit' }, [boardBox]), el('div', { class: 'ch-side' }, [top, status])]);
 
   ctx.stat('pegs', C.t('pegs'));
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });

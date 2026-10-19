@@ -8,7 +8,6 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../../lib/chogan.css">
 <style>
-  .dt-wrap { width: 100%; display: flex; flex-direction: column; gap: var(--s-3); align-items: center; }
   .dt-top { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: center; }
   .dt-players { display: flex; gap: var(--s-2); width: 100%; max-width: 520px; }
   .dt-player {
@@ -22,7 +21,7 @@
   .dt-player__dot { width: 14px; height: 14px; border-radius: 50%; background: var(--pc); flex: 0 0 14px; }
   .dt-player__name { flex: 1; min-width: 0; font-weight: 700; font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .dt-player__score { font-weight: 800; font-size: var(--fs-lg); font-variant-numeric: tabular-nums; color: var(--pc); }
-  .dt-boardbox { width: 100%; max-width: min(94vw, 58vh, 520px); }
+  .dt-boardbox { aspect-ratio: 1; } /* fills the room it has (#359); it stopped at a fixed size before */
   .dt-svg { width: 100%; height: auto; display: block; touch-action: manipulation; }
   .dt-hit { stroke: transparent; cursor: pointer; }
   @media (hover: hover) { .dt-hit:hover { stroke: color-mix(in srgb, var(--game) 28%, transparent); } }
@@ -467,9 +466,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DotsEngine
   var svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('class', 'dt-svg');
   var boardBox = el('div', { class: 'dt-boardbox' }, [svg]);
-  var top = el('div', { class: 'dt-top' });
-  var playersRow = el('div', { class: 'dt-players' });
-  var wrap = el('div', { class: 'dt-wrap' }, [top, playersRow, boardBox]);
+  var top = el('div', { class: 'dt-top ch-above' });
+  var playersRow = el('div', { class: 'dt-players ch-above' });
+  var wrap = el('div', { class: 'dt-wrap ch-split' }, [el('div', { class: 'ch-fit' }, [boardBox]), el('div', { class: 'ch-side' }, [top, playersRow])]);
 
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
   ctx.button({ icon: 'undo', label: C.t('undoMove'), onClick: undo });

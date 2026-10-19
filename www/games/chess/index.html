@@ -10,7 +10,7 @@
 <style>
   /* تخته شیء فیزیکی است: رنگ خانه‌ها در هر دو تم یکی است و در راست‌چین آینه نمی‌شود */
   :root { --cs-light: #EEDCBC; --cs-dark: #B58A63; --cs-last: rgba(233, 196, 72, .5); --cs-check: rgba(220, 70, 60, .75); }
-  .cs-wrap { width: 100%; max-width: min(96vw, 56vh, 560px); display: flex; flex-direction: column; gap: var(--s-2); }
+  .cs-wrap { gap: var(--s-2); }
   .cs-player { display: flex; align-items: center; gap: var(--s-2); min-height: 34px; padding: 4px 10px;
     border-radius: var(--r-md); background: var(--c-surface); box-shadow: var(--sh-1); border: 2px solid transparent; }
   .cs-player--on { border-color: var(--game); }
@@ -20,7 +20,7 @@
   /* «+۱» در متن راست‌چین علامت را به طرف دیگر می‌برد؛ عدد جدا و چپ‌به‌راست می‌ماند */
   .cs-player__diff { font-weight: 800; font-size: var(--fs-sm); color: var(--c-text-dim); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
   .cs-board { direction: ltr; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-template-rows: repeat(8, minmax(0, 1fr));
-    aspect-ratio: 1; width: 100%; border-radius: var(--r-md); overflow: hidden; box-shadow: var(--sh-2); touch-action: none; user-select: none; }
+    aspect-ratio: 1; border-radius: var(--r-md); overflow: hidden; box-shadow: var(--sh-2); touch-action: none; user-select: none; }
   .cs-sq { position: relative; border: 0; padding: 0; margin: 0; cursor: pointer; background: var(--cs-light); }
   .cs-sq--d { background: var(--cs-dark); }
   .cs-sq--last::before { content: ''; position: absolute; inset: 0; background: var(--cs-last); }
@@ -989,14 +989,14 @@ function ChessBotFactory() {
   }
 
   /* --------------------------------------------------------------- رابط */
-  var topBar = el('div', { class: 'cs-top' });
-  var topRow = el('div', { class: 'cs-player' });
+  var topBar = el('div', { class: 'cs-top ch-above' });
+  var topRow = el('div', { class: 'cs-player ch-above' });
   var bottomRow = el('div', { class: 'cs-player' });
   var boardEl = el('div', { class: 'cs-board', role: 'grid', 'aria-label': C.t('board') });
   var status = el('div', { class: 'cs-status', 'aria-live': 'polite' });
   var movesEl = el('div', { class: 'cs-moves', 'aria-label': C.t('moves') });
   var actions = el('div', { class: 'cs-actions' });
-  var wrap = el('div', { class: 'cs-wrap' }, [topBar, topRow, boardEl, bottomRow, status, actions, movesEl]);
+  var wrap = el('div', { class: 'cs-wrap ch-split' }, [el('div', { class: 'ch-fit' }, [boardEl]), el('div', { class: 'ch-side' }, [topBar, topRow, bottomRow, status, actions, movesEl])]);
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
   ctx.button({ icon: 'undo', label: C.t('undoMove'), onClick: undo });
   ctx.button({ icon: 'refresh', label: C.t('newGame'), onClick: askNew });
@@ -1241,7 +1241,8 @@ function ChessBotFactory() {
   function pzRow(box) {
     var pz = G.pz, p = pzData();
     box.innerHTML = '';
-    box.className = 'cs-player cs-player--on';
+    // classList, not className: the row also carries the layout's ch-above (#359)
+    box.classList.add('cs-player--on');
     box.appendChild(el('span', { html: pieceSvg(G.human === 'w' ? 'K' : 'k').replace('<svg ', '<svg width="22" height="22" ') }));
     box.appendChild(el('span', { class: 'cs-player__name', text: C.t('toMove', { c: sideName(G.human) }) + (p[4] ? ' · ' + C.t('pzMateIn', { n: C.num(+p[4].slice(1)) }) : '') }));
     var dots = el('span', { class: 'cs-pz-dots', 'aria-label': C.t('pzOf', { i: C.num(pz.k + 1), n: C.num(pz.items.length) }) });
@@ -1387,7 +1388,7 @@ function ChessBotFactory() {
 
   function playerRow(box, side) {
     box.innerHTML = '';
-    box.className = 'cs-player' + (!G.result && S.turn === side ? ' cs-player--on' : '');
+    box.classList.toggle('cs-player--on', !G.result && S.turn === side);
     box.appendChild(el('span', { html: pieceSvg(side === 'w' ? 'K' : 'k').replace('<svg ', '<svg width="22" height="22" ') }));
     box.appendChild(el('span', { class: 'cs-player__name', text: playerName(side) }));
     // مهره‌هایی که این طرف از حریف گرفته، و برتری مادی

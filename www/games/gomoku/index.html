@@ -13,7 +13,6 @@
   :root { --gk-wood: #E8C9A0; --gk-line: rgba(70, 45, 15, .5); --gk-black: #1A1A1A; --gk-white: #F5F0E6; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --gk-wood: #C9A779; --gk-line: rgba(40, 25, 5, .55); } }
   :root[data-theme="dark"] { --gk-wood: #C9A779; --gk-line: rgba(40, 25, 5, .55); }
-  .gk-wrap { width: 100%; display: flex; flex-direction: column; gap: var(--s-3); align-items: center; }
   .gk-top { display: flex; gap: var(--s-2); flex-wrap: wrap; justify-content: center; width: 100%; max-width: 520px; }
   .gk-players { width: 100%; max-width: 520px; display: flex; gap: var(--s-2); }
   .gk-player {
@@ -27,7 +26,7 @@
   .gk-player__name { flex: 1; min-width: 0; font-weight: 700; font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .gk-thinking { animation: gk-blink 900ms infinite; }
   @keyframes gk-blink { 50% { opacity: .55; } }
-  .gk-boardbox { width: 100%; max-width: min(96vw, 58vh, 560px); aspect-ratio: 1; }
+  .gk-boardbox { aspect-ratio: 1; } /* fills the room it has (#359); it stopped at a fixed size before */
   .gk-canvas { width: 100%; height: 100%; display: block; touch-action: manipulation; cursor: pointer; border-radius: var(--r-md); box-shadow: var(--sh-2); }
 </style>
 </head>
@@ -350,9 +349,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GomokuEngi
   cv.setAttribute('role', 'img');
   cv.setAttribute('aria-label', C.t('boardLabel'));
   var boardBox = el('div', { class: 'gk-boardbox' }, [cv]);
-  var top = el('div', { class: 'gk-top' });
-  var playersRow = el('div', { class: 'gk-players' });
-  var wrap = el('div', { class: 'gk-wrap' }, [top, playersRow, boardBox]);
+  var top = el('div', { class: 'gk-top ch-above' });
+  var playersRow = el('div', { class: 'gk-players ch-above' });
+  var wrap = el('div', { class: 'gk-wrap ch-split' }, [el('div', { class: 'ch-fit' }, [boardBox]), el('div', { class: 'ch-side' }, [top, playersRow])]);
 
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
   ctx.button({ icon: 'undo', label: C.t('undoMove'), onClick: undo });
@@ -729,7 +728,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GomokuEngi
     }
   });
 
-  window.addEventListener('resize', function () { if (S) draw(); });
+  // the board's size follows its slot, which changes with the window and the side column
+  if (window.ResizeObserver) new ResizeObserver(function () { if (S) draw(); }).observe(boardBox);
+  else window.addEventListener('resize', function () { if (S) draw(); });
   if (window.matchMedia) {
     var mq = window.matchMedia('(prefers-color-scheme: dark)');
     if (mq.addEventListener) mq.addEventListener('change', function () { if (S) draw(); });

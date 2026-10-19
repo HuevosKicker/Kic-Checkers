@@ -644,6 +644,31 @@ a  { color: var(--c-accent); text-decoration: none; }
   max-height: calc(100cqw / var(--fit-ar, 1));
 }
 .ch-fit > * { width: min(100cqw, 100cqh * var(--fit-ar, 1)); max-width: none; }
+/* A game laid out around one board: its other rows stacked above and below the
+   board in a tall window, and in a column beside it in a wide one, where the board
+   can then use the full height. Children: the .ch-fit slot and a .ch-side with the
+   other rows; a row marked .ch-above sits above the board when stacked. If the
+   side column is ever taller than the window, it scrolls; the board never does. */
+.ch-split {
+  --side-w: clamp(240px, 28cqw, 380px);
+  width: 100%; height: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: var(--s-3);
+}
+.ch-split > .ch-side { display: contents; }
+.ch-split > .ch-side > * { width: 100%; max-width: 560px; }
+.ch-split .ch-above { order: -1; }
+@container game (min-aspect-ratio: 5 / 4) {
+  .ch-split { flex-direction: row; }
+  .ch-split > .ch-fit {
+    flex: 0 1 auto; height: 100%; max-height: none;
+    width: min(100cqh * var(--fit-ar, 1), 100cqw - var(--side-w) - var(--s-3));
+  }
+  .ch-split > .ch-side {
+    display: flex; flex-direction: column; justify-content: center; gap: var(--s-3);
+    width: var(--side-w); max-height: 100%; overflow-y: auto; overscroll-behavior: contain;
+  }
+  .ch-split .ch-above { order: 0; }
+}
 
 /* ---------------------------------------------------------------- سکه */
 .ch-coin {
