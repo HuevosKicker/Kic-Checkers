@@ -726,14 +726,22 @@
     },
     // A dart leaving the hand (#313): a short airy rise. The reporter asked for
     // real sounds; with no audio files in the app they are shaped from noise
+    // It lasts as long as the arced flight (#358): air building up, then passing.
     whoosh: function () {
-      noise({ freq: 700, to: 2600, dur: 0.16, gain: 0.09, filter: 'bandpass' });
+      var b = now();
+      noise({ freq: 500, to: 2200, dur: 0.22, gain: 0.1, filter: 'bandpass', at: b });
+      noise({ freq: 2200, to: 800, dur: 0.22, gain: 0.07, filter: 'bandpass', at: b + 0.18 });
     },
-    // A dart sinking into sisal (#313): a dull, damped knock with a low body
+    // A dart sinking into sisal (#313). The first version put its body at 150 Hz
+    // and below, which a phone speaker barely plays, so only a tick was left and
+    // the owner heard "a dried pea dropping" (#358). Now: a crisp hit, a firm knock
+    // in the range phones do play, and a short rustle of the fibres.
     thud: function () {
       var b = now();
-      noise({ freq: 1800, to: 260, dur: 0.06, gain: 0.32, at: b });
-      tone({ freq: 150, to: 70, dur: 0.1, gain: 0.26, type: 'triangle', at: b });
+      noise({ freq: 2600, to: 500, dur: 0.05, gain: 0.45, at: b });
+      tone({ freq: 340, to: 180, dur: 0.14, gain: 0.3, type: 'triangle', attack: 0.002, at: b });
+      tone({ freq: 210, to: 160, dur: 0.18, gain: 0.24, type: 'sine', attack: 0.003, at: b });
+      noise({ freq: 900, to: 400, dur: 0.12, gain: 0.12, filter: 'bandpass', at: b + 0.01 });
     },
     // A bowling ball rolling down the lane (#313): a low rumble that fades as
     // the ball runs away, with a heavy start as it lands on the wood
