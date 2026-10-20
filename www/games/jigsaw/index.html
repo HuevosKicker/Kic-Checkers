@@ -59,7 +59,9 @@ function JigsawEngineFactory() {
   // detailed ones need many small pieces to be a puzzle at all (#376)
   var FITS = { girih: 'both', carpet: 'detailed', dunes: 'simple', lake: 'both', night: 'both', garden: 'both',
     sail: 'simple', lighthouse: 'both', harbour: 'detailed', dhow: 'both', wave: 'both', autumn: 'both', pines: 'both', birches: 'detailed', hyrcan: 'both', mushroom: 'simple', pomegranate: 'detailed', watermelon: 'simple', oranges: 'simple',
-    grapes: 'detailed', apples: 'detailed', peacock: 'detailed', cranes: 'simple', parrot: 'simple', owl: 'simple', hoopoe: 'simple', fishes: 'detailed', reef: 'detailed', jelly: 'simple', turtle: 'simple', whale: 'simple' };
+    grapes: 'detailed', apples: 'detailed', peacock: 'detailed', cranes: 'simple', parrot: 'simple', owl: 'simple', hoopoe: 'simple', fishes: 'detailed', reef: 'detailed', jelly: 'simple', turtle: 'simple', whale: 'simple',
+    tulips: 'both', sunflowers: 'simple', roses: 'both', irises: 'both', lotus: 'both', balloons: 'simple', kites: 'simple', rainbow: 'simple', planes: 'simple', aurora: 'both', masuleh: 'detailed', kandovan: 'both', abyaneh: 'detailed',
+    windcatchers: 'both', seaside: 'detailed', planets: 'simple', moonrise: 'simple', rocket: 'simple', galaxy: 'detailed', comet: 'simple', rings: 'simple', stripes: 'simple', bulge: 'detailed', triangles: 'detailed', sunrays: 'simple' };
   var PICS = Object.keys(FITS);
   var SMALL = [12, 24];
   var ASPECT = 4 / 3;     // height over width
@@ -980,9 +982,409 @@ function JigsawPictures() {
     w(110, 300, 0.5, '#264B73', '#BFE3E5');
   }
 
+
+  /* ---- flowers ---- */
+
+  // A tulip: a cup of three petals on a stem with one long leaf
+  function tulip(g, x, y, s, col) {
+    g.strokeStyle = '#3A7D44'; g.lineWidth = s * 0.12; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - s * 1.6); g.stroke();
+    oval(g, x + s * 0.25, y - s * 0.6, s * 0.18, s * 0.6, 0.35, '#4C9A52');
+    oval(g, x - s * 0.18, y - s * 1.75, s * 0.24, s * 0.4, -0.3, col);
+    oval(g, x + s * 0.18, y - s * 1.75, s * 0.24, s * 0.4, 0.3, col);
+    oval(g, x, y - s * 1.8, s * 0.22, s * 0.42, 0, col);
+  }
+  // Rows of tulips running to the hills, red, yellow and pink bands
+  function tulips(g) {
+    sky(g, 170, [[0, '#7FC8F8'], [1, '#E3F4FD']]);
+    ridge(g, 150, '#8CB369', 8, 60, 0.5);
+    var bands = ['#E63946', '#FFB703', '#F15BB5', '#E63946', '#FB8500'];
+    for (var b = 0; b < 5; b++) {
+      var y0 = 170 + b * b * 9 + b * 14, y1 = 170 + (b + 1) * (b + 1) * 9 + (b + 1) * 14;
+      box(g, 0, y0, 300, y1 - y0, b % 2 ? '#5B8E3E' : '#6A9F47');
+      var s = 6 + b * 5;
+      for (var x = s / 2; x < 300; x += s * 0.9) tulip(g, x + (b % 2) * s * 0.4, y1 - 2, s, bands[b]);
+    }
+    // a small windmill on the hill
+    box(g, 236, 112, 14, 40, '#F4F1DE');
+    poly(g, [232, 112, 243, 98, 254, 112]); fill(g, '#B5523B');
+    g.strokeStyle = '#6D4C41'; g.lineWidth = 3;
+    [0.5, 2.07, 3.64, 5.21].forEach(function (a) { g.beginPath(); g.moveTo(243, 108); g.lineTo(243 + Math.cos(a) * 26, 108 + Math.sin(a) * 26); g.stroke(); });
+  }
+
+  // A sunflower drawn big: petals in two rings round a seeded centre
+  function sunflower(g, x, y, s) {
+    for (var ring = 0; ring < 2; ring++) for (var i = 0; i < 18; i++) {
+      var a = i / 18 * TAU + ring * 0.17;
+      oval(g, x + Math.cos(a) * s * 0.75, y + Math.sin(a) * s * 0.75, s * 0.36, s * 0.13, a, ring ? '#FFB703' : '#FB8500');
+    }
+    disc(g, x, y, s * 0.5, '#5A3A1A');
+    for (var k = 0; k < 40; k++) { var r = Math.sqrt(k / 40) * s * 0.44, b = k * 2.4; disc(g, x + Math.cos(b) * r, y + Math.sin(b) * r, s * 0.04, '#8A5A2B'); }
+  }
+  // Three sunflowers against a blue sky
+  function sunflowers(g) {
+    sky(g, 400, [[0, '#219EBC'], [1, '#8ECAE6']]);
+    [[70, 0.3], [220, -0.2], [150, 0]].forEach(function (f, i) {
+      g.strokeStyle = '#2D6A4F'; g.lineWidth = 9; g.beginPath(); g.moveTo(f[0], 400); g.lineTo(f[0] + 10 * f[1], 120 + i * 60); g.stroke();
+      oval(g, f[0] + 24, 330 - i * 20, 28, 12, -0.5, '#40916C'); oval(g, f[0] - 24, 290 - i * 10, 28, 12, 0.5, '#40916C');
+    });
+    sunflower(g, 76, 130, 54); sunflower(g, 220, 190, 60); sunflower(g, 150, 300, 48);
+  }
+
+  // Roses in a blue and white jug on a table
+  function roses(g) {
+    box(g, 0, 0, 300, 300, '#F1E3D3'); box(g, 0, 300, 300, 100, '#A26769');
+    for (var y = 20; y < 300; y += 40) for (var x = 20; x < 300; x += 40) disc(g, x, y, 3, '#E2CDB7');
+    var rose = function (x, y, s, col, dark) {
+      disc(g, x, y, s, col);
+      g.strokeStyle = dark; g.lineWidth = 2;
+      for (var i = 1; i < 4; i++) { g.beginPath(); g.arc(x, y, s * i / 4, i, i + 4.2); g.stroke(); }
+    };
+    [[110, 130, 26, -0.6], [190, 120, 28, 0.5], [150, 90, 24, 0], [90, 180, 22, -0.9], [210, 175, 24, 0.9], [150, 150, 26, 0]].forEach(function (r, i) {
+      oval(g, r[0] + Math.cos(r[3] - 1.6) * 30, r[1] + 20, 16, 7, r[3], '#52796F');
+      rose(r[0], r[1], r[2], ['#C9184A', '#FF8FA3', '#FFB3C1', '#A4133C', '#FF758F', '#C9184A'][i], 'rgba(90,10,30,.45)');
+    });
+    g.beginPath(); g.moveTo(110, 200); g.lineTo(190, 200); g.quadraticCurveTo(214, 260, 186, 320); g.lineTo(114, 320); g.quadraticCurveTo(86, 260, 110, 200); g.closePath(); fill(g, '#F8F9FA');
+    g.strokeStyle = '#1D4E89'; g.lineWidth = 6; g.beginPath(); g.arc(202, 250, 20, -1.2, 1.4); g.stroke();
+    for (var k = 0; k < 3; k++) { g.strokeStyle = '#1D4E89'; g.lineWidth = 3; g.beginPath(); g.moveTo(100, 230 + k * 30); g.quadraticCurveTo(150, 246 + k * 30, 200, 230 + k * 30); g.stroke(); }
+    star(g, 150, 262, 8, 12, 5, 0); fill(g, '#1D4E89');
+  }
+
+  // Purple irises by a stream
+  function irises(g) {
+    sky(g, 200, [[0, '#FDF0D5'], [1, '#F5DEB3']]);
+    box(g, 0, 200, 300, 200, '#7FB069');
+    g.beginPath(); g.moveTo(0, 260); g.bezierCurveTo(100, 230, 200, 300, 300, 270); g.lineTo(300, 310); g.bezierCurveTo(200, 340, 100, 270, 0, 300); g.closePath(); fill(g, '#5DADE2');
+    ripples(g, 268, 300, 10, 'rgba(255,255,255,.6)', 2);
+    var iris = function (x, y, s) {
+      g.strokeStyle = '#2E7D32'; g.lineWidth = 4; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - s * 2); g.stroke();
+      oval(g, x - s * 0.3, y - s * 0.9, s * 0.12, s * 0.9, -0.2, '#43A047'); oval(g, x + s * 0.3, y - s * 0.8, s * 0.12, s * 0.8, 0.25, '#43A047');
+      oval(g, x - s * 0.35, y - s * 1.9, s * 0.3, s * 0.18, 0.8, '#5E35B1'); oval(g, x + s * 0.35, y - s * 1.9, s * 0.3, s * 0.18, -0.8, '#5E35B1');
+      oval(g, x, y - s * 2.25, s * 0.18, s * 0.38, 0, '#7E57C2');
+      oval(g, x, y - s * 1.95, s * 0.08, s * 0.14, 0, '#FDD835');
+    };
+    [[30, 250, 30], [80, 236, 34], [130, 244, 28], [250, 230, 32], [200, 240, 26], [40, 390, 46], [120, 380, 42], [200, 395, 48], [270, 370, 40]].forEach(function (f) { iris(f[0], f[1], f[2]); });
+  }
+
+  // Lotus flowers and round leaves floating on a dark pond
+  function lotus(g) {
+    sky(g, 400, [[0, '#1B4332'], [1, '#081C15']]);
+    var r = seq(12);
+    for (var i = 0; i < 9; i++) {
+      var x = 30 + r() * 240, y = 30 + i * 42, s = 26 + r() * 20;
+      g.beginPath(); g.moveTo(x, y); g.arc(x, y, s, 0.2, TAU - 0.2); g.closePath(); fill(g, i % 2 ? '#40916C' : '#52B788');
+      g.strokeStyle = 'rgba(8,28,21,.35)'; g.lineWidth = 1.2; for (var k = 0; k < 6; k++) { g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(k + 0.5) * s, y + Math.sin(k + 0.5) * s); g.stroke(); }
+    }
+    [[100, 140, 30], [210, 260, 36], [80, 320, 24]].forEach(function (f) {
+      for (var ring = 0; ring < 2; ring++) for (var p = 0; p < 8; p++) {
+        var a = p / 8 * TAU + ring * 0.4, d = f[2] * (ring ? 0.35 : 0.55);
+        oval(g, f[0] + Math.cos(a) * d, f[1] + Math.sin(a) * d * 0.7, f[2] * 0.45, f[2] * 0.2, a, ring ? '#FFC2D1' : '#FF8FAB');
+      }
+      disc(g, f[0], f[1], f[2] * 0.22, '#FFD60A');
+    });
+  }
+
+  /* ---- the sky ---- */
+
+  // A hot-air balloon, its envelope in gores of colour, at the given place and size
+  function balloon(g, x, y, s, cols) {
+    // the envelope: round on top, narrowing to the mouth; gores are nested ellipses clipped to it
+    g.save();
+    g.beginPath(); g.arc(x, y, s, Math.PI * 0.8, Math.PI * 0.2);
+    g.quadraticCurveTo(x + s * 0.75, y + s * 0.95, x + s * 0.28, y + s * 1.3); g.lineTo(x - s * 0.28, y + s * 1.3);
+    g.quadraticCurveTo(x - s * 0.75, y + s * 0.95, x + Math.cos(Math.PI * 0.8) * s, y + Math.sin(Math.PI * 0.8) * s); g.closePath();
+    fill(g, cols[0]); g.clip();
+    for (var i = 1; i < cols.length; i++) oval(g, x, y + s * 0.2, s * (1 - i / cols.length), s * 1.4, 0, cols[i]);
+    g.restore();
+    g.strokeStyle = '#5D4037'; g.lineWidth = Math.max(1, s * 0.04);
+    g.beginPath(); g.moveTo(x - s * 0.26, y + s * 1.3); g.lineTo(x - s * 0.16, y + s * 1.6); g.moveTo(x + s * 0.26, y + s * 1.3); g.lineTo(x + s * 0.16, y + s * 1.6); g.stroke();
+    box(g, x - s * 0.2, y + s * 1.6, s * 0.4, s * 0.3, '#8D6E63');
+  }
+  // Hot-air balloons rising over a valley at morning
+  function balloons(g) {
+    sky(g, 400, [[0, '#A2D2FF'], [1, '#FFE5EC']]);
+    ridge(g, 300, '#B5C99A', 14, 50, 0.3); ridge(g, 340, '#87A96B', 12, 40, 2.4); ridge(g, 375, '#5F7F4A', 8, 30, 1.1);
+    balloon(g, 90, 110, 48, ['#E63946', '#F1FAEE', '#E63946', '#F1FAEE', '#E63946']);
+    balloon(g, 220, 180, 38, ['#FFB703', '#FB8500', '#FFB703', '#FB8500']);
+    balloon(g, 180, 60, 22, ['#3A86FF', '#8338EC', '#3A86FF']);
+    balloon(g, 50, 250, 18, ['#06D6A0', '#118AB2', '#06D6A0']);
+    balloon(g, 260, 290, 14, ['#FF006E', '#FFBE0B', '#FF006E']);
+  }
+
+  // Kites on long tails over a green hill and two children
+  function kites(g) {
+    sky(g, 400, [[0, '#4CC9F0'], [1, '#CAF0F8']]);
+    [[60, 60, 40], [220, 50, 30], [250, 160, 26]].forEach(function (c) { disc(g, c[0], c[1], c[2] * 0.6, '#FFFFFF'); disc(g, c[0] + c[2] * 0.5, c[1] + 4, c[2] * 0.5, '#FFFFFF'); disc(g, c[0] - c[2] * 0.5, c[1] + 6, c[2] * 0.45, '#FFFFFF'); });
+    g.beginPath(); g.moveTo(0, 400); g.lineTo(0, 320); g.quadraticCurveTo(150, 250, 300, 330); g.lineTo(300, 400); g.closePath(); fill(g, '#70E000');
+    var kite = function (x, y, s, a, b, hx, hy) {
+      g.strokeStyle = '#444'; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y + s); g.quadraticCurveTo((x + hx) / 2 + 30, (y + hy) / 2, hx, hy); g.stroke();
+      poly(g, [x, y - s, x + s * 0.7, y, x, y + s * 1.2, x - s * 0.7, y]); fill(g, a);
+      poly(g, [x, y - s, x + s * 0.7, y, x, y]); fill(g, b); poly(g, [x, y, x - s * 0.7, y, x, y + s * 1.2]); fill(g, b);
+      for (var k = 0; k < 6; k++) { var tx = x - 6 + Math.sin(k) * 8, ty = y + s * 1.2 + k * 14; poly(g, [tx - 4, ty, tx + 4, ty - 4, tx + 4, ty + 4]); fill(g, k % 2 ? a : b); }
+    };
+    kite(90, 110, 34, '#F72585', '#FFD60A', 110, 300);
+    kite(200, 90, 28, '#3A0CA3', '#4CC9F0', 180, 296);
+    var kid = function (x, y, col) { disc(g, x, y - 34, 8, '#8D5524'); box(g, x - 7, y - 26, 14, 18, col); box(g, x - 6, y - 8, 4, 12, '#333'); box(g, x + 2, y - 8, 4, 12, '#333'); };
+    kid(110, 304, '#E63946'); kid(180, 300, '#FFB703');
+  }
+
+  // A rainbow over rolling hills after rain, a village road
+  function rainbow(g) {
+    sky(g, 400, [[0, '#6C8EAD'], [1, '#D8E2DC']]);
+    var bands = ['#E63946', '#F4A261', '#E9C46A', '#2A9D8F', '#457B9D', '#6A4C93'];
+    bands.forEach(function (c, i) { g.beginPath(); g.arc(150, 300, 190 - i * 14, Math.PI, 0); g.lineWidth = 14; g.strokeStyle = c; g.stroke(); });
+    ridge(g, 270, '#95D5B2', 18, 55, 0.2); ridge(g, 310, '#74C69D', 16, 45, 2.0); ridge(g, 350, '#52B788', 12, 35, 4.2);
+    g.beginPath(); g.moveTo(140, 400); g.quadraticCurveTo(120, 340, 170, 300); g.lineTo(180, 302); g.quadraticCurveTo(150, 340, 190, 400); g.closePath(); fill(g, '#E9D8A6');
+    [[60, 300], [230, 296]].forEach(function (h) { box(g, h[0], h[1], 22, 16, '#F8F9FA'); poly(g, [h[0] - 3, h[1], h[0] + 11, h[1] - 10, h[0] + 25, h[1]]); fill(g, '#9D4E3D'); });
+  }
+
+  // Paper planes among puffy clouds
+  function planes(g) {
+    box(g, 0, 0, 300, 400, '#FFB4A2');
+    var r = seq(33);
+    for (var i = 0; i < 7; i++) {
+      var x = r() * 300, y = 40 + i * 54;
+      [[0, 0, 28], [26, 6, 22], [-24, 8, 20], [50, 12, 16]].forEach(function (c) { disc(g, x + c[0], y + c[1], c[2], i % 2 ? '#FFF1E6' : '#FFE5D9'); });
+    }
+    var plane = function (x, y, s, rot, col) {
+      g.save(); g.translate(x, y); g.rotate(rot);
+      poly(g, [s, 0, -s, -s * 0.55, -s * 0.5, 0]); fill(g, col);
+      poly(g, [s, 0, -s * 0.5, 0, -s * 0.8, s * 0.45]); fill(g, 'rgba(0,0,0,.18)');
+      g.restore();
+      g.strokeStyle = 'rgba(109,89,122,.6)'; g.setLineDash([6, 6]); g.lineWidth = 2;
+      g.beginPath(); g.moveTo(x - Math.cos(rot) * s, y - Math.sin(rot) * s); g.quadraticCurveTo(x - Math.cos(rot) * s * 4, y - Math.sin(rot) * s * 4 + 40, x - Math.cos(rot) * s * 6, y - Math.sin(rot) * s * 2); g.stroke();
+      g.setLineDash([]);
+    };
+    plane(200, 120, 36, -0.3, '#FFFFFF'); plane(100, 240, 30, 0.2, '#6D597A'); plane(230, 320, 24, -0.6, '#B56576');
+  }
+
+  // Green and violet curtains of the northern lights over snowy firs
+  function aurora(g) {
+    sky(g, 400, [[0, '#03071E'], [1, '#14213D']]);
+    var r = seq(71), i;
+    for (i = 0; i < 70; i++) disc(g, r() * 300, r() * 260, r() * 1.2 + 0.3, '#FFFFFF');
+    [['rgba(56,176,0,.5)', 80, 0.6], ['rgba(0,245,212,.4)', 130, 2.1], ['rgba(155,93,229,.35)', 60, 4]].forEach(function (c) {
+      g.fillStyle = c[0]; g.beginPath(); g.moveTo(0, c[1] + 60);
+      for (var x = 0; x <= 300; x += 10) g.lineTo(x, c[1] + Math.sin(x / 40 + c[2]) * 30);
+      for (x = 300; x >= 0; x -= 10) g.lineTo(x, c[1] + 110 + Math.sin(x / 50 + c[2]) * 20);
+      g.closePath(); g.fill();
+    });
+    ridge(g, 320, '#E9F1F7', 10, 60, 1);
+    for (i = 0; i < 12; i++) pine(g, 10 + i * 26 + r() * 8, 330 + r() * 30, 50 + r() * 30, '#0B2027', '#0B2027');
+    box(g, 0, 370, 300, 30, '#DDE7EE');
+  }
+
+  /* ---- villages ---- */
+
+  // Masuleh: yellow houses stepped up a green slope, every roof the yard of the house above
+  function masuleh(g) {
+    sky(g, 160, [[0, '#BFD7EA'], [1, '#EEF4F8']]);
+    ridge(g, 70, '#5F8D4E', 16, 50, 0.6); ridge(g, 120, '#4F7942', 10, 40, 2);
+    var r = seq(8);
+    for (var row = 0; row < 7; row++) for (var c = 0; c < 6; c++) {
+      var x = c * 52 + (row % 2) * 24 - 16, y = 150 + row * 36, w = 46;
+      box(g, x, y, w, 34, ['#E9C46A', '#F4D58D', '#E5B95B'][(row + c) % 3]);
+      box(g, x - 2, y - 4, w + 4, 6, '#7F5539');
+      for (var k = 0; k < 3; k++) box(g, x + 6 + k * 14, y + 10, 8, 14, k === 1 && r() < 0.5 ? '#264653' : '#2A9D8F');
+    }
+    oval(g, 80, 60, 50, 14, 0, 'rgba(255,255,255,.7)'); oval(g, 220, 90, 60, 12, 0, 'rgba(255,255,255,.6)');
+  }
+
+  // Kandovan: cone-shaped rock houses with doors and windows cut into them
+  function kandovan(g) {
+    sky(g, 400, [[0, '#8ECAE6'], [1, '#FFF8E7']]);
+    ridge(g, 330, '#C2A983', 6, 40, 0.5);
+    [[50, 330, 50, 160], [140, 340, 64, 210], [240, 330, 54, 180], [95, 380, 40, 110], [200, 385, 46, 120], [280, 390, 30, 90]].forEach(function (c, i) {
+      var x = c[0], y = c[1], w = c[2], h = c[3];
+      g.beginPath(); g.moveTo(x - w, y); g.quadraticCurveTo(x - w * 0.5, y - h * 0.4, x - w * 0.12, y - h); g.quadraticCurveTo(x, y - h * 1.05, x + w * 0.12, y - h); g.quadraticCurveTo(x + w * 0.5, y - h * 0.4, x + w, y); g.closePath();
+      fill(g, ['#B08968', '#9C6644', '#B5838D', '#A68A64', '#9C6644', '#B08968'][i]);
+      g.beginPath(); g.moveTo(x - w * 0.15, y); g.lineTo(x - w * 0.15, y - h * 0.2); g.quadraticCurveTo(x, y - h * 0.3, x + w * 0.15, y - h * 0.2); g.lineTo(x + w * 0.15, y); g.closePath(); fill(g, '#3D2B1F');
+      box(g, x - w * 0.4, y - h * 0.5, w * 0.16, h * 0.08, '#2B6F8C'); box(g, x + w * 0.22, y - h * 0.42, w * 0.16, h * 0.08, '#2B6F8C');
+    });
+  }
+
+  // Abyaneh: red mud houses with wooden balconies, terraced up the hill
+  function abyaneh(g) {
+    sky(g, 140, [[0, '#A9D6E5'], [1, '#F1F5F2']]);
+    poly(g, [0, 120, 80, 60, 160, 100, 240, 50, 300, 90, 300, 400, 0, 400]); fill(g, '#9C6644');
+    var r = seq(47);
+    for (var row = 0; row < 6; row++) for (var c = 0; c < 5; c++) {
+      var x = c * 62 + (row % 2) * 30 - 10, y = 120 + row * 46 + r() * 6, w = 54;
+      box(g, x, y, w, 42, ['#B5543C', '#A44A3F', '#C26A4A'][(row + c) % 3]);
+      box(g, x + 8, y + 10, 16, 18, '#4A3221');
+      box(g, x + 30, y + 10, 16, 18, '#4A3221');
+      box(g, x + 4, y + 26, w - 8, 4, '#7A5230');
+      for (var k = 0; k < 6; k++) box(g, x + 6 + k * 8, y + 30, 2, 8, '#7A5230');
+      box(g, x - 2, y - 3, w + 4, 4, '#80391E');
+    }
+  }
+
+  // Yazd: windcatchers and domes of mud brick against a hot sky
+  function windcatchers(g) {
+    sky(g, 400, [[0, '#E9C46A'], [1, '#F4E1C1']]);
+    disc(g, 230, 70, 30, '#FFF3D6');
+    var mud = '#C69C6D', dark = '#8B5E34';
+    var tower = function (x, w, h) {
+      box(g, x, 300 - h, w, h, mud);
+      for (var k = 0; k < 4; k++) box(g, x + 3 + k * (w - 6) / 4, 300 - h + 8, (w - 6) / 4 - 3, h * 0.35, dark);
+      box(g, x - 3, 300 - h - 6, w + 6, 8, mud);
+    };
+    tower(30, 34, 170); tower(200, 42, 200); tower(120, 26, 120);
+    [[90, 300, 40], [170, 300, 30], [260, 300, 36]].forEach(function (d) { g.beginPath(); g.ellipse(d[0], d[1], d[2], d[2] * 0.9, 0, Math.PI, 0); fill(g, '#D4A373'); });
+    box(g, 0, 296, 300, 104, '#B08254');
+    for (var i = 0; i < 6; i++) { g.beginPath(); g.moveTo(14 + i * 50, 380); g.lineTo(14 + i * 50, 336); g.quadraticCurveTo(30 + i * 50, 316, 46 + i * 50, 336); g.lineTo(46 + i * 50, 380); g.closePath(); fill(g, '#6F4518'); }
+  }
+
+  // A fishing village by the sea: white houses with blue doors stepping down to the water
+  function seaside(g) {
+    sky(g, 120, [[0, '#48CAE4'], [1, '#CAF0F8']]);
+    box(g, 0, 110, 300, 290, '#E9D8A6');
+    var r = seq(19);
+    for (var i = 0; i < 18; i++) {
+      var x = (i % 6) * 50 + (Math.floor(i / 6) % 2) * 22, y = 120 + Math.floor(i / 6) * 50, w = 40 + r() * 8;
+      box(g, x, y, w, 40, '#FFFFFF');
+      if (i % 4 === 0) { g.beginPath(); g.ellipse(x + w / 2, y, w / 3, w / 3.2, 0, Math.PI, 0); fill(g, '#0077B6'); }
+      box(g, x + 6, y + 18, 10, 22, '#0077B6'); box(g, x + 24, y + 10, 10, 10, '#00B4D8');
+    }
+    g.fillStyle = lin(g, 0, 270, 0, 400, [[0, '#00B4D8'], [1, '#03045E']]); g.fillRect(0, 270, 300, 130);
+    ripples(g, 280, 395, 24, 'rgba(255,255,255,.6)', 4);
+    g.beginPath(); g.moveTo(60, 330); g.lineTo(130, 330); g.lineTo(120, 344); g.lineTo(70, 344); g.closePath(); fill(g, '#E76F51');
+  }
+
+  /* ---- space ---- */
+
+  // Planets of every colour round a bright sun, a ringed one in front
+  function planets(g) {
+    box(g, 0, 0, 300, 400, '#10002B');
+    var r = seq(3), i;
+    for (i = 0; i < 90; i++) disc(g, r() * 300, r() * 400, r() * 1.4 + 0.3, '#E0AAFF');
+    disc(g, -20, 200, 90, '#FFB703'); disc(g, -20, 200, 70, '#FFD166');
+    [[150, 80, 18, '#4CC9F0'], [230, 150, 26, '#F72585'], [120, 300, 30, '#80ED99'], [250, 330, 16, '#FB8500']].forEach(function (p) { disc(g, p[0], p[1], p[2], p[3]); oval(g, p[0] - p[2] * 0.3, p[1] - p[2] * 0.3, p[2] * 0.3, p[2] * 0.18, -0.6, 'rgba(255,255,255,.35)'); });
+    disc(g, 190, 230, 40, '#E9C46A');
+    for (i = 0; i < 4; i++) box(g, 152, 214 + i * 10, 76, 3, 'rgba(244,162,97,.7)');
+    g.strokeStyle = '#F4A261'; g.lineWidth = 6; g.beginPath(); g.ellipse(190, 230, 70, 16, -0.25, 0, TAU); g.stroke();
+  }
+
+  // The earth rising over the grey moon
+  function moonrise(g) {
+    box(g, 0, 0, 300, 400, '#000814');
+    var r = seq(9), i;
+    for (i = 0; i < 80; i++) disc(g, r() * 300, r() * 260, r() * 1.2 + 0.3, '#FFFFFF');
+    disc(g, 170, 150, 66, '#1D4E89');
+    [[150, 120, 22, 14, 0.4], [190, 170, 26, 16, -0.3], [140, 180, 12, 9, 0]].forEach(function (c) { oval(g, c[0], c[1], c[2], c[3], c[4], '#4C956C'); });
+    oval(g, 180, 110, 30, 8, 0.2, 'rgba(255,255,255,.7)'); oval(g, 150, 200, 34, 7, -0.1, 'rgba(255,255,255,.6)');
+    g.beginPath(); g.moveTo(0, 400); g.lineTo(0, 290); g.quadraticCurveTo(150, 250, 300, 300); g.lineTo(300, 400); g.closePath(); fill(g, '#ADB5BD');
+    [[60, 320, 24], [180, 350, 34], [260, 330, 16], [110, 380, 14], [240, 384, 20]].forEach(function (c) { oval(g, c[0], c[1], c[2], c[2] * 0.35, 0, '#6C757D'); oval(g, c[0], c[1] - 2, c[2] * 0.8, c[2] * 0.25, 0, '#868E96'); });
+  }
+
+  // A rocket climbing on its flame past stars
+  function rocket(g) {
+    sky(g, 400, [[0, '#240046'], [1, '#5A189A']]);
+    var r = seq(27), i;
+    for (i = 0; i < 40; i++) { star(g, r() * 300, r() * 400, 4, 3 + r() * 3, 1, 0); fill(g, '#FFF3B0'); }
+    g.save(); g.translate(150, 210); g.rotate(0.3);
+    poly(g, [-14, 80, 0, 160, 14, 80]); fill(g, '#FFBA08');
+    poly(g, [-8, 80, 0, 130, 8, 80]); fill(g, '#F48C06');
+    g.beginPath(); g.moveTo(-28, 80); g.lineTo(-28, -30); g.quadraticCurveTo(-28, -90, 0, -120); g.quadraticCurveTo(28, -90, 28, -30); g.lineTo(28, 80); g.closePath(); fill(g, '#F8F9FA');
+    poly(g, [-28, 30, -56, 90, -28, 80]); fill(g, '#D00000'); poly(g, [28, 30, 56, 90, 28, 80]); fill(g, '#D00000');
+    g.beginPath(); g.moveTo(-26, -60); g.quadraticCurveTo(0, -130, 26, -60); g.closePath(); fill(g, '#D00000');
+    disc(g, 0, -10, 14, '#023E8A'); disc(g, 0, -10, 9, '#48CAE4');
+    box(g, -28, 50, 56, 8, '#ADB5BD');
+    g.restore();
+    disc(g, 60, 70, 26, '#9D4EDD'); g.strokeStyle = '#C77DFF'; g.lineWidth = 3; g.beginPath(); g.ellipse(60, 70, 40, 9, 0.3, 0, TAU); g.stroke();
+  }
+
+  // A spiral galaxy: two arms of dots winding round a glowing core
+  function galaxy(g) {
+    box(g, 0, 0, 300, 400, '#03045E');
+    var r = seq(55), i;
+    // faint clouds of gas everywhere, so no corner of the sky is one flat colour
+    [[50, 60, 110, '114,9,183'], [250, 90, 100, '0,180,216'], [40, 330, 120, '0,180,216'], [260, 350, 110, '247,37,133'], [150, 200, 150, '72,12,168']].forEach(function (c) {
+      var gr = g.createRadialGradient(c[0], c[1], 0, c[0], c[1], c[2]);
+      gr.addColorStop(0, 'rgba(' + c[3] + ',.55)'); gr.addColorStop(1, 'rgba(' + c[3] + ',0)');
+      disc(g, c[0], c[1], c[2], gr);
+    });
+    for (i = 0; i < 160; i++) disc(g, r() * 300, r() * 400, r() * 1.3 + 0.3, i % 7 ? '#CAF0F8' : '#FFD6FF');
+    for (var arm = 0; arm < 2; arm++) for (i = 0; i < 160; i++) {
+      var t = i / 160 * 3.6 * Math.PI, R = 8 + t * 11, a = t + arm * Math.PI;
+      var x = 150 + Math.cos(a) * R + (r() - 0.5) * 14, y = 200 + Math.sin(a) * R * 0.75 + (r() - 0.5) * 14;
+      disc(g, x, y, 1.2 + r() * 2.2, ['#90E0EF', '#F72585', '#FFFFFF', '#7209B7'][i % 4]);
+    }
+    disc(g, 150, 200, 26, 'rgba(255,214,10,.5)'); disc(g, 150, 200, 14, '#FFEA00');
+  }
+
+  // A comet with a long tail over a desert night
+  function comet(g) {
+    sky(g, 400, [[0, '#001233'], [1, '#33415C']]);
+    var r = seq(61), i;
+    for (i = 0; i < 70; i++) disc(g, r() * 300, r() * 300, r() * 1.2 + 0.3, '#FFFFFF');
+    // the tail fans out away from the head, fading as it goes
+    for (i = 0; i < 6; i++) { g.fillStyle = 'rgba(200,230,255,' + (0.18 + i * 0.05) + ')'; poly(g, [222, 88, 30 + i * 12, 150 + i * 14, 50 + i * 16, 230 - i * 4]); g.fill(); }
+    disc(g, 222, 88, 9, '#FFFFFF');
+    ridge(g, 320, '#5C4D7D', 16, 60, 0.8); ridge(g, 350, '#3C2F57', 10, 40, 2.5);
+    [[70, 350], [230, 360]].forEach(function (c) { box(g, c[0] - 3, c[1] - 40, 6, 40, '#1B1430'); box(g, c[0] - 14, c[1] - 30, 11, 5, '#1B1430'); box(g, c[0] - 14, c[1] - 40, 5, 14, '#1B1430'); box(g, c[0] + 3, c[1] - 24, 11, 5, '#1B1430'); box(g, c[0] + 9, c[1] - 34, 5, 14, '#1B1430'); });
+  }
+
+  /* ---- shapes ---- */
+
+  // Rings of colour like a target, shifted off centre
+  function rings(g) {
+    var cols = ['#264653', '#2A9D8F', '#E9C46A', '#F4A261', '#E76F51', '#FFFFFF'];
+    box(g, 0, 0, 300, 400, '#264653');
+    for (var i = 12; i >= 0; i--) disc(g, 110, 160, i * 28 + 10, cols[i % 6]);
+    for (var k = 4; k >= 0; k--) disc(g, 240, 340, k * 16 + 6, cols[(k + 3) % 6]);
+  }
+
+  // Diagonal stripes that bend as they cross the middle
+  function stripes(g) {
+    var cols = ['#FFBE0B', '#FB5607', '#FF006E', '#8338EC', '#3A86FF'];
+    for (var i = -10; i < 20; i++) {
+      g.beginPath(); g.moveTo(i * 30, 0); g.lineTo(i * 30 + 30, 0);
+      g.quadraticCurveTo(i * 30 + 130, 200, i * 30 + 30, 400); g.lineTo(i * 30, 400); g.quadraticCurveTo(i * 30 + 100, 200, i * 30, 0); g.closePath();
+      fill(g, cols[((i % 5) + 5) % 5]);
+    }
+  }
+
+  // A chequerboard swelling out of the page, as if over a ball
+  function bulge(g) {
+    var n = 10;
+    for (var y = 0; y < n + 3; y++) for (var x = 0; x < n; x++) {
+      var map = function (u, v) {
+        var dx = u - 150, dy = v - 200, d = Math.hypot(dx, dy) / 160, k = d < 1 ? 1 + 0.45 * (1 - d * d) : 1;
+        return [150 + dx * k, 200 + dy * k];
+      };
+      var s = 30, a = map(x * s, y * s), b = map(x * s + s, y * s), c = map(x * s + s, y * s + s), d = map(x * s, y * s + s);
+      poly(g, [a[0], a[1], b[0], b[1], c[0], c[1], d[0], d[1]]); fill(g, (x + y) % 2 ? '#1D3557' : (y < 7 ? '#F1FAEE' : '#A8DADC'));
+    }
+    disc(g, 150, 200, 6, '#E63946');
+  }
+
+  // Triangles of many colours tiling the page, darker toward the bottom
+  function triangles(g) {
+    var r = seq(83), cols = ['#F94144', '#F3722C', '#F8961E', '#F9C74F', '#90BE6D', '#43AA8B', '#577590'];
+    for (var y = 0; y < 8; y++) for (var x = -1; x < 7; x++) {
+      var px = x * 50 + (y % 2) * 25, py = y * 50;
+      poly(g, [px, py + 50, px + 25, py, px + 50, py + 50]); fill(g, cols[Math.floor(r() * 3 + y * 0.6) % 7]);
+      poly(g, [px + 25, py, px + 75, py, px + 50, py + 50]); fill(g, cols[Math.floor(r() * 3 + y * 0.6 + 1) % 7]);
+    }
+  }
+
+  // A sun of long rays in two colours, a small sun at its heart
+  function sunrays(g) {
+    box(g, 0, 0, 300, 400, '#FFE8D6');
+    for (var i = 0; i < 24; i++) {
+      var a0 = i / 24 * TAU, a1 = (i + 0.5) / 24 * TAU;
+      poly(g, [150, 260, 150 + Math.cos(a0) * 500, 260 + Math.sin(a0) * 500, 150 + Math.cos(a1) * 500, 260 + Math.sin(a1) * 500]); fill(g, i % 2 ? '#FFB4A2' : '#E5989B');
+    }
+    disc(g, 150, 260, 70, '#FFCDB2'); disc(g, 150, 260, 54, '#B5838D'); disc(g, 150, 260, 34, '#6D6875');
+    ridge(g, 330, '#6D6875', 8, 40, 1.2);
+  }
+
   var DRAW = { girih: girih, carpet: carpet, dunes: dunes, lake: lake, night: night, garden: garden,
     sail: sail, lighthouse: lighthouse, harbour: harbour, dhow: dhow, wave: wave, autumn: autumn, pines: pines, birches: birches, hyrcan: hyrcan, mushroom: mushroom,
-    pomegranate: pomegranate, watermelon: watermelon, oranges: oranges, grapes: grapes, apples: apples, peacock: peacock, cranes: cranes, parrot: parrot, owl: owl, hoopoe: hoopoe, fishes: fishes, reef: reef, jelly: jelly, turtle: turtle, whale: whale };
+    pomegranate: pomegranate, watermelon: watermelon, oranges: oranges, grapes: grapes, apples: apples, peacock: peacock, cranes: cranes, parrot: parrot, owl: owl, hoopoe: hoopoe, fishes: fishes, reef: reef, jelly: jelly, turtle: turtle, whale: whale,
+    tulips: tulips, sunflowers: sunflowers, roses: roses, irises: irises, lotus: lotus, balloons: balloons, kites: kites, rainbow: rainbow, planes: planes, aurora: aurora,
+    masuleh: masuleh, kandovan: kandovan, abyaneh: abyaneh, windcatchers: windcatchers, seaside: seaside, planets: planets, moonrise: moonrise, rocket: rocket, galaxy: galaxy, comet: comet,
+    rings: rings, stripes: stripes, bulge: bulge, triangles: triangles, sunrays: sunrays };
   return {
     ids: Object.keys(DRAW),
     // Draws picture id into g at w by h
@@ -1017,6 +1419,7 @@ function JigsawPictures() {
         keysPick: 'انتخاب تکه در ردیف پایین', keysLift: 'برداشتن و گذاشتن تکه', keysAim: 'جای تکه در قاب', keysCancel: 'پشیمان شدن',
         pic_girih: 'کاشی خاتم', pic_carpet: 'فرش لچک‌ترنج', pic_dunes: 'تپه‌های شنی', pic_lake: 'کوه و دریاچه', pic_night: 'شب شهر', pic_garden: 'باغ ایرانی',
         pic_sail: 'قایق بادبانی', pic_lighthouse: 'فانوس دریایی', pic_harbour: 'بندر کوچک', pic_dhow: 'لنج', pic_wave: 'موج بزرگ', pic_autumn: 'جنگل پاییزی', pic_pines: 'کاج‌ها در سپیده', pic_birches: 'توس‌ها', pic_hyrcan: 'جنگل هیرکانی', pic_mushroom: 'قارچ‌های جنگلی', pic_pomegranate: 'انار', pic_watermelon: 'هندوانه', pic_oranges: 'کاسه‌ی پرتقال', pic_grapes: 'خوشه‌های انگور', pic_apples: 'سبد سیب', pic_peacock: 'طاووس', pic_cranes: 'درناها', pic_parrot: 'طوطی', pic_owl: 'جغد', pic_hoopoe: 'هدهد', pic_fishes: 'دسته‌ی ماهی', pic_reef: 'آبسنگ مرجانی', pic_jelly: 'عروس دریایی', pic_turtle: 'لاک‌پشت دریایی', pic_whale: 'نهنگ و بچه‌اش',
+        pic_tulips: 'دشت لاله', pic_sunflowers: 'آفتابگردان‌ها', pic_roses: 'گل‌های رز', pic_irises: 'زنبق‌ها', pic_lotus: 'نیلوفر آبی', pic_balloons: 'بالن‌ها', pic_kites: 'بادبادک‌ها', pic_rainbow: 'رنگین‌کمان', pic_planes: 'هواپیماهای کاغذی', pic_aurora: 'شفق قطبی', pic_masuleh: 'ماسوله', pic_kandovan: 'کندوان', pic_abyaneh: 'ابیانه', pic_windcatchers: 'بادگیرهای یزد', pic_seaside: 'روستای کنار دریا', pic_planets: 'سیاره‌ها', pic_moonrise: 'زمین از ماه', pic_rocket: 'موشک', pic_galaxy: 'کهکشان', pic_comet: 'دنباله‌دار', pic_rings: 'حلقه‌ها', pic_stripes: 'نوارها', pic_bulge: 'شطرنجی برآمده', pic_triangles: 'مثلث‌ها', pic_sunrays: 'پرتوهای خورشید',
         rules: 'تکه‌ها را از ردیف پایین بکش و در قاب بگذار. ردیف را با کشیدن به پهلو جابه‌جا کن و تکه را با کشیدن به بالا بردار. تکه‌ای که نزدیک جای خودش رها شود سر جایش می‌چسبد و قفل می‌شود؛ جای دیگر برمی‌گردد به ردیف و یک اشتباه حساب می‌شود. دکمه‌ی چشم تصویر کامل را کوچک نشان می‌دهد. تصویرها همه با کد کشیده شده‌اند. جورچین روزانه یک تصویر و یک برش برای همه است.',
         tutTitle1: 'بکش و بگذار', tutText1: 'تکه را از ردیف پایین به بالا بکش و نزدیک جای خودش در قاب رها کن تا بچسبد.',
         tutTitle2: 'تصویر را ببین', tutText2: 'با دکمه‌ی چشم تصویر کامل را ببین. لبه‌ها و گوشه‌ها، که یک طرفشان صاف است، شروع خوبی‌اند.'
@@ -1028,6 +1431,7 @@ function JigsawPictures() {
         keysPick: 'Pick a piece in the row', keysLift: 'Lift and place a piece', keysAim: 'Its spot in the frame', keysCancel: 'Put it back',
         pic_girih: 'Khatam tiles', pic_carpet: 'Medallion carpet', pic_dunes: 'Sand dunes', pic_lake: 'Mountain lake', pic_night: 'City at night', pic_garden: 'Persian garden',
         pic_sail: 'Sailing at sunset', pic_lighthouse: 'Lighthouse', pic_harbour: 'Little harbour', pic_dhow: 'Dhow on the gulf', pic_wave: 'The great wave', pic_autumn: 'Autumn path', pic_pines: 'Pines at dawn', pic_birches: 'Birches', pic_hyrcan: 'Hyrcanian forest', pic_mushroom: 'Toadstools', pic_pomegranate: 'Pomegranates', pic_watermelon: 'Watermelon', pic_oranges: 'Bowl of oranges', pic_grapes: 'Grapes on the vine', pic_apples: 'Basket of apples', pic_peacock: 'Peacock', pic_cranes: 'Cranes at sunset', pic_parrot: 'Parrot', pic_owl: 'Owl and moon', pic_hoopoe: 'Hoopoe', pic_fishes: 'School of fish', pic_reef: 'Coral reef', pic_jelly: 'Jellyfish', pic_turtle: 'Sea turtle', pic_whale: 'Whale and calf',
+        pic_tulips: 'Tulip fields', pic_sunflowers: 'Sunflowers', pic_roses: 'Roses in a jug', pic_irises: 'Irises by the stream', pic_lotus: 'Lotus pond', pic_balloons: 'Hot-air balloons', pic_kites: 'Kites', pic_rainbow: 'Rainbow', pic_planes: 'Paper planes', pic_aurora: 'Northern lights', pic_masuleh: 'Masuleh', pic_kandovan: 'Kandovan', pic_abyaneh: 'Abyaneh', pic_windcatchers: 'Windcatchers of Yazd', pic_seaside: 'Seaside village', pic_planets: 'Planets', pic_moonrise: 'Earth from the moon', pic_rocket: 'Rocket', pic_galaxy: 'Galaxy', pic_comet: 'Comet', pic_rings: 'Rings', pic_stripes: 'Stripes', pic_bulge: 'Bulging chequers', pic_triangles: 'Triangles', pic_sunrays: 'Sun rays',
         rules: 'Drag pieces up from the row at the bottom into the frame. Swipe the row sideways to look along it, and drag a piece upwards to lift it out. A piece let go near its own spot snaps in and locks; anywhere else it goes back to the row and counts as a miss. The eye button shows the whole picture, small. Every picture is drawn in code. The daily jigsaw is one picture and one cut, the same for everyone.',
         tutTitle1: 'Drag and drop', tutText1: 'Drag a piece up from the row and let go near its spot in the frame: it snaps in.',
         tutTitle2: 'Look at the picture', tutText2: 'The eye button shows the whole picture. Edges and corners, with a straight side, are a good start.'
@@ -1039,6 +1443,7 @@ function JigsawPictures() {
         keysPick: '在下方一排中选块', keysLift: '拿起并放下拼块', keysAim: '它在框里的位置', keysCancel: '放回去',
         pic_girih: '哈塔姆瓷砖', pic_carpet: '团花地毯', pic_dunes: '沙丘', pic_lake: '山与湖', pic_night: '城市之夜', pic_garden: '波斯花园',
         pic_sail: '日落帆船', pic_lighthouse: '灯塔', pic_harbour: '小港口', pic_dhow: '海湾上的独桅帆船', pic_wave: '巨浪', pic_autumn: '秋日小径', pic_pines: '黎明松林', pic_birches: '白桦林', pic_hyrcan: '希尔卡尼亚森林', pic_mushroom: '林中蘑菇', pic_pomegranate: '石榴', pic_watermelon: '西瓜', pic_oranges: '一碗橙子', pic_grapes: '藤上的葡萄', pic_apples: '一篮苹果', pic_peacock: '孔雀', pic_cranes: '日落鹤群', pic_parrot: '鹦鹉', pic_owl: '猫头鹰与月亮', pic_hoopoe: '戴胜', pic_fishes: '鱼群', pic_reef: '珊瑚礁', pic_jelly: '水母', pic_turtle: '海龟', pic_whale: '鲸鱼母子',
+        pic_tulips: '郁金香花田', pic_sunflowers: '向日葵', pic_roses: '罐中玫瑰', pic_irises: '溪边鸢尾', pic_lotus: '荷花池', pic_balloons: '热气球', pic_kites: '风筝', pic_rainbow: '彩虹', pic_planes: '纸飞机', pic_aurora: '北极光', pic_masuleh: '马苏莱', pic_kandovan: '坎多万', pic_abyaneh: '阿比亚内', pic_windcatchers: '亚兹德风塔', pic_seaside: '海边村庄', pic_planets: '行星', pic_moonrise: '月球上看地球', pic_rocket: '火箭', pic_galaxy: '星系', pic_comet: '彗星', pic_rings: '圆环', pic_stripes: '条纹', pic_bulge: '凸起的棋盘格', pic_triangles: '三角形', pic_sunrays: '太阳光芒',
         rules: '从下方一排把拼块往上拖进框里。左右滑动那一排可以浏览，向上拖动可以拿起一块。在它自己的位置附近松手就会吸附并锁定；放在别处会回到那一排，并记一次放错。眼睛按钮会小图显示整张图。所有图片都是用代码画的。每日拼图对所有人都是同一张图、同一种切法。',
         tutTitle1: '拖放', tutText1: '把拼块从下方一排往上拖，在框里它的位置附近松手，它就会吸附上去。',
         tutTitle2: '看看原图', tutText2: '眼睛按钮会显示整张图。有一条直边的边块和角块是不错的起点。'
@@ -1050,6 +1455,7 @@ function JigsawPictures() {
         keysPick: 'Teil in der Reihe wählen', keysLift: 'Teil aufnehmen und ablegen', keysAim: 'Sein Platz im Rahmen', keysCancel: 'Zurücklegen',
         pic_girih: 'Khatam-Fliesen', pic_carpet: 'Medaillonteppich', pic_dunes: 'Sanddünen', pic_lake: 'Bergsee', pic_night: 'Stadt bei Nacht', pic_garden: 'Persischer Garten',
         pic_sail: 'Segeln im Abendrot', pic_lighthouse: 'Leuchtturm', pic_harbour: 'Kleiner Hafen', pic_dhow: 'Dau im Golf', pic_wave: 'Die große Welle', pic_autumn: 'Herbstweg', pic_pines: 'Kiefern im Morgengrauen', pic_birches: 'Birken', pic_hyrcan: 'Hyrkanischer Wald', pic_mushroom: 'Fliegenpilze', pic_pomegranate: 'Granatäpfel', pic_watermelon: 'Wassermelone', pic_oranges: 'Schale mit Orangen', pic_grapes: 'Trauben am Rebstock', pic_apples: 'Apfelkorb', pic_peacock: 'Pfau', pic_cranes: 'Kraniche im Abendrot', pic_parrot: 'Papagei', pic_owl: 'Eule und Mond', pic_hoopoe: 'Wiedehopf', pic_fishes: 'Fischschwarm', pic_reef: 'Korallenriff', pic_jelly: 'Quallen', pic_turtle: 'Meeresschildkröte', pic_whale: 'Wal mit Kalb',
+        pic_tulips: 'Tulpenfelder', pic_sunflowers: 'Sonnenblumen', pic_roses: 'Rosen im Krug', pic_irises: 'Iris am Bach', pic_lotus: 'Lotusteich', pic_balloons: 'Heißluftballons', pic_kites: 'Drachen steigen', pic_rainbow: 'Regenbogen', pic_planes: 'Papierflieger', pic_aurora: 'Polarlicht', pic_masuleh: 'Masuleh', pic_kandovan: 'Kandovan', pic_abyaneh: 'Abyaneh', pic_windcatchers: 'Windtürme von Yazd', pic_seaside: 'Dorf am Meer', pic_planets: 'Planeten', pic_moonrise: 'Erde vom Mond aus', pic_rocket: 'Rakete', pic_galaxy: 'Galaxie', pic_comet: 'Komet', pic_rings: 'Ringe', pic_stripes: 'Streifen', pic_bulge: 'Gewölbtes Schachbrett', pic_triangles: 'Dreiecke', pic_sunrays: 'Sonnenstrahlen',
         rules: 'Zieh die Teile aus der Reihe unten nach oben in den Rahmen. Wisch die Reihe seitwärts, um sie durchzusehen, und zieh ein Teil nach oben, um es herauszunehmen. Ein Teil, das nahe seinem Platz losgelassen wird, rastet ein; anderswo geht es in die Reihe zurück und zählt als Fehler. Der Augen-Knopf zeigt das ganze Bild, klein. Jedes Bild ist im Code gezeichnet. Das Puzzle des Tages ist ein Bild und ein Schnitt, für alle gleich.',
         tutTitle1: 'Ziehen und ablegen', tutText1: 'Zieh ein Teil aus der Reihe nach oben und lass es nahe seinem Platz im Rahmen los: Es rastet ein.',
         tutTitle2: 'Schau aufs Bild', tutText2: 'Der Augen-Knopf zeigt das ganze Bild. Rand- und Eckteile mit einer geraden Seite sind ein guter Anfang.'
@@ -1061,6 +1467,7 @@ function JigsawPictures() {
         keysPick: 'Elegir pieza en la fila', keysLift: 'Coger y dejar una pieza', keysAim: 'Su sitio en el marco', keysCancel: 'Devolverla',
         pic_girih: 'Azulejos khatam', pic_carpet: 'Alfombra de medallón', pic_dunes: 'Dunas', pic_lake: 'Lago de montaña', pic_night: 'Ciudad de noche', pic_garden: 'Jardín persa',
         pic_sail: 'Velero al atardecer', pic_lighthouse: 'Faro', pic_harbour: 'Puerto pequeño', pic_dhow: 'Dhow en el golfo', pic_wave: 'La gran ola', pic_autumn: 'Camino de otoño', pic_pines: 'Pinos al amanecer', pic_birches: 'Abedules', pic_hyrcan: 'Bosque hircano', pic_mushroom: 'Setas del bosque', pic_pomegranate: 'Granadas', pic_watermelon: 'Sandía', pic_oranges: 'Cuenco de naranjas', pic_grapes: 'Uvas en la parra', pic_apples: 'Cesta de manzanas', pic_peacock: 'Pavo real', pic_cranes: 'Grullas al atardecer', pic_parrot: 'Loro', pic_owl: 'Búho y luna', pic_hoopoe: 'Abubilla', pic_fishes: 'Banco de peces', pic_reef: 'Arrecife de coral', pic_jelly: 'Medusas', pic_turtle: 'Tortuga marina', pic_whale: 'Ballena y cría',
+        pic_tulips: 'Campos de tulipanes', pic_sunflowers: 'Girasoles', pic_roses: 'Rosas en una jarra', pic_irises: 'Lirios junto al arroyo', pic_lotus: 'Estanque de lotos', pic_balloons: 'Globos aerostáticos', pic_kites: 'Cometas', pic_rainbow: 'Arcoíris', pic_planes: 'Aviones de papel', pic_aurora: 'Aurora boreal', pic_masuleh: 'Masuleh', pic_kandovan: 'Kandovan', pic_abyaneh: 'Abyaneh', pic_windcatchers: 'Torres de viento de Yazd', pic_seaside: 'Pueblo junto al mar', pic_planets: 'Planetas', pic_moonrise: 'La Tierra desde la Luna', pic_rocket: 'Cohete', pic_galaxy: 'Galaxia', pic_comet: 'Cometa', pic_rings: 'Anillos', pic_stripes: 'Rayas', pic_bulge: 'Damero abombado', pic_triangles: 'Triángulos', pic_sunrays: 'Rayos de sol',
         rules: 'Arrastra las piezas desde la fila de abajo hasta el marco. Desliza la fila de lado para recorrerla y arrastra una pieza hacia arriba para sacarla. Una pieza soltada cerca de su sitio encaja y queda fija; en otro lugar vuelve a la fila y cuenta como fallo. El botón del ojo muestra la imagen entera, en pequeño. Todas las imágenes están dibujadas con código. El rompecabezas diario es una imagen y un corte, el mismo para todos.',
         tutTitle1: 'Arrastra y suelta', tutText1: 'Arrastra una pieza hacia arriba desde la fila y suéltala cerca de su sitio en el marco: encaja sola.',
         tutTitle2: 'Mira la imagen', tutText2: 'El botón del ojo muestra la imagen entera. Los bordes y las esquinas, con un lado recto, son un buen comienzo.'
