@@ -303,7 +303,7 @@
       sfx: 'افکت صوتی', music: 'موسیقی', haptics: 'لرزش',
       resetGame: 'بازنشانی داده‌ی بازی', resetAsk: 'داده‌ی این بازی کامل پاک شود؟',
       resetWarn: 'این کار برگشت ندارد.', resetDone: 'پاک شد',
-      about: 'درباره', version: 'نسخه', source: 'کد منبع', license: 'مجوز',
+      about: 'درباره', version: 'نسخه', commitHash: 'کامیت', source: 'کد منبع', license: 'مجوز',
       aboutText: 'رایگان، متن‌باز، بدون تبلیغ، بدون ردیاب، کاملاً آفلاین.',
       name: 'نام', country: 'کشور', optional: 'اختیاری',
       hint: 'راهنمایی', hints: 'راهنمایی', notEnoughCoins: 'سکه کافی نداری', hintUsed: 'راهنمایی گرفتی',
@@ -344,7 +344,7 @@
       sfx: 'Sound effects', music: 'Music', haptics: 'Vibration',
       resetGame: 'Reset game data', resetAsk: 'Erase all data for this game?',
       resetWarn: 'This cannot be undone.', resetDone: 'Erased',
-      about: 'About', version: 'Version', source: 'Source code', license: 'License',
+      about: 'About', version: 'Version', source: 'Source code', commitHash: 'commit', license: 'License',
       aboutText: 'Free, open source, no ads, no trackers, fully offline.',
       name: 'Name', country: 'Country', optional: 'optional',
       hint: 'Hint', hints: 'Hints', notEnoughCoins: 'Not enough coins', hintUsed: 'Hint used',
@@ -385,7 +385,7 @@
       sfx: '音效', music: '音乐', haptics: '振动',
       resetGame: '重置游戏数据', resetAsk: '确定清除这个游戏的全部数据？',
       resetWarn: '此操作无法撤销。', resetDone: '已清除',
-      about: '关于', version: '版本', source: '源代码', license: '许可协议',
+      about: '关于', version: '版本', commitHash: '提交', source: '源代码', license: '许可协议',
       aboutText: '免费、开源、无广告、无追踪，完全离线。',
       name: '名字', country: '国家', optional: '可选',
       hint: '提示', hints: '提示', notEnoughCoins: '金币不足', hintUsed: '已使用提示',
@@ -426,7 +426,7 @@
       sfx: 'Soundeffekte', music: 'Musik', haptics: 'Vibration',
       resetGame: 'Spieldaten zurücksetzen', resetAsk: 'Alle Daten dieses Spiels löschen?',
       resetWarn: 'Das lässt sich nicht rückgängig machen.', resetDone: 'Gelöscht',
-      about: 'Über', version: 'Version', source: 'Quellcode', license: 'Lizenz',
+      about: 'Über', version: 'Version', source: 'Quellcode', commitHash: 'Commit', license: 'Lizenz',
       aboutText: 'Kostenlos, Open Source, ohne Werbung, ohne Tracker, komplett offline.',
       name: 'Name', country: 'Land', optional: 'optional',
       hint: 'Tipp', hints: 'Tipps', notEnoughCoins: 'Nicht genug Münzen', hintUsed: 'Tipp genutzt',
@@ -467,7 +467,7 @@
       sfx: 'Efectos de sonido', music: 'Música', haptics: 'Vibración',
       resetGame: 'Borrar datos del juego', resetAsk: '¿Borrar todos los datos de este juego?',
       resetWarn: 'No se puede deshacer.', resetDone: 'Borrado',
-      about: 'Acerca de', version: 'Versión', source: 'Código fuente', license: 'Licencia',
+      about: 'Acerca de', version: 'Versión', commitHash: 'commit', source: 'Código fuente', license: 'Licencia',
       aboutText: 'Gratis, de código abierto, sin anuncios, sin rastreadores, totalmente sin conexión.',
       name: 'Nombre', country: 'País', optional: 'opcional',
       hint: 'Pista', hints: 'Pistas', notEnoughCoins: 'No tienes monedas suficientes', hintUsed: 'Pista usada',
@@ -2970,6 +2970,10 @@
   };
 
   Chogan.version = (global.APP_VERSION || '0.0.0');
+  // Bug fixes reach the web without a new version, so a screenshot of the
+  // profile could not tell whether a fix was in it (#370, #387). The commit is
+  // stamped only on the published build; elsewhere this stays empty.
+  Chogan.build = /^[0-9a-f]{40}$/.test(global.APP_COMMIT || '') ? global.APP_COMMIT.slice(0, 7) : '';
 
   // برای تست‌های خودکار در نود
   if (typeof module !== 'undefined' && module.exports) module.exports = Chogan;
