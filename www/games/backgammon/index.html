@@ -453,7 +453,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
         twoPlayers: 'دو نفره',
         you: 'تو', rival: 'حریف', player2: 'بازیکن دو', renameP2: 'نام بازیکن دو',
         thinking: 'حریف فکر می‌کند…', rivalNoMoves: 'حریف با این تاس حرکتی ندارد',
-        pickChecker: 'یک مهره را انتخاب کن', pickDest: 'خانه‌ی مقصد را بزن',
+        rotateBoard: 'چرخاندن تخته', pickChecker: 'یک مهره را انتخاب کن', pickDest: 'خانه‌ی مقصد را بزن',
         pressDone: 'تاس‌ها بازی شد، «تمام» را بزن', noMoves: 'با این تاس حرکتی نیست، «تمام» را بزن',
         turnOf: 'نوبت {n}', endTurn: 'تمام', undoMove: 'برگرداندن حرکت', newMatch: 'دست تازه',
         pips: 'مانده', starts: '{n} شروع می‌کند', youStart: 'تو شروع می‌کنی', openingRoll: 'تاس {a} {x} و تاس {b} {y}',
@@ -469,7 +469,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
         twoPlayers: 'Two players',
         you: 'You', rival: 'Rival', player2: 'Player 2', renameP2: 'Player 2 name',
         thinking: 'Rival is thinking…', rivalNoMoves: 'Rival cannot move with this roll',
-        pickChecker: 'Choose a checker', pickDest: 'Tap where it should go',
+        rotateBoard: 'Rotate the board', pickChecker: 'Choose a checker', pickDest: 'Tap where it should go',
         pressDone: 'Dice used, tap Done', noMoves: 'No move with this roll, tap Done',
         turnOf: '{n} to play', endTurn: 'Done', undoMove: 'Undo move', newMatch: 'New game',
         pips: 'pips', starts: '{n} starts', youStart: 'You start', openingRoll: '{a} rolled {x}, {b} rolled {y}',
@@ -485,7 +485,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
         twoPlayers: '双人',
         you: '你', rival: '对手', player2: '玩家二', renameP2: '玩家二的名字',
         thinking: '对手思考中…', rivalNoMoves: '对手这次掷骰无棋可走',
-        pickChecker: '选择一枚棋子', pickDest: '点击目标位置',
+        rotateBoard: '旋转棋盘', pickChecker: '选择一枚棋子', pickDest: '点击目标位置',
         pressDone: '骰子已用完，点“完成”', noMoves: '这次掷骰无棋可走，点“完成”',
         turnOf: '轮到{n}', endTurn: '完成', undoMove: '撤销一步', newMatch: '新一局',
         pips: '点数', starts: '{n}先走', youStart: '你先走', openingRoll: '{a}掷出{x}，{b}掷出{y}',
@@ -501,7 +501,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
         twoPlayers: 'Zwei Spieler',
         you: 'Du', rival: 'Gegner', player2: 'Spieler 2', renameP2: 'Name von Spieler 2',
         thinking: 'Gegner denkt nach…', rivalNoMoves: 'Gegner kann mit diesem Wurf nicht ziehen',
-        pickChecker: 'Wähle einen Stein', pickDest: 'Tippe auf das Ziel',
+        rotateBoard: 'Brett drehen', pickChecker: 'Wähle einen Stein', pickDest: 'Tippe auf das Ziel',
         pressDone: 'Würfel verbraucht, tippe auf Fertig', noMoves: 'Kein Zug mit diesem Wurf, tippe auf Fertig',
         turnOf: '{n} am Zug', endTurn: 'Fertig', undoMove: 'Zug zurück', newMatch: 'Neues Spiel',
         pips: 'Augen', starts: '{n} fängt an', youStart: 'Du fängst an', openingRoll: 'Wurf: {a} {x}, {b} {y}',
@@ -517,7 +517,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
         twoPlayers: 'Dos jugadores',
         you: 'Tú', rival: 'Rival', player2: 'Jugador 2', renameP2: 'Nombre del jugador 2',
         thinking: 'El rival piensa…', rivalNoMoves: 'El rival no puede mover con esta tirada',
-        pickChecker: 'Elige una ficha', pickDest: 'Toca el destino',
+        rotateBoard: 'Girar el tablero', pickChecker: 'Elige una ficha', pickDest: 'Toca el destino',
         pressDone: 'Dados usados, toca Listo', noMoves: 'Sin movimiento con esta tirada, toca Listo',
         turnOf: 'Turno de {n}', endTurn: 'Listo', undoMove: 'Deshacer', newMatch: 'Nueva partida',
         pips: 'puntos', starts: 'Empieza: {n}', youStart: 'Empiezas tú', openingRoll: 'Tirada: {a} {x}, {b} {y}',
@@ -557,6 +557,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
   doneBtn.addEventListener('click', function () { endTurn(); });
 
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
+  ctx.button({ icon: 'rotate', label: C.t('rotateBoard'), onClick: rotateBoard });
   ctx.button({ icon: 'refresh', label: C.t('newMatch'), onClick: askNew });
   ctx.main.appendChild(wrap);
   ctx.mount();
@@ -609,6 +610,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
 
   /* ----------------------------------------------------------- رسم */
 
+  // The board turns in quarter turns (#378): it is always drawn upright in its own space, the
+  // canvas rotates that space, and text and dice turn back so they stay readable. A tap is mapped
+  // from the canvas back into the board's space, so it lands on the point that is shown.
+  // rot is 0..3 quarter turns clockwise; W and H are the canvas's size on screen.
+  function toBoard(px, py, rot, W, H) {
+    if (rot === 1) return [py, W - px];
+    if (rot === 2) return [W - px, H - py];
+    if (rot === 3) return [H - py, px];
+    return [px, py];
+  }
+  function fromBoard(u, v, rot, W, H) {
+    if (rot === 1) return [W - v, u];
+    if (rot === 2) return [W - u, H - v];
+    if (rot === 3) return [v, H - u];
+    return [u, v];
+  }
+  function quarter() { return prefs.rot === 1 || prefs.rot === 2 || prefs.rot === 3 ? prefs.rot : 0; }
+  // set as the board is drawn: how far text has to turn back to stand upright
+  var upright = 0;
+
   var col = {};
   function readColors() {
     var cs = getComputedStyle(document.documentElement);
@@ -649,6 +670,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
     4: [[-1, -1], [1, -1], [-1, 1], [1, 1]], 5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]],
     6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]] };
   function drawDie(g, x, y, s, v, pc, faded) {
+    g.save(); g.translate(x, y); g.rotate(upright); x = 0; y = 0;
     g.globalAlpha = faded ? 0.3 : 1;
     g.fillStyle = pc.fill; g.strokeStyle = pc.edge; g.lineWidth = Math.max(1.5, s * 0.05);
     C.rrect(g, x - s / 2, y - s / 2, s, s, s * 0.2); g.fill(); g.stroke();
@@ -658,6 +680,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
       g.beginPath(); g.arc(x + p[i][0] * s * 0.26, y + p[i][1] * s * 0.26, s * 0.09, 0, Math.PI * 2); g.fill();
     }
     g.globalAlpha = 1;
+    g.restore();
   }
   function drawChecker(g, x, y, r, pc) {
     g.fillStyle = pc.fill; g.strokeStyle = pc.edge; g.lineWidth = Math.max(1.5, r * 0.12);
@@ -668,7 +691,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
     g.fillStyle = color;
     g.font = '800 ' + Math.round(r * 0.95) + 'px Vazirmatn, system-ui, sans-serif';
     g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText(txt, x, y + 1);
+    g.save(); g.translate(x, y); g.rotate(upright);
+    g.fillText(txt, 0, 1);
+    g.restore();
   }
 
   // مرکز k-امین مهره‌ی یک خانه، از لبه به سمت وسط
@@ -798,17 +823,29 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
     g.setLineDash([]);
   }
 
-  var cw = 0, ch = 0;
+  // cw by ch is the board's own upright size; on screen the canvas is ch by cw when turned a quarter
+  var cw = 0, ch = 0, sw = 0, sh = 0;
   function resize() {
+    var side = quarter() % 2;
+    // a turned board takes the turned shape, so on a wide screen it grows into the free width
+    boardBox.style.setProperty('--fit-ar', side ? String(1 / 0.64) : '0.64');
     var bw = boardBox.clientWidth, bh = boardBox.clientHeight;
     if (!bw || !bh) return;
+    if (side) { var t = bw; bw = bh; bh = t; }
     // نسبت تخته حدود ۹ به ۱۴ است؛ بوم بیشتر از آن جا نمی‌گیرد تا لمس دقیق بماند
     cw = Math.floor(Math.min(bw, bh * 0.66));
     ch = Math.floor(Math.min(bh, cw / 0.62));
+    sw = side ? ch : cw; sh = side ? cw : ch;
     var dpr = Math.min(window.devicePixelRatio || 1, 3);
-    canvas.width = Math.floor(cw * dpr); canvas.height = Math.floor(ch * dpr);
-    canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
+    canvas.width = Math.floor(sw * dpr); canvas.height = Math.floor(sh * dpr);
+    canvas.style.width = sw + 'px'; canvas.style.height = sh + 'px';
     paint();
+  }
+  function rotateBoard() {
+    prefs.rot = (quarter() + 1) % 4;
+    ctx.store.set('prefs', prefs);
+    save();
+    resize();
   }
 
   function view() {
@@ -825,11 +862,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
   function paint() {
     if (!S || !cw) return;
     readColors();
-    var dpr = canvas.width / cw;
+    var dpr = canvas.width / sw, rot = quarter();
     var g = canvas.getContext('2d');
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.clearRect(0, 0, cw, ch);
+    g.clearRect(0, 0, sw, sh);
+    // the same turn as fromBoard(): board point u, v lands on screen at fromBoard(u, v)
+    if (rot === 1) { g.translate(sw, 0); g.rotate(Math.PI / 2); }
+    else if (rot === 2) { g.translate(sw, sh); g.rotate(Math.PI); }
+    else if (rot === 3) { g.translate(0, sh); g.rotate(-Math.PI / 2); }
+    upright = -rot * Math.PI / 2;
     drawBoard(g, cw, ch, col, view());
+    upright = 0;
   }
 
   // «تو» دوم‌شخص است؛ با «{n} شروع می‌کند» می‌شد «تو شروع می‌کند» و "You starts" (#115)
@@ -938,7 +981,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
 
   canvas.addEventListener('click', function (ev) {
     var rc = canvas.getBoundingClientRect();
-    tapTarget(targetAt(ev.clientX - rc.left, ev.clientY - rc.top));
+    var b = toBoard(ev.clientX - rc.left, ev.clientY - rc.top, quarter(), sw, sh);
+    tapTarget(targetAt(b[0], b[1]));
   });
 
   function tapTarget(t) {

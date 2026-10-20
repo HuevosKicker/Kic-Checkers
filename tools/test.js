@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4228;
+const MIN_CHECKS = 4235;
 
 function ok(cond, msg) {
   checks++;
@@ -1632,6 +1632,44 @@ function testBackgammon() {
   ok(title('', 2) === '<starts:<rival> · <hard>>', 'حریف: سوم‌شخص می‌ماند');
   const str = (lang, key) => { const m = bgHtml.match(new RegExp(key + ": '([^']*)'", 'g')); return m ? m.map((x) => x.split(": '")[1].slice(0, -1)) : []; };
   ok(JSON.stringify(str('', 'youStart')) === JSON.stringify(['تو شروع می‌کنی', 'You start', '你先走', 'Du fängst an', 'Empiezas tú']), 'youStart reads right in every language');
+
+  // Rotating the board (#378): the page's own geometry and mapping. Every point's centre, the bar
+  // and each tray, carried to the screen and back in each quarter turn, must hit the same target.
+  const consts = (page.match(/var BAR_K = [^;]+;/) || [''])[0];
+  const mapSrc = ['toBoard', 'fromBoard', 'geo', 'rowOf', 'rightCol', 'rowY', 'targetAt'].map(fnBody);
+  ok(consts && mapSrc.every(Boolean), 'the board\'s geometry, targetAt and the rotation mapping are in the page (#378)');
+  if (consts && mapSrc.every(Boolean)) {
+    const mk = vm.runInNewContext('(function (C, S, cw, ch) { ' + consts + mapSrc.join('\n') + ' return { toBoard: toBoard, fromBoard: fromBoard, geo: geo, rowY: rowY, rowOf: rowOf, rightCol: rightCol, targetAt: targetAt }; })', {});
+    let tried = 0, hit = 0;
+    const misses = [];
+    for (const [W0, H0] of [[300, 480], [221, 357]]) {
+      const M = mk({ clamp: (v, a, b) => Math.max(a, Math.min(b, v)) }, { turn: 1 }, W0, H0), G = M.geo(W0, H0);
+      const spots = [];
+      for (let a = 1; a <= 24; a++) spots.push([a, M.rightCol(a) ? G.x0 + G.bw * 0.75 : G.x0 + G.bw * 0.25, M.rowY(G, M.rowOf(a)) + G.rh / 2]);
+      spots.push(['bar', G.x0 + G.bw * 0.3, G.barY + G.barH / 2], ['off', G.x0 + G.bw * 0.75, G.trayY + G.trayH / 2]);
+      for (let rot = 0; rot < 4; rot++) {
+        const SW = rot % 2 ? H0 : W0, SH = rot % 2 ? W0 : H0;
+        for (const [want, u, v] of spots) {
+          const scr = M.fromBoard(u, v, rot, SW, SH), back = M.toBoard(scr[0], scr[1], rot, SW, SH);
+          const inside = scr[0] >= 0 && scr[0] <= SW && scr[1] >= 0 && scr[1] <= SH;
+          tried++;
+          if (inside && M.targetAt(back[0], back[1]) === want) hit++; else misses.push(rot + ':' + want);
+        }
+      }
+    }
+    ok(tried === 208 && hit === tried, 'in all four rotations every point, the bar and the tray map to the screen and back onto themselves (' + hit + ' of ' + tried + (misses.length ? '; ' + misses.slice(0, 4).join(', ') : '') + ')');
+    // a quarter turn really turns: point 1's corner of the board is somewhere else on screen each time
+    const M2 = mk({ clamp: (v, a, b) => Math.max(a, Math.min(b, v)) }, { turn: 1 }, 300, 480);
+    const at = [0, 1, 2, 3].map((rot) => M2.fromBoard(280, 20, rot, rot % 2 ? 480 : 300, rot % 2 ? 300 : 480).map(Math.round).join(','));
+    ok(new Set(at).size === 4, 'each quarter turn puts the board somewhere new on screen (' + at.join(' | ') + ')');
+  }
+  ok(/var b = toBoard\(ev\.clientX - rc\.left, ev\.clientY - rc\.top, quarter\(\), sw, sh\);\s*tapTarget\(targetAt\(b\[0\], b\[1\]\)\);/.test(page),
+    'a tap goes through the rotation before it is matched to a point');
+  ok(/boardBox\.style\.setProperty\('--fit-ar', side \? String\(1 \/ 0\.64\) : '0\.64'\)/.test(page) && /prefs\.rot = \(quarter\(\) \+ 1\) % 4;\s*ctx\.store\.set\('prefs', prefs\);/.test(page),
+    'the slot takes the turned shape at 90 and 270 degrees, and the turn is kept in prefs');
+  ok(/g\.rotate\(upright\);\s*g\.fillText\(txt, 0, 1\);/.test(page) && /function drawDie\(g, x, y, s, v, pc, faded\) \{\s*g\.save\(\); g\.translate\(x, y\); g\.rotate\(upright\);/.test(page),
+    'numbers and dice turn back so they stay upright');
+  ok(['fa', 'en', 'zh', 'de', 'es'].every((l) => new RegExp('\\n      ' + l + ": \\{[\\s\\S]*?rotateBoard: '[^']+'").test(bgHtml)), 'the rotate button is labelled in all five languages');
 }
 
 /* ------------------------------------------------------------- دوز */
