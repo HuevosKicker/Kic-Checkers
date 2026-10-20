@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4210;
+const MIN_CHECKS = 4211;
 
 function ok(cond, msg) {
   checks++;
@@ -6999,6 +6999,7 @@ function testDarts() {
   ok(/if \(prefs\.aim !== 'bars'\) prefs\.aim = 'drag';/.test(html) && /prefs\.aim = prefs\.aim === 'bars' \? 'drag' : 'bars';\s*ctx\.store\.set\('prefs', prefs\);/.test(html), 'the aim control switches both ways and is remembered');
   ok(/if \(prefs\.aim === 'bars'\) \{ G\.msg = ''; stopBar\(\); return; \}/.test(html) && /if \(k === ' ' \|\| k === 'Enter'\) \{ e\.preventDefault\(\); G\.msg = ''; stopBar\(\); \}/.test(html), 'a tap or Space stops the lines in the two-line control');
   ok((html.match(/top\.appendChild\(aimToggle\(\)\)/g) || []).length === 2, 'the aim switch shows in normal games and in the daily');
+  ok(/draw\(\);\s*(\/\/[^\n]*\s*)?if \(barsRun\(\)\) kick\(\);\s*\}/.test(html) && /\|\| barsRun\(\)\) && !document\.hidden\) raf = requestAnimationFrame\(loop\)/.test(html), 'every new turn restarts the two-line loop, and a dialog does not stop it (#374)');
   ok(Date.now() - t0 < 8000, 'the Darts group runs in under eight seconds (' + (Date.now() - t0) + 'ms)');
 }
 

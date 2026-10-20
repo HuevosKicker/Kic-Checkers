@@ -705,6 +705,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
   }
 
   function barsOn() { return prefs.aim === 'bars' && canAim(); }
+  // The loop keeps running through a dialog in two-line mode: a dialog makes
+  // canAim() false, and a loop stopped there never restarted, so the line
+  // stood still while barNow() ran on with the clock (#374)
+  function barsRun() { return prefs.aim === 'bars' && G && !G.done && G.phase === 'aim' && !isBot(G.s.turn); }
   function barNow() { return E.sweep(bars.ph + (performance.now() - bars.t0) / BAR_MS) * BAR_REACH; }
   // Each line starts from a random point of its sweep, so the first tap can't
   // be learned as a fixed count
@@ -734,7 +738,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
   function loop() {
     raf = 0;
     draw();
-    if (G && (flight || (G.phase === 'aim' && (aiming || kbAim)) || barsOn()) && !document.hidden) raf = requestAnimationFrame(loop);
+    if (G && (flight || (G.phase === 'aim' && (aiming || kbAim)) || barsRun()) && !document.hidden) raf = requestAnimationFrame(loop);
   }
   function kick() { if (!raf) raf = requestAnimationFrame(loop); }
 
@@ -809,6 +813,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
     drawPlayers();
     drawStatus();
     draw();
+    // a new turn starts here, and only kick() starts the loop (#374)
+    if (barsRun()) kick();
   }
 
   /* -------------------------------------------------------------- input */
