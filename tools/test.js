@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4221;
+const MIN_CHECKS = 4223;
 
 function ok(cond, msg) {
   checks++;
@@ -6777,6 +6777,38 @@ function testJigsaw() {
   // The pictures are our own, drawn in code
   const drawn = (html.match(/var DRAW = \{([^}]*)\}/) || [])[1] || '';
   ok(E.PICS.length >= 6 && new Set(E.PICS).size === E.PICS.length && E.PICS.every((id) => new RegExp('\\b' + id + ': ' + id + '\\b').test(drawn) && new RegExp('function ' + id + '\\(g\\)').test(html)), 'each of the ' + E.PICS.length + ' pictures has its own drawing function');
+  // Every picture really draws, on a canvas that records what it is told (#376). Its shapes,
+  // with the colours left out, must differ from every other picture's: a recolour is not a picture.
+  const picSrc = (html.match(/function JigsawPictures\(\) \{[\s\S]*?\n\}\n/) || [''])[0];
+  const picBox = { console };
+  vm.createContext(picBox);
+  vm.runInContext(picSrc + '\nthis.P = JigsawPictures();', picBox, { filename: 'jigsaw-pictures.js' });
+  const P = picBox.P, shapes = new Map(), weak = [], broke = [];
+  const fakeCanvas = () => {
+    const log = [], colours = new Set(), round = (v) => typeof v === 'number' ? Math.round(v * 10) / 10 : typeof v;
+    const grad = { addColorStop: (o, c) => colours.add(c) };
+    const c = new Proxy({}, {
+      get: (t, k) => {
+        if (k === 'log') return log;
+        if (k === 'colours') return colours;
+        if (k === 'createLinearGradient' || k === 'createRadialGradient') return () => grad;
+        if (typeof k === 'string' && /^[a-z]/i.test(k) && !(k in t)) return (...a) => { log.push(k + '(' + a.map(round).join(',') + ')'); };
+        return t[k];
+      },
+      set: (t, k, v) => { if (k === 'fillStyle' || k === 'strokeStyle') { if (typeof v === 'string') colours.add(v); } else t[k] = v; return true; }
+    });
+    return c;
+  };
+  for (const id of E.PICS) {
+    const cx = fakeCanvas();
+    try { P.draw(id, cx, 300, 400); } catch (e) { broke.push(id + ': ' + e.message); continue; }
+    const paints = cx.log.filter((l) => /^(fill|stroke|fillRect)\(/.test(l)).length, sig = cx.log.join(';');
+    if (paints < 15 || cx.colours.size < 4) weak.push(id + ' (' + paints + ' shapes, ' + cx.colours.size + ' colours)');
+    if (shapes.has(sig)) weak.push(id + ' draws the same shapes as ' + shapes.get(sig));
+    shapes.set(sig, id);
+  }
+  ok(JSON.stringify(P.ids.slice().sort()) === JSON.stringify(E.PICS.slice().sort()), 'the engine and the drawings list the same ' + E.PICS.length + ' pictures');
+  ok(shapes.size === E.PICS.length && !broke.length && !weak.length, 'every picture draws at least 15 shapes in 4 colours or more, and no two share their shapes (' + shapes.size + ' drawn' + (broke.length ? '; broke: ' + broke.slice(0, 3).join(', ') : '') + (weak.length ? '; ' + weak.slice(0, 3).join(', ') : '') + ')');
   const langs = ['fa', 'en', 'zh', 'de', 'es'], blocks = langs.map((l) => (html.match(new RegExp('\\n      ' + l + ': \\{([\\s\\S]*?)\\n      \\}')) || [])[1] || '');
   const unnamed = [];
   E.PICS.forEach((id) => blocks.forEach((b, i) => { if (!new RegExp('\\bpic_' + id + ": '[^']+'").test(b)) unnamed.push(langs[i] + ':' + id); }));
