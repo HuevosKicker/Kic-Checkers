@@ -61,7 +61,11 @@ function JigsawEngineFactory() {
     sail: 'simple', lighthouse: 'both', harbour: 'detailed', dhow: 'both', wave: 'both', autumn: 'both', pines: 'both', birches: 'detailed', hyrcan: 'both', mushroom: 'simple', pomegranate: 'detailed', watermelon: 'simple', oranges: 'simple',
     grapes: 'detailed', apples: 'detailed', peacock: 'detailed', cranes: 'simple', parrot: 'simple', owl: 'simple', hoopoe: 'simple', fishes: 'detailed', reef: 'detailed', jelly: 'simple', turtle: 'simple', whale: 'simple',
     tulips: 'both', sunflowers: 'simple', roses: 'both', irises: 'both', lotus: 'both', balloons: 'simple', kites: 'simple', rainbow: 'simple', planes: 'simple', aurora: 'both', masuleh: 'detailed', kandovan: 'both', abyaneh: 'detailed',
-    windcatchers: 'both', seaside: 'detailed', planets: 'simple', moonrise: 'simple', rocket: 'simple', galaxy: 'detailed', comet: 'simple', rings: 'simple', stripes: 'simple', bulge: 'detailed', triangles: 'detailed', sunrays: 'simple' };
+    windcatchers: 'both', seaside: 'detailed', planets: 'simple', moonrise: 'simple', rocket: 'simple', galaxy: 'detailed', comet: 'simple', rings: 'simple', stripes: 'simple', bulge: 'detailed', triangles: 'detailed', sunrays: 'simple',
+    orosi: 'detailed', rosewin: 'both', triptych: 'detailed', fanlight: 'simple', lattice: 'detailed', samovar: 'both', teapot: 'simple', pottery: 'both', lanterns: 'both', books: 'simple', terraces: 'both', wheat: 'both', teafield: 'detailed',
+    saffron: 'detailed', blossom: 'both', snowman: 'simple', snowvillage: 'detailed', cabin: 'both', skating: 'simple', snowflakes: 'simple',
+    hextiles: 'detailed', mihrab: 'detailed', strapwork: 'detailed', haftrang: 'both', qashqai: 'both', prayerrug: 'both', gardenrug: 'detailed', kilim: 'detailed', oasis: 'both', desertnight: 'simple', caravanserai: 'both', mesas: 'simple', damavand: 'both',
+    autumnlake: 'detailed', frozenlake: 'simple', waterfall: 'both', bridge: 'both', rooftops: 'detailed', tower: 'both', bazaar: 'detailed', charbagh: 'detailed', orangegrove: 'both', arbour: 'both', columns: 'both' };
   var PICS = Object.keys(FITS);
   var SMALL = [12, 24];
   var ASPECT = 4 / 3;     // height over width
@@ -1379,12 +1383,779 @@ function JigsawPictures() {
     ridge(g, 330, '#6D6875', 8, 40, 1.2);
   }
 
+
+  /* ---- coloured windows ---- */
+
+  // The arched top of a window: a path of the frame's outline, w wide with its base at y
+  function arch(g, x, y, w, h, pointed) {
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - h);
+    if (pointed) { g.quadraticCurveTo(x, y - h - w * 0.55, x + w / 2, y - h - w * 0.75); g.quadraticCurveTo(x + w, y - h - w * 0.55, x + w, y - h); }
+    else g.arc(x + w / 2, y - h, w / 2, Math.PI, 0);
+    g.lineTo(x + w, y); g.closePath();
+  }
+  // An orosi: a sash window of small coloured panes in a wooden lattice, the garden behind
+  function orosi(g) {
+    box(g, 0, 0, 300, 400, '#5C3D2E');
+    arch(g, 30, 380, 240, 250, true); g.save(); g.clip();
+    var cols = ['#D62828', '#003049', '#F77F00', '#FCBF49', '#2A9D8F', '#EAE2B7'], r = seq(5);
+    for (var y = 0; y < 400; y += 22) for (var x = 30; x < 270; x += 22) { box(g, x, y, 22, 22, cols[Math.floor(r() * 6)]); }
+    g.strokeStyle = '#3B2418'; g.lineWidth = 4;
+    for (var k = 0; k < 400; k += 22) { g.beginPath(); g.moveTo(30, k); g.lineTo(270, k); g.stroke(); g.beginPath(); g.moveTo(30 + k, 0); g.lineTo(30 + k, 400); g.stroke(); }
+    // the lattice's stars over the panes
+    g.strokeStyle = '#3B2418'; g.lineWidth = 3;
+    for (var sy = 80; sy < 380; sy += 66) for (var sx = 63; sx < 270; sx += 66) { star(g, sx, sy, 8, 26, 14, Math.PI / 8); g.stroke(); }
+    g.restore();
+    g.strokeStyle = '#3B2418'; g.lineWidth = 10; arch(g, 30, 380, 240, 250, true); g.stroke();
+    box(g, 145, 120, 10, 262, '#3B2418');
+    box(g, 0, 380, 300, 20, '#3B2418');
+  }
+
+  // A round rose window of radiating petals of glass
+  function rosewin(g) {
+    box(g, 0, 0, 300, 400, '#6B705C');
+    for (var y = 0; y < 400; y += 24) for (var x = (y / 24) % 2 ? 0 : 20; x < 300; x += 40) box(g, x, y, 38, 22, '#7A7F69');
+    disc(g, 150, 200, 136, '#3F4238');
+    var cols = ['#D00000', '#3A86FF', '#FFBA08', '#3A86FF', '#38B000', '#3A86FF'];
+    for (var ring = 3; ring >= 0; ring--) for (var i = 0; i < 12; i++) {
+      var a = i / 12 * TAU + ring * 0.13, R = 26 + ring * 28;
+      oval(g, 150 + Math.cos(a) * R, 200 + Math.sin(a) * R, 15 + ring * 2, 9 + ring * 1.5, a, cols[(i + ring) % 6]);
+    }
+    disc(g, 150, 200, 20, '#FFBA08'); star(g, 150, 200, 6, 18, 8, 0); fill(g, '#D00000');
+    g.strokeStyle = '#3F4238'; g.lineWidth = 3;
+    for (var s = 0; s < 12; s++) { var b = s / 12 * TAU + 0.26; g.beginPath(); g.moveTo(150, 200); g.lineTo(150 + Math.cos(b) * 134, 200 + Math.sin(b) * 134); g.stroke(); }
+  }
+
+  // Three tall arched windows of stained glass, a saint-less pattern of leaves and diamonds
+  function triptych(g) {
+    box(g, 0, 0, 300, 400, '#E9EDC9');
+    [[20, 76, 300], [112, 76, 330], [204, 76, 300]].forEach(function (w, n) {
+      arch(g, w[0], 390, w[1], w[2] - 38, false); fill(g, '#283618');
+      g.save(); arch(g, w[0] + 6, 384, w[1] - 12, w[2] - 44, false); g.clip();
+      var cols = [['#4361EE', '#F72585', '#4CC9F0'], ['#FFB703', '#FB8500', '#8ECAE6'], ['#2A9D8F', '#E9C46A', '#E76F51']][n];
+      for (var y = 0; y < 400; y += 20) for (var x = w[0]; x < w[0] + w[1]; x += 20) { poly(g, [x + 10, y, x + 20, y + 10, x + 10, y + 20, x, y + 10]); fill(g, cols[(x / 20 + y / 20) % 3 | 0]); }
+      oval(g, w[0] + w[1] / 2, 200, 22, 40, 0, '#606C38'); oval(g, w[0] + w[1] / 2, 200, 10, 30, 0, '#DDA15E');
+      g.restore();
+    });
+  }
+
+  // A sunburst fanlight over a door, its rays of yellow and blue glass
+  function fanlight(g) {
+    box(g, 0, 0, 300, 400, '#F2E8CF');
+    box(g, 30, 190, 240, 210, '#386641');
+    box(g, 48, 206, 96, 194, '#6A994E'); box(g, 156, 206, 96, 194, '#6A994E');
+    for (var p = 0; p < 2; p++) for (var k = 0; k < 3; k++) box(g, 60 + p * 108, 220 + k * 60, 72, 46, '#A7C957');
+    disc(g, 140, 300, 5, '#E9C46A'); disc(g, 160, 300, 5, '#E9C46A');
+    g.beginPath(); g.arc(150, 190, 120, Math.PI, 0); g.closePath(); fill(g, '#BC4749');
+    for (var i = 0; i < 12; i++) {
+      var a0 = Math.PI + i / 12 * Math.PI, a1 = a0 + Math.PI / 12;
+      poly(g, [150, 190, 150 + Math.cos(a0) * 108, 190 + Math.sin(a0) * 108, 150 + Math.cos(a1) * 108, 190 + Math.sin(a1) * 108]); fill(g, i % 2 ? '#FFD166' : '#118AB2');
+    }
+    g.beginPath(); g.arc(150, 190, 30, Math.PI, 0); g.closePath(); fill(g, '#EF476F');
+    g.strokeStyle = '#BC4749'; g.lineWidth = 3; for (var j = 0; j <= 12; j++) { var a = Math.PI + j / 12 * Math.PI; g.beginPath(); g.moveTo(150, 190); g.lineTo(150 + Math.cos(a) * 108, 190 + Math.sin(a) * 108); g.stroke(); }
+  }
+
+  // A lattice of wooden hexagons with coloured glass, a crescent moon seen through it
+  function lattice(g) {
+    sky(g, 400, [[0, '#14213D'], [1, '#3D5A80']]);
+    disc(g, 200, 130, 46, '#F4E3B1'); disc(g, 220, 118, 42, '#1F3159');
+    var cols = ['rgba(230,57,70,.55)', 'rgba(255,183,3,.5)', 'rgba(42,157,143,.5)', 'rgba(0,0,0,0)'], r = seq(17);
+    for (var row = 0; row < 12; row++) for (var c = 0; c < 7; c++) {
+      var x = c * 48 + (row % 2) * 24, y = row * 36;
+      var pts = []; for (var k = 0; k < 6; k++) { var a = k / 6 * TAU + Math.PI / 6; pts.push(x + Math.cos(a) * 26, y + Math.sin(a) * 26); }
+      poly(g, pts); fill(g, cols[Math.floor(r() * 4)]);
+      g.strokeStyle = '#6F4E37'; g.lineWidth = 6; g.stroke();
+    }
+  }
+
+  /* ---- the tea table ---- */
+
+  // A samovar with a teapot on top, a glass of tea and sugar lumps
+  function samovar(g) {
+    box(g, 0, 0, 300, 400, '#7B2D26');
+    for (var y = 10; y < 260; y += 50) for (var x = 25; x < 300; x += 50) { star(g, x, y, 8, 12, 6, 0); fill(g, '#8F3A31'); }
+    box(g, 0, 300, 300, 100, '#E9C46A'); for (var b = 0; b < 300; b += 30) box(g, b, 300, 15, 100, '#E0B852');
+    var brass = '#D4A017', light = '#F2D16B';
+    oval(g, 130, 300, 54, 10, 0, brass);
+    box(g, 116, 270, 28, 30, brass);
+    g.beginPath(); g.moveTo(80, 270); g.quadraticCurveTo(64, 180, 96, 120); g.lineTo(164, 120); g.quadraticCurveTo(196, 180, 180, 270); g.closePath(); fill(g, brass);
+    oval(g, 106, 190, 10, 50, 0, light);
+    box(g, 70, 150, 120, 8, '#A47E1B');
+    poly(g, [180, 220, 214, 214, 214, 222, 184, 232]); fill(g, '#A47E1B');
+    oval(g, 130, 116, 40, 10, 0, '#A47E1B');
+    // the teapot on top, white with blue flowers
+    oval(g, 130, 90, 32, 26, 0, '#F8F9FA'); oval(g, 130, 64, 12, 5, 0, '#F8F9FA'); disc(g, 130, 58, 4, '#1D4E89');
+    g.strokeStyle = '#F8F9FA'; g.lineWidth = 6; g.beginPath(); g.moveTo(160, 84); g.quadraticCurveTo(180, 72, 182, 62); g.stroke();
+    star(g, 122, 92, 5, 8, 3, 0); fill(g, '#1D4E89'); star(g, 142, 86, 5, 6, 2.5, 0); fill(g, '#1D4E89');
+    // a tulip glass of tea on a saucer, and sugar
+    oval(g, 236, 330, 34, 8, 0, '#F8F9FA');
+    g.beginPath(); g.moveTo(218, 270); g.quadraticCurveTo(212, 296, 224, 300); g.quadraticCurveTo(212, 312, 222, 326); g.lineTo(250, 326); g.quadraticCurveTo(260, 312, 248, 300); g.quadraticCurveTo(260, 296, 254, 270); g.closePath(); fill(g, 'rgba(255,255,255,.55)');
+    g.beginPath(); g.moveTo(219, 282); g.quadraticCurveTo(214, 296, 225, 301); g.quadraticCurveTo(214, 312, 223, 324); g.lineTo(249, 324); g.quadraticCurveTo(258, 312, 247, 301); g.quadraticCurveTo(258, 296, 253, 282); g.closePath(); fill(g, '#B23A1E');
+    [[40, 340], [58, 346], [48, 326]].forEach(function (c) { box(g, c[0], c[1], 14, 12, '#FFFFFF'); });
+  }
+
+  // A teapot pouring into cups on a small round tray
+  function teapot(g) {
+    box(g, 0, 0, 300, 400, '#CDE7B0');
+    for (var i = 0; i < 6; i++) box(g, 0, i * 70, 300, 35, '#BCDCA0');
+    oval(g, 150, 330, 140, 40, 0, '#A3BE8C'); oval(g, 150, 326, 128, 32, 0, '#E9D8A6');
+    g.save(); g.translate(130, 190); g.rotate(-0.35);
+    oval(g, 0, 0, 70, 56, 0, '#E76F51');
+    box(g, -60, -4, 120, 10, '#F4A261');
+    oval(g, 0, -56, 30, 8, 0, '#E76F51'); disc(g, 0, -66, 8, '#264653');
+    g.strokeStyle = '#E76F51'; g.lineWidth = 10; g.beginPath(); g.arc(-74, 0, 26, Math.PI * 0.5, Math.PI * 1.5); g.stroke();
+    g.beginPath(); g.moveTo(60, 10); g.quadraticCurveTo(96, 0, 108, -30); g.lineTo(116, -26); g.quadraticCurveTo(104, 20, 64, 30); g.closePath(); fill(g, '#E76F51');
+    g.restore();
+    g.strokeStyle = '#9C2F1E'; g.lineWidth = 4; g.beginPath(); g.moveTo(232, 186); g.quadraticCurveTo(240, 240, 236, 290); g.stroke();
+    [[236, 310], [100, 320], [180, 336]].forEach(function (c, k) {
+      g.beginPath(); g.moveTo(c[0] - 22, c[1] - 26); g.lineTo(c[0] + 22, c[1] - 26); g.quadraticCurveTo(c[0] + 20, c[1], c[0], c[1]); g.quadraticCurveTo(c[0] - 20, c[1], c[0] - 22, c[1] - 26); g.closePath(); fill(g, ['#2A9D8F', '#E9C46A', '#264653'][k]);
+      oval(g, c[0], c[1] - 26, 22, 5, 0, '#9C2F1E');
+    });
+  }
+
+  // Painted clay jugs and bowls on a shelf
+  function pottery(g) {
+    box(g, 0, 0, 300, 400, '#F1DCC3');
+    box(g, 0, 190, 300, 12, '#8B5E3C'); box(g, 0, 370, 300, 30, '#8B5E3C');
+    var jug = function (x, y, w, h, body, band) {
+      g.beginPath(); g.moveTo(x - w * 0.25, y - h); g.quadraticCurveTo(x - w * 0.3, y - h * 0.75, x - w * 0.5, y - h * 0.45); g.quadraticCurveTo(x - w * 0.55, y, x - w * 0.3, y);
+      g.lineTo(x + w * 0.3, y); g.quadraticCurveTo(x + w * 0.55, y, x + w * 0.5, y - h * 0.45); g.quadraticCurveTo(x + w * 0.3, y - h * 0.75, x + w * 0.25, y - h); g.closePath(); fill(g, body);
+      box(g, x - w * 0.48, y - h * 0.5, w * 0.96, h * 0.1, band);
+      for (var k = 0; k < 5; k++) { star(g, x - w * 0.3 + k * w * 0.15, y - h * 0.3, 4, w * 0.05, w * 0.02, 0); fill(g, band); }
+      oval(g, x, y - h, w * 0.27, w * 0.06, 0, '#5A3A22');
+    };
+    jug(60, 190, 80, 130, '#1D6FA3', '#F4E9D0'); jug(150, 190, 70, 100, '#C8553D', '#264653'); jug(240, 190, 76, 150, '#2A9D8F', '#E9C46A');
+    jug(90, 370, 100, 110, '#E9C46A', '#9C2F2F'); jug(210, 370, 90, 140, '#4F5D75', '#EF8354');
+    g.beginPath(); g.ellipse(150, 330, 40, 40, 0, 0, Math.PI); g.closePath(); fill(g, '#7B2D26'); box(g, 112, 330, 76, 6, '#F4E9D0');
+  }
+
+  // Paper lanterns hanging in a row at dusk
+  function lanterns(g) {
+    sky(g, 400, [[0, '#2B2D42'], [1, '#8D99AE']]);
+    g.strokeStyle = '#1B1B2F'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(0, 60); g.quadraticCurveTo(150, 130, 300, 60); g.stroke();
+    g.beginPath(); g.moveTo(0, 210); g.quadraticCurveTo(150, 270, 300, 210); g.stroke();
+    var lamp = function (x, y, s, col) {
+      g.beginPath(); g.moveTo(x, y - s * 1.1); g.lineTo(x, y - s * 1.6); g.stroke();
+      disc(g, x, y, s * 1.4, 'rgba(255,209,102,.18)');
+      oval(g, x, y, s, s * 1.15, 0, col);
+      for (var k = -2; k <= 2; k++) { g.beginPath(); g.ellipse(x, y, Math.abs(k) * s * 0.3 + 0.5, s * 1.15, 0, 0, TAU); g.strokeStyle = 'rgba(0,0,0,.2)'; g.lineWidth = 1.5; g.stroke(); }
+      box(g, x - s * 0.4, y - s * 1.2, s * 0.8, s * 0.16, '#1B1B2F'); box(g, x - s * 0.4, y + s * 1.05, s * 0.8, s * 0.16, '#1B1B2F');
+      g.strokeStyle = '#1B1B2F'; g.lineWidth = 2;
+    };
+    [[40, 90, 20, '#EF233C'], [100, 108, 24, '#FFB703'], [160, 112, 26, '#EF233C'], [220, 102, 22, '#FB8500'], [272, 84, 18, '#FFB703']].forEach(function (l) { lamp(l[0], l[1], l[2], l[3]); });
+    [[60, 250, 28, '#FB8500'], [150, 268, 34, '#EF233C'], [240, 252, 28, '#FFB703']].forEach(function (l) { lamp(l[0], l[1], l[2], l[3]); });
+    box(g, 0, 360, 300, 40, '#1B1B2F');
+  }
+
+  // A stack of old books, a candle and its light
+  function books(g) {
+    box(g, 0, 0, 300, 400, '#22223B');
+    var gl = g.createRadialGradient(210, 150, 0, 210, 150, 160);
+    gl.addColorStop(0, 'rgba(255,214,140,.55)'); gl.addColorStop(1, 'rgba(255,214,140,0)');
+    disc(g, 210, 150, 160, gl);
+    box(g, 0, 330, 300, 70, '#4A4E69');
+    [[30, 290, 200, 40, '#9A031E'], [44, 252, 176, 38, '#0F4C5C'], [24, 214, 210, 38, '#E36414'], [52, 180, 160, 34, '#5F0F40']].forEach(function (b) {
+      box(g, b[0], b[1], b[2], b[3], b[4]);
+      box(g, b[0] + 10, b[1] + b[3] * 0.3, b[2] - 20, 3, '#FBEBC4'); box(g, b[0] + 10, b[1] + b[3] * 0.65, b[2] - 20, 3, '#FBEBC4');
+      box(g, b[0] + b[2] - 6, b[1] + 3, 6, b[3] - 6, '#F2E9E4');
+    });
+    box(g, 196, 120, 26, 60, '#F2E9E4'); oval(g, 209, 120, 13, 4, 0, '#E0D6CF');
+    oval(g, 209, 98, 7, 18, 0, '#FFB703'); oval(g, 209, 104, 4, 10, 0, '#FFF3B0');
+    box(g, 208, 112, 2, 8, '#22223B');
+    g.beginPath(); g.ellipse(80, 170, 28, 6, 0, 0, TAU); fill(g, '#C9ADA7');
+  }
+
+  /* ---- fields ---- */
+
+  // Rice terraces stepping down a valley, bright green and water-silver
+  function terraces(g) {
+    sky(g, 120, [[0, '#B8E0D2'], [1, '#EAF4F4']]);
+    ridge(g, 80, '#6B9080', 14, 60, 0.4);
+    for (var i = 0; i < 12; i++) {
+      var y = 100 + i * 26, col = i % 3 === 1 ? '#A4C3B2' : (i % 2 ? '#7FB069' : '#9CCC65');
+      g.beginPath(); g.moveTo(0, 400); g.lineTo(0, y);
+      for (var x = 0; x <= 300; x += 6) g.lineTo(x, y + Math.sin(x / 50 + i * 0.6) * 10);
+      g.lineTo(300, 400); g.closePath(); fill(g, col);
+      g.strokeStyle = '#4F772D'; g.lineWidth = 2; g.beginPath();
+      for (x = 0; x <= 300; x += 6) g.lineTo(x, y + Math.sin(x / 50 + i * 0.6) * 10); g.stroke();
+    }
+    [[70, 260], [210, 320]].forEach(function (p) { disc(g, p[0], p[1] - 10, 5, '#E9C46A'); poly(g, [p[0] - 10, p[1] - 12, p[0], p[1] - 22, p[0] + 10, p[1] - 12]); fill(g, '#D4A373'); box(g, p[0] - 4, p[1] - 6, 8, 12, '#3A5A40'); });
+  }
+
+  // Golden wheat with a windmill and a red barn
+  function wheat(g) {
+    sky(g, 220, [[0, '#56CFE1'], [1, '#E0FBFC']]);
+    ridge(g, 200, '#B5E48C', 8, 70, 1.2);
+    box(g, 0, 230, 300, 170, '#E9C46A');
+    var r = seq(43);
+    for (var i = 0; i < 160; i++) { var x = r() * 300, y = 236 + r() * 164, s = 3 + (y - 230) / 30; g.strokeStyle = i % 2 ? '#D4A017' : '#B8860B'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 2, y - s * 4); g.stroke(); oval(g, x + 2, y - s * 4, s * 0.5, s * 1.3, 0.2, '#C99A2E'); }
+    box(g, 30, 160, 70, 60, '#AE2012'); poly(g, [24, 160, 65, 124, 106, 160]); fill(g, '#9B2226'); box(g, 52, 186, 26, 34, '#F4F1DE');
+    box(g, 210, 120, 20, 100, '#F4F1DE'); poly(g, [206, 120, 220, 102, 234, 120]); fill(g, '#6D597A');
+    g.strokeStyle = '#6D597A'; g.lineWidth = 6;
+    [0.3, 1.87, 3.44, 5.01].forEach(function (a) { g.beginPath(); g.moveTo(220, 116); g.lineTo(220 + Math.cos(a) * 46, 116 + Math.sin(a) * 46); g.stroke(); });
+  }
+
+  // Tea bushes in rounded rows over green hills, pickers' hats among them
+  function teafield(g) {
+    sky(g, 150, [[0, '#CAF0F8'], [1, '#F1FAEE']]);
+    ridge(g, 110, '#95D5B2', 10, 60, 0.4); ridge(g, 140, '#74C69D', 8, 50, 2);
+    for (var i = 0; i < 10; i++) {
+      var y = 160 + i * 26 + i * i * 0.6, s = 10 + i * 2.4;
+      for (var x = -s; x < 310; x += s * 1.6) disc(g, x + (i % 2) * s * 0.8, y, s, i % 2 ? '#2D6A4F' : '#40916C');
+    }
+    [[80, 240], [190, 290], [120, 350]].forEach(function (p) { poly(g, [p[0] - 18, p[1], p[0], p[1] - 12, p[0] + 18, p[1]]); fill(g, '#E9D8A6'); box(g, p[0] - 6, p[1], 12, 14, '#E63946'); });
+  }
+
+  // A saffron field: low purple crocuses in rows, red threads, a farm wall
+  function saffron(g) {
+    sky(g, 180, [[0, '#FFE5B4'], [1, '#FFF5E1']]);
+    ridge(g, 150, '#C9A27E', 10, 60, 0.6);
+    box(g, 0, 180, 300, 220, '#A47551');
+    for (var row = 0; row < 9; row++) {
+      var y = 190 + row * row * 2.8 + row * 6, s = 4 + row * 1.6;
+      for (var x = s; x < 300; x += s * 3) {
+        for (var p = 0; p < 6; p++) { var a = p / 6 * TAU; oval(g, x + Math.cos(a) * s * 0.6, y + Math.sin(a) * s * 0.35, s * 0.7, s * 0.3, a, '#9D4EDD'); }
+        disc(g, x, y, s * 0.3, '#E63946');
+      }
+    }
+    box(g, 0, 160, 300, 22, '#D4A373'); for (var b = 0; b < 300; b += 20) box(g, b, 160, 2, 22, '#B08254');
+  }
+
+  // An orchard in blossom: rows of white and pink trees on fresh grass
+  function blossom(g) {
+    sky(g, 200, [[0, '#BDE0FE'], [1, '#FFF0F6']]);
+    box(g, 0, 180, 300, 220, '#9BD770');
+    for (var k = 0; k < 4; k++) {
+      var y = 210 + k * 56, s = 14 + k * 8;
+      for (var x = s; x < 300 + s; x += s * 2.4) {
+        var c = (x / s + k) % 2 < 1 ? '#FFC8DD' : '#FFFFFF';
+        box(g, x - s * 0.1, y - s * 1.1, s * 0.2, s * 1.1, '#6F4E37');
+        disc(g, x, y - s * 1.5, s, c); disc(g, x - s * 0.6, y - s * 1.2, s * 0.7, c); disc(g, x + s * 0.6, y - s * 1.25, s * 0.7, c);
+      }
+    }
+    var r = seq(4); for (var i = 0; i < 60; i++) oval(g, r() * 300, 190 + r() * 210, 2.5, 1.5, r() * TAU, '#FFAFCC');
+  }
+
+  /* ---- winter ---- */
+
+  // A snowman with a scarf and a broom, snow falling
+  function snowman(g) {
+    sky(g, 400, [[0, '#5390D9'], [1, '#CAE9FF']]);
+    ridge(g, 300, '#F8F9FA', 10, 70, 0.4);
+    disc(g, 150, 300, 66, '#FFFFFF'); disc(g, 150, 210, 48, '#FFFFFF'); disc(g, 150, 140, 34, '#FFFFFF');
+    box(g, 116, 104, 68, 8, '#1B1B1B'); box(g, 126, 70, 48, 36, '#1B1B1B');
+    disc(g, 138, 134, 4, '#1B1B1B'); disc(g, 162, 134, 4, '#1B1B1B'); poly(g, [150, 142, 176, 148, 150, 150]); fill(g, '#F77F00');
+    box(g, 114, 168, 72, 12, '#D62828'); box(g, 160, 168, 12, 40, '#D62828');
+    [200, 222, 300, 330].forEach(function (y) { disc(g, 150, y, 5, '#1B1B1B'); });
+    g.strokeStyle = '#6D4C41'; g.lineWidth = 5; g.beginPath(); g.moveTo(196, 210); g.lineTo(250, 150); g.stroke(); g.beginPath(); g.moveTo(104, 210); g.lineTo(56, 180); g.stroke();
+    var r = seq(21); for (var i = 0; i < 70; i++) disc(g, r() * 300, r() * 400, 1.5 + r() * 2.5, 'rgba(255,255,255,.85)');
+  }
+
+  // A snowed-in village at dusk, warm windows and smoke
+  function snowvillage(g) {
+    sky(g, 400, [[0, '#3A0CA3'], [1, '#F7B2BD']]);
+    ridge(g, 170, '#B8B8FF', 16, 60, 1.3);
+    var r = seq(14);
+    for (var i = 0; i < 9; i++) {
+      var x = 10 + (i % 3) * 100 + (Math.floor(i / 3) % 2) * 30, y = 200 + Math.floor(i / 3) * 70, w = 60;
+      box(g, x, y, w, 46, ['#8D5B4C', '#5A2A27', '#A0522D'][i % 3]);
+      poly(g, [x - 6, y + 2, x + w / 2, y - 26, x + w + 6, y + 2]); fill(g, '#FFFFFF');
+      box(g, x + 10, y + 14, 12, 12, '#FFD166'); box(g, x + 36, y + 14, 12, 12, '#FFD166');
+      box(g, x + w - 14, y - 22, 8, 16, '#3D2C2E');
+      for (var k = 0; k < 3; k++) disc(g, x + w - 10 + k * 5, y - 30 - k * 10, 5 + k * 2, 'rgba(255,255,255,.5)');
+    }
+    box(g, 0, 380, 300, 20, '#FFFFFF');
+    for (i = 0; i < 50; i++) disc(g, r() * 300, r() * 400, 1 + r() * 2, '#FFFFFF');
+  }
+
+  // A log cabin under snowy peaks, pines laden with snow
+  function cabin(g) {
+    sky(g, 260, [[0, '#89C2D9'], [1, '#E9F5FB']]);
+    poly(g, [0, 240, 80, 90, 160, 240]); fill(g, '#A9D6E5'); poly(g, [60, 120, 80, 90, 100, 120, 90, 114, 80, 124, 70, 114]); fill(g, '#FFFFFF');
+    poly(g, [120, 240, 210, 60, 300, 240]); fill(g, '#61A5C2'); poly(g, [182, 110, 210, 60, 238, 110, 222, 102, 210, 116, 198, 102]); fill(g, '#FFFFFF');
+    box(g, 0, 236, 300, 164, '#FFFFFF');
+    box(g, 100, 250, 110, 70, '#7F4F24'); for (var k = 0; k < 6; k++) box(g, 100, 254 + k * 11, 110, 2, '#5C3A1B');
+    poly(g, [90, 252, 155, 206, 220, 252]); fill(g, '#F8F9FA');
+    box(g, 116, 270, 22, 20, '#FFD166'); box(g, 166, 276, 22, 44, '#3D2817');
+    [[40, 330, 80], [260, 340, 90], [70, 380, 60], [230, 390, 54]].forEach(function (p) {
+      pine(g, p[0], p[1], p[2], '#2D6A4F', '#4A3424');
+      for (var t = 0; t < 3; t++) { var y = p[1] - p[2] * (0.1 + t * 0.24); poly(g, [p[0] - p[2] * (0.3 - t * 0.07), y - p[2] * 0.05, p[0], y - p[2] * 0.16, p[0] + p[2] * (0.3 - t * 0.07), y - p[2] * 0.05]); fill(g, '#F8F9FA'); }
+    });
+  }
+
+  // Skaters on a frozen pond ringed with bare trees
+  function skating(g) {
+    sky(g, 220, [[0, '#ADE8F4'], [1, '#F1FAEE']]);
+    box(g, 0, 200, 300, 200, '#FFFFFF');
+    oval(g, 150, 300, 140, 76, 0, '#90E0EF'); oval(g, 150, 300, 126, 64, 0, '#CAF0F8');
+    g.strokeStyle = 'rgba(0,119,182,.35)'; g.lineWidth = 1.5;
+    [[80, 290, 30], [160, 320, 40], [210, 280, 24]].forEach(function (c) { g.beginPath(); g.ellipse(c[0], c[1], c[2], c[2] * 0.4, 0.2, 0, 5); g.stroke(); });
+    var tree = function (x, y, h) {
+      g.strokeStyle = '#5E503F'; g.lineWidth = 4; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - h); g.stroke();
+      g.lineWidth = 2; for (var k = 1; k < 4; k++) { g.beginPath(); g.moveTo(x, y - h * k / 4); g.lineTo(x - h * 0.2, y - h * k / 4 - h * 0.2); g.moveTo(x, y - h * k / 4 + 6); g.lineTo(x + h * 0.2, y - h * k / 4 - h * 0.15); g.stroke(); }
+    };
+    [[20, 230, 90], [60, 220, 70], [240, 226, 84], [282, 232, 96], [140, 210, 50], [190, 212, 60]].forEach(function (t) { tree(t[0], t[1], t[2]); });
+    var skater = function (x, y, coat, lean) {
+      g.save(); g.translate(x, y); g.rotate(lean);
+      disc(g, 0, -46, 8, '#E0AC69'); box(g, -8, -56, 16, 6, coat);
+      box(g, -9, -38, 18, 24, coat); box(g, -9, -14, 7, 14, '#2B2D42'); box(g, 2, -14, 7, 14, '#2B2D42');
+      box(g, -12, 0, 12, 2, '#ADB5BD'); box(g, 1, 0, 12, 2, '#ADB5BD');
+      g.restore();
+    };
+    skater(110, 300, '#D62828', 0.2); skater(190, 320, '#F77F00', -0.2); skater(150, 270, '#003049', 0.1);
+  }
+
+  // Snowflakes of six arms in many sizes on deep blue
+  function snowflakes(g) {
+    sky(g, 400, [[0, '#023E8A'], [1, '#0077B6']]);
+    var flake = function (x, y, s, col) {
+      g.strokeStyle = col; g.lineWidth = Math.max(1.5, s * 0.08); g.lineCap = 'round';
+      for (var k = 0; k < 6; k++) {
+        var a = k / 6 * TAU, ex = x + Math.cos(a) * s, ey = y + Math.sin(a) * s;
+        g.beginPath(); g.moveTo(x, y); g.lineTo(ex, ey); g.stroke();
+        for (var b = 1; b < 3; b++) {
+          var bx = x + Math.cos(a) * s * b / 3, by = y + Math.sin(a) * s * b / 3, l = s * 0.28;
+          g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + Math.cos(a + 0.7) * l, by + Math.sin(a + 0.7) * l); g.moveTo(bx, by); g.lineTo(bx + Math.cos(a - 0.7) * l, by + Math.sin(a - 0.7) * l); g.stroke();
+        }
+      }
+      disc(g, x, y, s * 0.12, col);
+    };
+    var r = seq(66);
+    for (var i = 0; i < 14; i++) flake(r() * 300, r() * 400, 8 + r() * 10, 'rgba(255,255,255,.55)');
+    [[80, 90, 50, '#FFFFFF'], [220, 160, 40, '#CAF0F8'], [110, 260, 46, '#90E0EF'], [230, 330, 34, '#FFFFFF'], [50, 360, 26, '#CAF0F8']].forEach(function (f) { flake(f[0], f[1], f[2], f[3]); });
+  }
+
+
+  /* ---- more tiles ---- */
+
+  // Hexagonal tiles in turquoise and cobalt, each with a small star, round a dark band
+  function hextiles(g) {
+    box(g, 0, 0, 300, 400, '#F4E9D0');
+    for (var row = 0; row < 13; row++) for (var c = 0; c < 7; c++) {
+      var x = c * 46 + (row % 2) * 23, y = row * 34, pts = [];
+      for (var k = 0; k < 6; k++) { var a = k / 6 * TAU + Math.PI / 6; pts.push(x + Math.cos(a) * 24, y + Math.sin(a) * 24); }
+      poly(g, pts); fill(g, (row + c) % 3 ? '#1E6F9F' : '#2A9D8F');
+      g.strokeStyle = '#F4E9D0'; g.lineWidth = 3; g.stroke();
+      star(g, x, y, 6, 10, 4, 0); fill(g, row > 4 && row < 8 ? '#E9C46A' : '#F4E9D0');
+    }
+    box(g, 0, 176, 300, 48, '#0F2444');
+    for (var i = 0; i < 6; i++) { star(g, 25 + i * 50, 200, 8, 18, 9, Math.PI / 8); fill(g, '#E9C46A'); disc(g, 25 + i * 50, 200, 5, '#C8553D'); }
+  }
+
+  // A mihrab panel: a pointed niche of tiles inside a border of flowers and script-like bands
+  function mihrab(g) {
+    box(g, 0, 0, 300, 400, '#0B3C5D');
+    box(g, 14, 14, 272, 372, '#F2E8CF');
+    box(g, 26, 26, 248, 348, '#1D6FA3');
+    var r = seq(19);
+    for (var i = 0; i < 40; i++) { var x = 30 + r() * 240, y = 30 + r() * 340; star(g, x, y, 5, 6, 2.5, r()); fill(g, ['#F2E8CF', '#E9C46A', '#C8553D'][i % 3]); }
+    arch(g, 62, 360, 176, 180, true); fill(g, '#F2E8CF');
+    arch(g, 74, 352, 152, 172, true); fill(g, '#2A9D8F');
+    g.save(); arch(g, 74, 352, 152, 172, true); g.clip();
+    for (var y2 = 60; y2 < 360; y2 += 34) for (var x2 = 74; x2 < 230; x2 += 34) { star(g, x2 + (y2 / 34 % 2) * 17, y2, 8, 13, 7, Math.PI / 8); fill(g, '#F2E8CF'); disc(g, x2 + (y2 / 34 % 2) * 17, y2, 4, '#C8553D'); }
+    g.restore();
+    oval(g, 150, 250, 24, 50, 0, '#E9C46A'); oval(g, 150, 250, 14, 36, 0, '#C8553D');
+    box(g, 26, 26, 248, 22, '#E9C46A'); for (var k = 0; k < 12; k++) box(g, 34 + k * 20, 32, 12, 10, '#0B3C5D');
+  }
+
+  // Interlacing bands of girih: ten-pointed stars joined by long straps
+  function strapwork(g) {
+    box(g, 0, 0, 300, 400, '#5E3023');
+    var s = 100;
+    for (var y = 0; y <= 400; y += s) for (var x = 0; x <= 300; x += s) {
+      star(g, x, y, 10, 44, 30, 0); fill(g, '#E9C46A');
+      star(g, x, y, 10, 34, 22, Math.PI / 10); fill(g, '#2A9D8F');
+      star(g, x, y, 5, 18, 8, -Math.PI / 2); fill(g, '#F4E9D0');
+    }
+    for (y = s / 2; y < 400; y += s) for (x = s / 2; x < 300; x += s) {
+      star(g, x, y, 6, 30, 18, 0); fill(g, '#C8553D'); star(g, x, y, 6, 16, 9, Math.PI / 6); fill(g, '#F4E9D0');
+    }
+    g.strokeStyle = '#F4E9D0'; g.lineWidth = 5;
+    for (var k = -4; k < 8; k++) { g.beginPath(); g.moveTo(k * 100, 0); g.lineTo(k * 100 + 300, 400); g.stroke(); g.beginPath(); g.moveTo(k * 100 + 300, 0); g.lineTo(k * 100, 400); g.stroke(); }
+  }
+
+  // Seven-colour haft-rang tiles: a vase of flowers and two birds on a cream ground
+  function haftrang(g) {
+    box(g, 0, 0, 300, 400, '#F7EBD3');
+    g.strokeStyle = '#E2D3B5'; g.lineWidth = 2;
+    for (var t = 75; t < 300; t += 75) { g.beginPath(); g.moveTo(t, 0); g.lineTo(t, 400); g.stroke(); }
+    for (t = 80; t < 400; t += 80) { g.beginPath(); g.moveTo(0, t); g.lineTo(300, t); g.stroke(); }
+    box(g, 0, 0, 300, 20, '#1D6FA3'); box(g, 0, 380, 300, 20, '#1D6FA3');
+    // small rosettes where the tiles meet, and sprigs between them
+    for (var ty = 80; ty < 400; ty += 80) for (var tx = 0; tx <= 300; tx += 75) {
+      star(g, tx, ty, 8, 14, 6, 0); fill(g, '#1D6FA3'); disc(g, tx, ty, 4, '#E9C46A');
+      oval(g, tx + 37, ty - 40, 10, 4, 0.6, '#2D6A4F'); oval(g, tx + 37, ty - 40, 10, 4, -0.6, '#2D6A4F'); disc(g, tx + 37, ty - 40, 3.5, '#C8553D');
+    }
+    g.beginPath(); g.moveTo(110, 360); g.quadraticCurveTo(90, 300, 120, 260); g.lineTo(180, 260); g.quadraticCurveTo(210, 300, 190, 360); g.closePath(); fill(g, '#1D6FA3');
+    box(g, 120, 300, 60, 8, '#E9C46A');
+    g.strokeStyle = '#2D6A4F'; g.lineWidth = 4;
+    [[-1.2, 130], [-1.57, 160], [-1.9, 130], [-0.8, 100], [-2.3, 100]].forEach(function (b) {
+      var x = 150 + Math.cos(b[0]) * b[1], y = 260 + Math.sin(b[0]) * b[1];
+      g.beginPath(); g.moveTo(150, 260); g.quadraticCurveTo(150 + Math.cos(b[0]) * b[1] * 0.3, 230, x, y); g.stroke();
+      for (var p = 0; p < 6; p++) { var a = p / 6 * TAU; oval(g, x + Math.cos(a) * 12, y + Math.sin(a) * 12, 10, 6, a, ['#C8553D', '#E9C46A', '#8E5572'][Math.abs(Math.round(b[0] * 3)) % 3]); }
+      disc(g, x, y, 7, '#F4A261');
+    });
+    [[60, 200, 1], [240, 196, -1]].forEach(function (b) {
+      g.save(); g.translate(b[0], b[1]); g.scale(b[2], 1);
+      oval(g, 0, 0, 24, 14, -0.2, '#2A9D8F'); disc(g, 20, -10, 9, '#2A9D8F'); poly(g, [28, -12, 38, -8, 28, -6]); fill(g, '#E9C46A');
+      poly(g, [-18, -2, -44, -18, -40, 6]); fill(g, '#1D6FA3'); disc(g, 22, -12, 2, '#1B1B1B');
+      g.restore();
+    });
+  }
+
+  /* ---- more carpets ---- */
+
+  // A Qashqai rug: three stepped diamonds on red with little animals and stars
+  function qashqai(g) {
+    box(g, 0, 0, 300, 400, '#3C1518'); box(g, 12, 12, 276, 376, '#F2E8CF'); box(g, 22, 22, 256, 356, '#A4161A');
+    for (var i = 0; i < 20; i++) { poly(g, [12 + i * 14, 12, 19 + i * 14, 4, 26 + i * 14, 12]); fill(g, i % 2 ? '#1D3557' : '#E9C46A'); poly(g, [12 + i * 14, 388, 19 + i * 14, 396, 26 + i * 14, 388]); fill(g, i % 2 ? '#E9C46A' : '#1D3557'); }
+    var diamond = function (cx, cy, w, h, cols) {
+      cols.forEach(function (c, k) { var f = 1 - k * 0.25; poly(g, [cx, cy - h * f, cx + w * f, cy, cx, cy + h * f, cx - w * f, cy]); fill(g, c); });
+    };
+    diamond(150, 90, 70, 56, ['#1D3557', '#E9C46A', '#F2E8CF', '#A4161A']);
+    diamond(150, 200, 90, 64, ['#F2E8CF', '#1D3557', '#E9C46A', '#2A9D8F']);
+    diamond(150, 310, 70, 56, ['#1D3557', '#E9C46A', '#F2E8CF', '#A4161A']);
+    var r = seq(11);
+    for (i = 0; i < 16; i++) {
+      var x = 40 + r() * 220, y = 34 + r() * 330;
+      if (Math.abs(x - 150) < 80) x = x < 150 ? x - 70 : x + 70;
+      if (x < 30 || x > 270) continue;
+      if (i % 2) { box(g, x - 8, y - 4, 16, 8, '#F2E8CF'); box(g, x - 8, y + 4, 3, 6, '#F2E8CF'); box(g, x + 5, y + 4, 3, 6, '#F2E8CF'); box(g, x + 6, y - 10, 4, 7, '#F2E8CF'); }
+      else { star(g, x, y, 8, 8, 4, 0); fill(g, '#E9C46A'); }
+    }
+  }
+
+  // A prayer rug: a niche at the top, a lamp hanging in it, borders all round
+  function prayerrug(g) {
+    box(g, 0, 0, 300, 400, '#1B4332'); box(g, 14, 14, 272, 372, '#E9D8A6'); box(g, 24, 24, 252, 352, '#2D6A4F');
+    for (var i = 0; i < 16; i++) { disc(g, 30 + i * 16, 19, 3, '#9B2226'); disc(g, 30 + i * 16, 381, 3, '#9B2226'); }
+    for (i = 0; i < 23; i++) { disc(g, 19, 30 + i * 15.5, 3, '#9B2226'); disc(g, 281, 30 + i * 15.5, 3, '#9B2226'); }
+    arch(g, 44, 360, 212, 210, true); fill(g, '#9B2226');
+    arch(g, 54, 352, 192, 202, true); fill(g, '#AE2012');
+    var r = seq(8);
+    for (i = 0; i < 50; i++) { var x = 60 + r() * 180, y = 170 + r() * 176; star(g, x, y, 6, 4, 2, 0); fill(g, i % 2 ? '#E9D8A6' : '#EE9B00'); }
+    g.strokeStyle = '#E9D8A6'; g.lineWidth = 2; g.beginPath(); g.moveTo(150, 72); g.lineTo(150, 130); g.stroke();
+    g.beginPath(); g.moveTo(132, 130); g.lineTo(168, 130); g.lineTo(160, 160); g.lineTo(140, 160); g.closePath(); fill(g, '#EE9B00');
+    oval(g, 150, 166, 12, 6, 0, '#E9D8A6');
+    [[40, 60], [260, 60]].forEach(function (c) { star(g, c[0], c[1], 8, 14, 7, 0); fill(g, '#E9D8A6'); });
+  }
+
+  // A garden carpet: a grid of beds and channels seen from above, a tree in each bed
+  function gardenrug(g) {
+    box(g, 0, 0, 300, 400, '#6A040F'); box(g, 14, 14, 272, 372, '#E9C46A'); box(g, 22, 22, 256, 356, '#3A5A40');
+    var cw = 64, ch = 70;
+    for (var r = 0; r < 5; r++) for (var c = 0; c < 4; c++) {
+      var x = 22 + c * cw, y = 22 + r * ch;
+      box(g, x + 6, y + 6, cw - 12, ch - 12, (r + c) % 2 ? '#588157' : '#A3B18A');
+      if ((r + c) % 2) { poly(g, [x + cw / 2, y + 12, x + cw / 2 + 14, y + ch - 18, x + cw / 2 - 14, y + ch - 18]); fill(g, '#344E41'); box(g, x + cw / 2 - 2, y + ch - 18, 4, 8, '#6F4E37'); }
+      else { disc(g, x + cw / 2, y + ch / 2, 14, '#BC4749'); star(g, x + cw / 2, y + ch / 2, 6, 10, 4, 0); fill(g, '#F2E8CF'); }
+    }
+    box(g, 22, 22 + 2 * ch + ch / 2 - 6, 256, 12, '#4EA8DE'); box(g, 22 + 2 * cw - 6, 22, 12, 356, '#4EA8DE');
+    for (var f = 0; f < 6; f++) { var fx = 40 + f * 44; oval(g, fx, 22 + 2.5 * ch, 6, 3, 0, '#E9C46A'); }
+    disc(g, 150, 22 + 2.5 * ch, 18, '#4EA8DE'); disc(g, 150, 22 + 2.5 * ch, 8, '#F2E8CF');
+  }
+
+  // A kilim of bold zigzag stripes and hooked diamonds
+  function kilim(g) {
+    var cols = ['#F2E8CF', '#BC4749', '#386641', '#1D3557', '#E9C46A', '#6A040F'];
+    for (var b = 0; b < 10; b++) {
+      var y = b * 40, c = cols[b % 6];
+      box(g, 0, y, 300, 40, c);
+      if (b % 2) {
+        g.beginPath(); g.moveTo(0, y + 30);
+        for (var x = 0; x <= 300; x += 20) g.lineTo(x, y + (x / 20 % 2 ? 10 : 30));
+        g.lineTo(300, y + 40); g.lineTo(0, y + 40); g.closePath(); fill(g, cols[(b + 2) % 6]);
+      } else {
+        for (x = 25; x < 300; x += 50) {
+          poly(g, [x, y + 4, x + 16, y + 20, x, y + 36, x - 16, y + 20]); fill(g, cols[(b + 3) % 6]);
+          box(g, x - 3, y + 17, 6, 6, cols[(b + 1) % 6]);
+        }
+      }
+    }
+    for (var t = 0; t < 30; t++) { box(g, t * 10 + 3, 0, 3, 6, '#F2E8CF'); box(g, t * 10 + 3, 394, 3, 6, '#F2E8CF'); }
+  }
+
+  /* ---- more deserts ---- */
+
+  // An oasis: date palms round a pool, dunes behind
+  function oasis(g) {
+    sky(g, 220, [[0, '#4CC9F0'], [1, '#FFF3B0']]);
+    ridge(g, 190, '#F4A261', 14, 60, 0.7); ridge(g, 230, '#E9C46A', 10, 50, 2.4);
+    oval(g, 150, 300, 120, 34, 0, '#2A9D8F'); oval(g, 150, 296, 106, 26, 0, '#48CAE4');
+    ripples(g, 285, 310, 8, 'rgba(255,255,255,.6)', 6);
+    var palm = function (x, y, h, lean) {
+      g.strokeStyle = '#7F5539'; g.lineWidth = 8; g.lineCap = 'round';
+      var tx = x + lean, ty = y - h;
+      g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + lean * 0.2, y - h * 0.5, tx, ty); g.stroke();
+      for (var k = 0; k < 8; k++) {
+        var a = -Math.PI / 2 + (k - 3.5) * 0.45;
+        g.strokeStyle = '#2D6A4F'; g.lineWidth = 6;
+        g.beginPath(); g.moveTo(tx, ty); g.quadraticCurveTo(tx + Math.cos(a) * 30, ty + Math.sin(a) * 30 - 6, tx + Math.cos(a) * 52, ty + Math.sin(a) * 52 + 20); g.stroke();
+      }
+      [[-6, 8], [6, 8], [0, 12]].forEach(function (d) { disc(g, tx + d[0], ty + d[1], 5, '#BC6C25'); });
+    };
+    palm(50, 330, 150, 20); palm(250, 320, 170, -24); palm(120, 270, 100, -10); palm(196, 268, 110, 16);
+    box(g, 0, 330, 300, 70, '#E9C46A');
+    ripples(g, 340, 395, 14, 'rgba(188,108,37,.5)', 2);
+  }
+
+  // A desert night: a tent, a fire, the camel asleep and a sky full of stars
+  function desertnight(g) {
+    sky(g, 400, [[0, '#03045E'], [0.7, '#5A189A'], [1, '#C77DFF']]);
+    var r = seq(37), i;
+    for (i = 0; i < 120; i++) disc(g, r() * 300, r() * 260, r() * 1.4 + 0.3, '#FFFFFF');
+    g.fillStyle = 'rgba(255,255,255,.15)'; poly(g, [0, 60, 300, 200, 300, 240, 0, 110]); g.fill();
+    ridge(g, 280, '#7B2CBF', 14, 70, 1.4); ridge(g, 320, '#3C096C', 10, 50, 0.3);
+    poly(g, [40, 340, 100, 270, 160, 340]); fill(g, '#E9C46A'); poly(g, [92, 340, 100, 300, 108, 340]); fill(g, '#3C096C');
+    oval(g, 210, 344, 30, 8, 0, '#240046');
+    poly(g, [196, 344, 210, 300, 224, 344]); fill(g, '#F77F00'); poly(g, [202, 344, 210, 318, 218, 344]); fill(g, '#FFD60A');
+    var glow = g.createRadialGradient(210, 330, 0, 210, 330, 70); glow.addColorStop(0, 'rgba(255,186,8,.45)'); glow.addColorStop(1, 'rgba(255,186,8,0)'); disc(g, 210, 330, 70, glow);
+    oval(g, 260, 360, 30, 14, 0, '#240046'); disc(g, 236, 352, 8, '#240046'); oval(g, 262, 348, 12, 8, 0, '#240046');
+  }
+
+  // A caravanserai: a walled inn with a great arched gate, camels arriving
+  function caravanserai(g) {
+    sky(g, 220, [[0, '#FFB703'], [1, '#FFE8D6']]);
+    disc(g, 60, 80, 30, '#FFFFFF');
+    box(g, 20, 150, 260, 140, '#C68B59');
+    for (var k = 0; k < 9; k++) box(g, 20 + k * 30, 140, 20, 12, '#C68B59');
+    box(g, 10, 130, 30, 160, '#B07D48'); box(g, 260, 130, 30, 160, '#B07D48');
+    box(g, 100, 120, 100, 170, '#B07D48');
+    arch(g, 118, 290, 64, 70, true); fill(g, '#5E3A1E');
+    for (var a = 0; a < 6; a++) { arch(g, 34 + (a % 3) * 22 + (a > 2 ? 186 : 0), 270, 14, 30, true); fill(g, '#7F5539'); }
+    box(g, 0, 288, 300, 112, '#E9C46A');
+    ripples(g, 300, 395, 16, 'rgba(176,125,72,.5)', 12);
+    g.fillStyle = '#3B2214'; g.strokeStyle = '#3B2214'; g.lineWidth = 2.5; g.lineCap = 'round';
+    [[60, 350, 1.4], [120, 360, 1.3], [180, 368, 1.2]].forEach(function (c) {
+      g.save(); g.translate(c[0], c[1]); g.scale(c[2], c[2]);
+      g.beginPath(); g.ellipse(0, 0, 13, 6, 0, 0, TAU); g.fill();
+      g.beginPath(); g.ellipse(-1, -6, 6, 5, 0, 0, TAU); g.fill();
+      g.beginPath(); g.moveTo(11, -2); g.lineTo(17, -12); g.lineTo(21, -12); g.stroke();
+      [-9, -4, 5, 10].forEach(function (lx) { g.beginPath(); g.moveTo(lx, 4); g.lineTo(lx, 15); g.stroke(); });
+      g.restore();
+    });
+  }
+
+  // Red rock arches and mesas under a hard blue sky
+  function mesas(g) {
+    sky(g, 260, [[0, '#0077B6'], [1, '#90E0EF']]);
+    poly(g, [0, 260, 0, 140, 60, 140, 70, 160, 110, 160, 120, 260]); fill(g, '#9C4221');
+    box(g, 0, 140, 60, 6, '#7B341E');
+    poly(g, [170, 260, 180, 110, 270, 110, 280, 260]); fill(g, '#B7472A');
+    box(g, 180, 110, 90, 8, '#8C3A1E');
+    g.beginPath(); g.moveTo(110, 300); g.lineTo(110, 200); g.quadraticCurveTo(160, 150, 210, 200); g.lineTo(210, 300); g.lineTo(186, 300); g.lineTo(186, 222); g.quadraticCurveTo(160, 196, 134, 222); g.lineTo(134, 300); g.closePath(); fill(g, '#D9622B');
+    box(g, 0, 260, 300, 140, '#E07A3F');
+    ridge(g, 300, '#C8553D', 6, 40, 1);
+    [[40, 350], [250, 330], [140, 380]].forEach(function (b) { disc(g, b[0], b[1], 10, '#6B8F3A'); disc(g, b[0] + 10, b[1] + 2, 8, '#6B8F3A'); });
+    box(g, 230, 280, 6, 50, '#4F772D'); box(g, 222, 296, 8, 4, '#4F772D'); box(g, 222, 286, 4, 12, '#4F772D'); box(g, 236, 300, 8, 4, '#4F772D'); box(g, 240, 290, 4, 14, '#4F772D');
+  }
+
+  /* ---- more mountains ---- */
+
+  // A lone snow cone over fields of poppies, Damavand-like
+  function damavand(g) {
+    sky(g, 260, [[0, '#4895EF'], [1, '#E0F0FF']]);
+    poly(g, [0, 260, 150, 70, 300, 260]); fill(g, '#6C757D');
+    poly(g, [104, 128, 150, 70, 196, 128, 180, 122, 168, 138, 152, 124, 136, 140, 122, 124]); fill(g, '#FFFFFF');
+    oval(g, 200, 100, 40, 8, 0, 'rgba(255,255,255,.85)');
+    ridge(g, 250, '#80B918', 8, 60, 1); ridge(g, 290, '#55A630', 8, 50, 2.6);
+    var r = seq(29);
+    for (var i = 0; i < 150; i++) { var y = 270 + r() * 130, s = 1.5 + (y - 260) / 40; disc(g, r() * 300, y, s, i % 6 ? '#D00000' : '#FFBA08'); }
+  }
+
+  // An autumn lake: golden trees on both shores, their colours in the water
+  function autumnlake(g) {
+    sky(g, 200, [[0, '#A2D2FF'], [1, '#FFF1E6']]);
+    ridge(g, 120, '#9C6644', 12, 50, 0.4, 200);
+    var r = seq(53), cols = ['#F48C06', '#DC2F02', '#FFBA08', '#E85D04'];
+    for (var i = 0; i < 26; i++) { var x = (i * 12) % 300 + r() * 10, s = 10 + r() * 10; bush(g, x, 200, s, cols[i % 4]); }
+    g.fillStyle = lin(g, 0, 200, 0, 400, [[0, '#5390D9'], [1, '#1D3557']]); g.fillRect(0, 200, 300, 200);
+    g.save(); g.globalAlpha = 0.45; g.translate(0, 400); g.scale(1, -1);
+    r = seq(53);
+    for (i = 0; i < 26; i++) { x = (i * 12) % 300 + r() * 10; s = 10 + r() * 10; bush(g, x, 200, s, cols[i % 4]); }
+    g.restore();
+    ripples(g, 210, 390, 30, 'rgba(255,255,255,.4)', 15);
+    poly(g, [120, 330, 180, 330, 170, 340, 130, 340]); fill(g, '#7F4F24'); box(g, 148, 300, 3, 30, '#7F4F24');
+  }
+
+  // A frozen lake under winter peaks, a pine island in the middle
+  function frozenlake(g) {
+    sky(g, 240, [[0, '#B8C0FF'], [1, '#F8F7FF']]);
+    poly(g, [0, 240, 70, 100, 140, 240]); fill(g, '#C8B6FF'); poly(g, [50, 136, 70, 100, 90, 136]); fill(g, '#FFFFFF');
+    poly(g, [90, 240, 190, 70, 290, 240]); fill(g, '#A0A6E0'); poly(g, [160, 118, 190, 70, 220, 118, 200, 112, 190, 124, 180, 112]); fill(g, '#FFFFFF');
+    poly(g, [220, 240, 270, 140, 320, 240]); fill(g, '#BBB8F0');
+    box(g, 0, 236, 300, 164, '#E2EAFC');
+    g.strokeStyle = '#B6CCFE'; g.lineWidth = 2;
+    [[30, 280, 120, 300], [150, 320, 270, 290], [60, 360, 200, 380], [210, 250, 290, 270]].forEach(function (l) { g.beginPath(); g.moveTo(l[0], l[1]); g.lineTo((l[0] + l[2]) / 2, l[1] + 10); g.lineTo(l[2], l[3]); g.stroke(); });
+    oval(g, 150, 300, 50, 12, 0, '#F8F9FA');
+    pine(g, 135, 300, 50, '#386641'); pine(g, 162, 302, 40, '#386641');
+    box(g, 0, 380, 300, 20, '#FFFFFF');
+  }
+
+  // A waterfall dropping into a green gorge, mist and a rainbow at its foot
+  function waterfall(g) {
+    sky(g, 120, [[0, '#90E0EF'], [1, '#E0FBFC']]);
+    poly(g, [0, 60, 120, 90, 120, 400, 0, 400]); fill(g, '#52796F');
+    poly(g, [180, 90, 300, 50, 300, 400, 180, 400]); fill(g, '#354F52');
+    poly(g, [0, 120, 110, 140, 100, 400, 0, 400]); fill(g, '#2F3E46');
+    g.fillStyle = lin(g, 0, 90, 0, 330, [[0, '#CAF0F8'], [1, '#FFFFFF']]); g.fillRect(118, 90, 64, 240);
+    g.strokeStyle = 'rgba(0,119,182,.35)'; g.lineWidth = 3; for (var k = 0; k < 6; k++) { g.beginPath(); g.moveTo(124 + k * 10, 92); g.lineTo(124 + k * 10, 330); g.stroke(); }
+    oval(g, 150, 330, 90, 26, 0, '#48CAE4');
+    var r = seq(30); for (var i = 0; i < 30; i++) disc(g, 80 + r() * 140, 310 + r() * 30, 6 + r() * 8, 'rgba(255,255,255,.6)');
+    ['#E63946', '#F4A261', '#E9C46A', '#2A9D8F'].forEach(function (c, j) { g.beginPath(); g.arc(150, 360, 60 - j * 6, Math.PI, Math.PI * 1.6); g.strokeStyle = c; g.lineWidth = 5; g.stroke(); });
+    box(g, 0, 352, 300, 48, '#2D6A4F');
+    for (i = 0; i < 12; i++) bush(g, 10 + i * 26, 380, 10 + (i % 3) * 3, i % 2 ? '#40916C' : '#52B788');
+  }
+
+  /* ---- more night cities ---- */
+
+  // Si-o-se-pol by night: a long bridge of lit arches over a river that mirrors them
+  function bridge(g) {
+    sky(g, 230, [[0, '#0B132B'], [1, '#3A506B']]);
+    var r = seq(3), i;
+    for (i = 0; i < 50; i++) disc(g, r() * 300, r() * 140, r() * 1.2 + 0.3, '#F4E9D0');
+    disc(g, 60, 60, 20, '#F6E7B0');
+    box(g, 0, 150, 300, 70, '#7A5C3E');
+    box(g, 0, 146, 300, 8, '#5E4630');
+    for (i = 0; i < 11; i++) { arch(g, 4 + i * 27, 210, 18, 22, true); fill(g, '#FFC857'); arch(g, 8 + i * 27, 176, 10, 8, true); fill(g, '#FFC857'); }
+    g.fillStyle = lin(g, 0, 220, 0, 400, [[0, '#1C2541'], [1, '#0B132B']]); g.fillRect(0, 220, 300, 180);
+    g.save(); g.globalAlpha = 0.45; g.translate(0, 440); g.scale(1, -1);
+    box(g, 0, 150, 300, 70, '#7A5C3E');
+    for (i = 0; i < 11; i++) { arch(g, 4 + i * 27, 210, 18, 22, true); fill(g, '#FFC857'); }
+    g.restore();
+    ripples(g, 230, 395, 36, 'rgba(255,200,87,.5)', 21);
+  }
+
+  // Rooftops by moonlight: cats on the ridges and lit windows below
+  function rooftops(g) {
+    sky(g, 400, [[0, '#1B263B'], [1, '#415A77']]);
+    disc(g, 220, 80, 44, '#E0E1DD'); disc(g, 210, 70, 8, '#C9CBC5'); disc(g, 236, 94, 6, '#C9CBC5');
+    var r = seq(27);
+    for (var row = 0; row < 3; row++) for (var c = 0; c < 4; c++) {
+      var x = c * 80 - 20 + row * 24, y = 170 + row * 76, w = 76;
+      box(g, x, y, w, 120, ['#0D1B2A', '#14263A', '#1B2F45'][row]);
+      poly(g, [x - 4, y, x + w / 2, y - 30, x + w + 4, y]); fill(g, ['#2B3A4F', '#33465F', '#3C526E'][row]);
+      for (var k = 0; k < 2; k++) box(g, x + 14 + k * 30, y + 20, 16, 20, r() < 0.6 ? '#FFD166' : '#22313F');
+      box(g, x + w - 22, y - 26, 10, 18, '#22313F');
+    }
+    var cat = function (x, y) { oval(g, x, y, 10, 7, 0, '#0B0F17'); disc(g, x + 8, y - 8, 6, '#0B0F17'); poly(g, [x + 4, y - 12, x + 6, y - 19, x + 9, y - 13]); fill(g, '#0B0F17'); poly(g, [x + 9, y - 13, x + 12, y - 19, x + 13, y - 11]); fill(g, '#0B0F17'); g.strokeStyle = '#0B0F17'; g.lineWidth = 3; g.beginPath(); g.moveTo(x - 9, y); g.quadraticCurveTo(x - 20, y - 4, x - 16, y - 16); g.stroke(); };
+    cat(60, 136); cat(206, 206);
+  }
+
+  // A tower over a city of lights, its shaft and pod lit up
+  function tower(g) {
+    sky(g, 400, [[0, '#10002B'], [1, '#3C096C']]);
+    var r = seq(41), i;
+    for (i = 0; i < 40; i++) disc(g, r() * 300, r() * 200, r() * 1.2 + 0.3, '#E0AAFF');
+    poly(g, [140, 360, 146, 120, 154, 120, 160, 360]); fill(g, '#5A189A');
+    oval(g, 150, 150, 30, 14, 0, '#7B2CBF'); box(g, 120, 140, 60, 16, '#9D4EDD'); oval(g, 150, 140, 30, 8, 0, '#C77DFF');
+    for (i = 0; i < 8; i++) box(g, 124 + i * 7, 144, 4, 8, '#FFD60A');
+    box(g, 148, 60, 4, 64, '#C77DFF'); disc(g, 150, 58, 3, '#FF006E');
+    for (var b = 0; b < 16; b++) {
+      var x = b * 20, h = 40 + r() * 90;
+      if (x > 120 && x < 170) h = 40;
+      box(g, x, 400 - h - 40, 18, h + 40, ['#240046', '#3C096C', '#2A0549'][b % 3]);
+      for (var k = 0; k < h / 14; k++) for (var c = 0; c < 2; c++) if (r() < 0.55) box(g, x + 3 + c * 8, 400 - h - 30 + k * 14, 4, 6, '#FFB703');
+    }
+    box(g, 0, 384, 300, 16, '#10002B');
+  }
+
+  // A covered bazaar lane: brick vaults, light falling from the roof holes, lamps and stalls
+  function bazaar(g) {
+    box(g, 0, 0, 300, 400, '#5E3A1E');
+    for (var v = 0; v < 4; v++) {
+      var s = 1 - v * 0.2, w = 300 * s, x = 150 - w / 2, top = 20 + v * 34, base = 400 - v * 30;
+      arch(g, x, base, w, (base - top) * 0.55, false); fill(g, ['#C68B59', '#B07D48', '#9C6B3C', '#8A5A30'][v]);
+      disc(g, 150, top + 22 * s, 10 * s, '#FFF3D6');
+    }
+    arch(g, 105, 300, 90, 90, false); fill(g, '#3B2414');
+    g.fillStyle = 'rgba(255,243,214,.25)'; poly(g, [142, 40, 158, 40, 180, 400, 120, 400]); g.fill();
+    for (var i = 0; i < 4; i++) {
+      var y = 90 + i * 40; g.strokeStyle = '#3B2414'; g.lineWidth = 1.5;
+      [70 + i * 8, 230 - i * 8].forEach(function (lx) { g.beginPath(); g.moveTo(lx, y - 20); g.lineTo(lx, y); g.stroke(); oval(g, lx, y + 8, 8 - i, 10 - i, 0, '#FFB703'); });
+    }
+    [[0, 300, '#E63946'], [0, 340, '#F4A261'], [230, 300, '#2A9D8F'], [230, 340, '#E9C46A']].forEach(function (st) { box(g, st[0], st[1], 70, 36, st[2]); for (var k = 0; k < 5; k++) disc(g, st[0] + 10 + k * 13, st[1] + 10, 5, '#F4E9D0'); });
+    box(g, 0, 376, 300, 24, '#3B2414');
+  }
+
+  /* ---- more gardens ---- */
+
+  // A chahar-bagh from above: four beds, two crossing channels and a pool in the middle
+  function charbagh(g) {
+    box(g, 0, 0, 300, 400, '#E9D8A6');
+    [[20, 20], [170, 20], [20, 220], [170, 220]].forEach(function (b) {
+      box(g, b[0], b[1], 110, 160, '#6A994E');
+      for (var k = 0; k < 3; k++) for (var j = 0; j < 4; j++) disc(g, b[0] + 22 + k * 33, b[1] + 22 + j * 38, 12, (k + j) % 2 ? '#386641' : '#A7C957');
+      for (var f = 0; f < 10; f++) disc(g, b[0] + 6 + f * 11, b[1] + 6, 3, '#BC4749');
+    });
+    box(g, 134, 0, 32, 400, '#4EA8DE'); box(g, 0, 184, 300, 32, '#4EA8DE');
+    box(g, 140, 0, 20, 400, '#5FB3E8'); box(g, 0, 190, 300, 20, '#5FB3E8');
+    star(g, 150, 200, 8, 44, 34, Math.PI / 8); fill(g, '#F2E8CF');
+    star(g, 150, 200, 8, 34, 26, Math.PI / 8); fill(g, '#4EA8DE');
+    disc(g, 150, 200, 8, '#F2E8CF');
+  }
+
+  // An orange grove: rows of round trees heavy with fruit, a path between
+  function orangegrove(g) {
+    sky(g, 170, [[0, '#8ECAE6'], [1, '#F1FAEE']]);
+    box(g, 0, 160, 300, 240, '#A7C957');
+    g.beginPath(); g.moveTo(140, 160); g.lineTo(160, 160); g.lineTo(220, 400); g.lineTo(80, 400); g.closePath(); fill(g, '#DDB892');
+    for (var k = 0; k < 5; k++) {
+      var t = k / 4, y = 176 + t * 210, s = 12 + t * 34, dx = 26 + t * 90;
+      [150 - dx - s * 0.6, 150 + dx + s * 0.6].forEach(function (x, side) {
+        bush(g, x, y, s, '#386641');
+        var r = seq(k * 2 + side + 1);
+        for (var o = 0; o < 7; o++) disc(g, x + (r() - 0.5) * s * 1.8, y - s * 1.4 + (r() - 0.5) * s * 1.2, s * 0.14 + 1, '#F77F00');
+      });
+    }
+  }
+
+  // A rose arbour: an arched trellis covered in roses over a garden seat
+  function arbour(g) {
+    sky(g, 400, [[0, '#CDEAC0'], [1, '#FFF8E8']]);
+    box(g, 0, 320, 300, 80, '#8FBC8F');
+    g.strokeStyle = '#F8F9FA'; g.lineWidth = 10;
+    g.beginPath(); g.moveTo(50, 330); g.lineTo(50, 160); g.arc(150, 160, 100, Math.PI, 0); g.lineTo(250, 330); g.stroke();
+    g.lineWidth = 4; for (var y = 180; y < 330; y += 30) { g.beginPath(); g.moveTo(40, y); g.lineTo(60, y); g.moveTo(240, y); g.lineTo(260, y); g.stroke(); }
+    var r = seq(61);
+    for (var i = 0; i < 70; i++) {
+      var a = Math.PI + r() * Math.PI, onArc = i < 40, x, yy;
+      if (onArc) { x = 150 + Math.cos(a) * (100 + (r() - 0.5) * 20); yy = 160 + Math.sin(a) * (100 + (r() - 0.5) * 20); }
+      else { x = (i % 2 ? 50 : 250) + (r() - 0.5) * 24; yy = 170 + r() * 150; }
+      oval(g, x + 6, yy + 4, 8, 4, r() * 3, '#2D6A4F');
+      disc(g, x, yy, 6, ['#D00000', '#FF4D6D', '#FFB3C1'][i % 3]);
+    }
+    box(g, 96, 280, 108, 10, '#8B5E3C'); box(g, 100, 290, 8, 34, '#6F4518'); box(g, 192, 290, 8, 34, '#6F4518'); box(g, 96, 250, 108, 8, '#8B5E3C');
+    g.beginPath(); g.moveTo(130, 400); g.lineTo(140, 330); g.lineTo(160, 330); g.lineTo(170, 400); g.closePath(); fill(g, '#E9D8A6');
+  }
+
+  // A pavilion of tall wooden columns mirrored in a long pool, Chehel Sotoun-like
+  function columns(g) {
+    sky(g, 200, [[0, '#A9D6E5'], [1, '#F1F5F2']]);
+    box(g, 30, 60, 240, 20, '#7F5539'); box(g, 20, 52, 260, 10, '#9C6644');
+    box(g, 40, 80, 220, 110, '#E9D8A6');
+    arch(g, 120, 190, 60, 60, true); fill(g, '#2A6F97');
+    for (var i = 0; i < 6; i++) box(g, 44 + i * 42, 80, 8, 110, '#B08968');
+    box(g, 0, 190, 300, 210, '#6A994E');
+    g.fillStyle = lin(g, 0, 200, 0, 400, [[0, '#7FC8F8'], [1, '#2B6E96']]); poly(g, [40, 200, 260, 200, 280, 400, 20, 400]); g.fill();
+    g.save(); g.globalAlpha = 0.4; g.translate(0, 400); g.scale(1, -1);
+    box(g, 40, 210, 220, 110, '#E9D8A6'); for (i = 0; i < 6; i++) box(g, 44 + i * 42, 210, 8, 110, '#B08968'); box(g, 30, 320, 240, 20, '#7F5539');
+    g.restore();
+    ripples(g, 300, 395, 20, 'rgba(255,255,255,.45)', 9);
+    for (var k = 0; k < 5; k++) { var t = k / 4, s = 0.5 + t; [10, 290].forEach(function (x) { oval(g, x, 230 + t * 150, 9 * s, 34 * s, 0, '#244B2E'); }); }
+  }
+
   var DRAW = { girih: girih, carpet: carpet, dunes: dunes, lake: lake, night: night, garden: garden,
     sail: sail, lighthouse: lighthouse, harbour: harbour, dhow: dhow, wave: wave, autumn: autumn, pines: pines, birches: birches, hyrcan: hyrcan, mushroom: mushroom,
     pomegranate: pomegranate, watermelon: watermelon, oranges: oranges, grapes: grapes, apples: apples, peacock: peacock, cranes: cranes, parrot: parrot, owl: owl, hoopoe: hoopoe, fishes: fishes, reef: reef, jelly: jelly, turtle: turtle, whale: whale,
     tulips: tulips, sunflowers: sunflowers, roses: roses, irises: irises, lotus: lotus, balloons: balloons, kites: kites, rainbow: rainbow, planes: planes, aurora: aurora,
     masuleh: masuleh, kandovan: kandovan, abyaneh: abyaneh, windcatchers: windcatchers, seaside: seaside, planets: planets, moonrise: moonrise, rocket: rocket, galaxy: galaxy, comet: comet,
-    rings: rings, stripes: stripes, bulge: bulge, triangles: triangles, sunrays: sunrays };
+    rings: rings, stripes: stripes, bulge: bulge, triangles: triangles, sunrays: sunrays,
+    orosi: orosi, rosewin: rosewin, triptych: triptych, fanlight: fanlight, lattice: lattice, samovar: samovar, teapot: teapot, pottery: pottery, lanterns: lanterns, books: books,
+    terraces: terraces, wheat: wheat, teafield: teafield, saffron: saffron, blossom: blossom, snowman: snowman, snowvillage: snowvillage, cabin: cabin, skating: skating, snowflakes: snowflakes,
+    hextiles: hextiles, mihrab: mihrab, strapwork: strapwork, haftrang: haftrang, qashqai: qashqai, prayerrug: prayerrug, gardenrug: gardenrug, kilim: kilim, oasis: oasis, desertnight: desertnight,
+    caravanserai: caravanserai, mesas: mesas, damavand: damavand, autumnlake: autumnlake, frozenlake: frozenlake, waterfall: waterfall, bridge: bridge, rooftops: rooftops, tower: tower, bazaar: bazaar,
+    charbagh: charbagh, orangegrove: orangegrove, arbour: arbour, columns: columns };
   return {
     ids: Object.keys(DRAW),
     // Draws picture id into g at w by h
@@ -1420,6 +2191,8 @@ function JigsawPictures() {
         pic_girih: 'کاشی خاتم', pic_carpet: 'فرش لچک‌ترنج', pic_dunes: 'تپه‌های شنی', pic_lake: 'کوه و دریاچه', pic_night: 'شب شهر', pic_garden: 'باغ ایرانی',
         pic_sail: 'قایق بادبانی', pic_lighthouse: 'فانوس دریایی', pic_harbour: 'بندر کوچک', pic_dhow: 'لنج', pic_wave: 'موج بزرگ', pic_autumn: 'جنگل پاییزی', pic_pines: 'کاج‌ها در سپیده', pic_birches: 'توس‌ها', pic_hyrcan: 'جنگل هیرکانی', pic_mushroom: 'قارچ‌های جنگلی', pic_pomegranate: 'انار', pic_watermelon: 'هندوانه', pic_oranges: 'کاسه‌ی پرتقال', pic_grapes: 'خوشه‌های انگور', pic_apples: 'سبد سیب', pic_peacock: 'طاووس', pic_cranes: 'درناها', pic_parrot: 'طوطی', pic_owl: 'جغد', pic_hoopoe: 'هدهد', pic_fishes: 'دسته‌ی ماهی', pic_reef: 'آبسنگ مرجانی', pic_jelly: 'عروس دریایی', pic_turtle: 'لاک‌پشت دریایی', pic_whale: 'نهنگ و بچه‌اش',
         pic_tulips: 'دشت لاله', pic_sunflowers: 'آفتابگردان‌ها', pic_roses: 'گل‌های رز', pic_irises: 'زنبق‌ها', pic_lotus: 'نیلوفر آبی', pic_balloons: 'بالن‌ها', pic_kites: 'بادبادک‌ها', pic_rainbow: 'رنگین‌کمان', pic_planes: 'هواپیماهای کاغذی', pic_aurora: 'شفق قطبی', pic_masuleh: 'ماسوله', pic_kandovan: 'کندوان', pic_abyaneh: 'ابیانه', pic_windcatchers: 'بادگیرهای یزد', pic_seaside: 'روستای کنار دریا', pic_planets: 'سیاره‌ها', pic_moonrise: 'زمین از ماه', pic_rocket: 'موشک', pic_galaxy: 'کهکشان', pic_comet: 'دنباله‌دار', pic_rings: 'حلقه‌ها', pic_stripes: 'نوارها', pic_bulge: 'شطرنجی برآمده', pic_triangles: 'مثلث‌ها', pic_sunrays: 'پرتوهای خورشید',
+        pic_orosi: 'ارسی', pic_rosewin: 'پنجره‌ی گرد', pic_triptych: 'سه پنجره‌ی رنگی', pic_fanlight: 'پنجره‌ی بادبزنی', pic_lattice: 'مشبک چوبی', pic_samovar: 'سماور', pic_teapot: 'قوری و فنجان', pic_pottery: 'کوزه‌های سفالی', pic_lanterns: 'فانوس‌های کاغذی', pic_books: 'کتاب و شمع', pic_terraces: 'شالیزار پلکانی', pic_wheat: 'گندمزار', pic_teafield: 'باغ چای', pic_saffron: 'مزرعه‌ی زعفران', pic_blossom: 'باغ شکوفه', pic_snowman: 'آدم‌برفی', pic_snowvillage: 'روستای برفی', pic_cabin: 'کلبه‌ی برفی', pic_skating: 'اسکیت روی یخ', pic_snowflakes: 'دانه‌های برف',
+        pic_hextiles: 'کاشی شش‌گوش', pic_mihrab: 'محراب کاشی', pic_strapwork: 'گره‌چینی', pic_haftrang: 'کاشی هفت‌رنگ', pic_qashqai: 'گلیم قشقایی', pic_prayerrug: 'سجاده', pic_gardenrug: 'فرش باغی', pic_kilim: 'گلیم راه‌راه', pic_oasis: 'واحه', pic_desertnight: 'شب کویر', pic_caravanserai: 'کاروانسرا', pic_mesas: 'صخره‌های سرخ', pic_damavand: 'دماوند', pic_autumnlake: 'دریاچه‌ی پاییزی', pic_frozenlake: 'دریاچه‌ی یخ‌زده', pic_waterfall: 'آبشار', pic_bridge: 'سی‌وسه‌پل در شب', pic_rooftops: 'بام‌ها در مهتاب', pic_tower: 'برج و شهر', pic_bazaar: 'راسته‌ی بازار', pic_charbagh: 'چهارباغ', pic_orangegrove: 'باغ پرتقال', pic_arbour: 'آلاچیق گل', pic_columns: 'کاخ ستون‌دار',
         rules: 'تکه‌ها را از ردیف پایین بکش و در قاب بگذار. ردیف را با کشیدن به پهلو جابه‌جا کن و تکه را با کشیدن به بالا بردار. تکه‌ای که نزدیک جای خودش رها شود سر جایش می‌چسبد و قفل می‌شود؛ جای دیگر برمی‌گردد به ردیف و یک اشتباه حساب می‌شود. دکمه‌ی چشم تصویر کامل را کوچک نشان می‌دهد. تصویرها همه با کد کشیده شده‌اند. جورچین روزانه یک تصویر و یک برش برای همه است.',
         tutTitle1: 'بکش و بگذار', tutText1: 'تکه را از ردیف پایین به بالا بکش و نزدیک جای خودش در قاب رها کن تا بچسبد.',
         tutTitle2: 'تصویر را ببین', tutText2: 'با دکمه‌ی چشم تصویر کامل را ببین. لبه‌ها و گوشه‌ها، که یک طرفشان صاف است، شروع خوبی‌اند.'
@@ -1432,6 +2205,8 @@ function JigsawPictures() {
         pic_girih: 'Khatam tiles', pic_carpet: 'Medallion carpet', pic_dunes: 'Sand dunes', pic_lake: 'Mountain lake', pic_night: 'City at night', pic_garden: 'Persian garden',
         pic_sail: 'Sailing at sunset', pic_lighthouse: 'Lighthouse', pic_harbour: 'Little harbour', pic_dhow: 'Dhow on the gulf', pic_wave: 'The great wave', pic_autumn: 'Autumn path', pic_pines: 'Pines at dawn', pic_birches: 'Birches', pic_hyrcan: 'Hyrcanian forest', pic_mushroom: 'Toadstools', pic_pomegranate: 'Pomegranates', pic_watermelon: 'Watermelon', pic_oranges: 'Bowl of oranges', pic_grapes: 'Grapes on the vine', pic_apples: 'Basket of apples', pic_peacock: 'Peacock', pic_cranes: 'Cranes at sunset', pic_parrot: 'Parrot', pic_owl: 'Owl and moon', pic_hoopoe: 'Hoopoe', pic_fishes: 'School of fish', pic_reef: 'Coral reef', pic_jelly: 'Jellyfish', pic_turtle: 'Sea turtle', pic_whale: 'Whale and calf',
         pic_tulips: 'Tulip fields', pic_sunflowers: 'Sunflowers', pic_roses: 'Roses in a jug', pic_irises: 'Irises by the stream', pic_lotus: 'Lotus pond', pic_balloons: 'Hot-air balloons', pic_kites: 'Kites', pic_rainbow: 'Rainbow', pic_planes: 'Paper planes', pic_aurora: 'Northern lights', pic_masuleh: 'Masuleh', pic_kandovan: 'Kandovan', pic_abyaneh: 'Abyaneh', pic_windcatchers: 'Windcatchers of Yazd', pic_seaside: 'Seaside village', pic_planets: 'Planets', pic_moonrise: 'Earth from the moon', pic_rocket: 'Rocket', pic_galaxy: 'Galaxy', pic_comet: 'Comet', pic_rings: 'Rings', pic_stripes: 'Stripes', pic_bulge: 'Bulging chequers', pic_triangles: 'Triangles', pic_sunrays: 'Sun rays',
+        pic_orosi: 'Orosi window', pic_rosewin: 'Rose window', pic_triptych: 'Three coloured windows', pic_fanlight: 'Fanlight over a door', pic_lattice: 'Wooden lattice', pic_samovar: 'Samovar', pic_teapot: 'Teapot and cups', pic_pottery: 'Clay pottery', pic_lanterns: 'Paper lanterns', pic_books: 'Books and a candle', pic_terraces: 'Rice terraces', pic_wheat: 'Wheat field', pic_teafield: 'Tea plantation', pic_saffron: 'Saffron field', pic_blossom: 'Orchard in blossom', pic_snowman: 'Snowman', pic_snowvillage: 'Snowy village', pic_cabin: 'Cabin in the snow', pic_skating: 'Skating pond', pic_snowflakes: 'Snowflakes',
+        pic_hextiles: 'Hexagon tiles', pic_mihrab: 'Tiled mihrab', pic_strapwork: 'Girih strapwork', pic_haftrang: 'Haft-rang tiles', pic_qashqai: 'Qashqai rug', pic_prayerrug: 'Prayer rug', pic_gardenrug: 'Garden carpet', pic_kilim: 'Kilim', pic_oasis: 'Oasis', pic_desertnight: 'Desert night', pic_caravanserai: 'Caravanserai', pic_mesas: 'Red rocks', pic_damavand: 'Damavand', pic_autumnlake: 'Autumn lake', pic_frozenlake: 'Frozen lake', pic_waterfall: 'Waterfall', pic_bridge: 'Bridge of arches at night', pic_rooftops: 'Rooftops by moonlight', pic_tower: 'Tower over the city', pic_bazaar: 'Covered bazaar', pic_charbagh: 'Chahar bagh', pic_orangegrove: 'Orange grove', pic_arbour: 'Rose arbour', pic_columns: 'Pavilion of columns',
         rules: 'Drag pieces up from the row at the bottom into the frame. Swipe the row sideways to look along it, and drag a piece upwards to lift it out. A piece let go near its own spot snaps in and locks; anywhere else it goes back to the row and counts as a miss. The eye button shows the whole picture, small. Every picture is drawn in code. The daily jigsaw is one picture and one cut, the same for everyone.',
         tutTitle1: 'Drag and drop', tutText1: 'Drag a piece up from the row and let go near its spot in the frame: it snaps in.',
         tutTitle2: 'Look at the picture', tutText2: 'The eye button shows the whole picture. Edges and corners, with a straight side, are a good start.'
@@ -1444,6 +2219,8 @@ function JigsawPictures() {
         pic_girih: '哈塔姆瓷砖', pic_carpet: '团花地毯', pic_dunes: '沙丘', pic_lake: '山与湖', pic_night: '城市之夜', pic_garden: '波斯花园',
         pic_sail: '日落帆船', pic_lighthouse: '灯塔', pic_harbour: '小港口', pic_dhow: '海湾上的独桅帆船', pic_wave: '巨浪', pic_autumn: '秋日小径', pic_pines: '黎明松林', pic_birches: '白桦林', pic_hyrcan: '希尔卡尼亚森林', pic_mushroom: '林中蘑菇', pic_pomegranate: '石榴', pic_watermelon: '西瓜', pic_oranges: '一碗橙子', pic_grapes: '藤上的葡萄', pic_apples: '一篮苹果', pic_peacock: '孔雀', pic_cranes: '日落鹤群', pic_parrot: '鹦鹉', pic_owl: '猫头鹰与月亮', pic_hoopoe: '戴胜', pic_fishes: '鱼群', pic_reef: '珊瑚礁', pic_jelly: '水母', pic_turtle: '海龟', pic_whale: '鲸鱼母子',
         pic_tulips: '郁金香花田', pic_sunflowers: '向日葵', pic_roses: '罐中玫瑰', pic_irises: '溪边鸢尾', pic_lotus: '荷花池', pic_balloons: '热气球', pic_kites: '风筝', pic_rainbow: '彩虹', pic_planes: '纸飞机', pic_aurora: '北极光', pic_masuleh: '马苏莱', pic_kandovan: '坎多万', pic_abyaneh: '阿比亚内', pic_windcatchers: '亚兹德风塔', pic_seaside: '海边村庄', pic_planets: '行星', pic_moonrise: '月球上看地球', pic_rocket: '火箭', pic_galaxy: '星系', pic_comet: '彗星', pic_rings: '圆环', pic_stripes: '条纹', pic_bulge: '凸起的棋盘格', pic_triangles: '三角形', pic_sunrays: '太阳光芒',
+        pic_orosi: '彩色格窗', pic_rosewin: '玫瑰窗', pic_triptych: '三扇彩窗', pic_fanlight: '门上扇形窗', pic_lattice: '木格窗', pic_samovar: '茶炊', pic_teapot: '茶壶与茶杯', pic_pottery: '陶罐', pic_lanterns: '纸灯笼', pic_books: '书与蜡烛', pic_terraces: '梯田', pic_wheat: '麦田', pic_teafield: '茶园', pic_saffron: '藏红花田', pic_blossom: '花开的果园', pic_snowman: '雪人', pic_snowvillage: '雪中村庄', pic_cabin: '雪中小屋', pic_skating: '溜冰池塘', pic_snowflakes: '雪花',
+        pic_hextiles: '六角瓷砖', pic_mihrab: '瓷砖壁龛', pic_strapwork: '吉里赫图案', pic_haftrang: '七彩瓷砖', pic_qashqai: '卡什加地毯', pic_prayerrug: '礼拜毯', pic_gardenrug: '花园地毯', pic_kilim: '基里姆毯', pic_oasis: '绿洲', pic_desertnight: '沙漠之夜', pic_caravanserai: '商队驿站', pic_mesas: '红岩', pic_damavand: '达马万德山', pic_autumnlake: '秋湖', pic_frozenlake: '冰湖', pic_waterfall: '瀑布', pic_bridge: '夜色中的拱桥', pic_rooftops: '月光下的屋顶', pic_tower: '城市之塔', pic_bazaar: '有顶集市', pic_charbagh: '四分花园', pic_orangegrove: '橙园', pic_arbour: '玫瑰花架', pic_columns: '柱廊亭',
         rules: '从下方一排把拼块往上拖进框里。左右滑动那一排可以浏览，向上拖动可以拿起一块。在它自己的位置附近松手就会吸附并锁定；放在别处会回到那一排，并记一次放错。眼睛按钮会小图显示整张图。所有图片都是用代码画的。每日拼图对所有人都是同一张图、同一种切法。',
         tutTitle1: '拖放', tutText1: '把拼块从下方一排往上拖，在框里它的位置附近松手，它就会吸附上去。',
         tutTitle2: '看看原图', tutText2: '眼睛按钮会显示整张图。有一条直边的边块和角块是不错的起点。'
@@ -1456,6 +2233,8 @@ function JigsawPictures() {
         pic_girih: 'Khatam-Fliesen', pic_carpet: 'Medaillonteppich', pic_dunes: 'Sanddünen', pic_lake: 'Bergsee', pic_night: 'Stadt bei Nacht', pic_garden: 'Persischer Garten',
         pic_sail: 'Segeln im Abendrot', pic_lighthouse: 'Leuchtturm', pic_harbour: 'Kleiner Hafen', pic_dhow: 'Dau im Golf', pic_wave: 'Die große Welle', pic_autumn: 'Herbstweg', pic_pines: 'Kiefern im Morgengrauen', pic_birches: 'Birken', pic_hyrcan: 'Hyrkanischer Wald', pic_mushroom: 'Fliegenpilze', pic_pomegranate: 'Granatäpfel', pic_watermelon: 'Wassermelone', pic_oranges: 'Schale mit Orangen', pic_grapes: 'Trauben am Rebstock', pic_apples: 'Apfelkorb', pic_peacock: 'Pfau', pic_cranes: 'Kraniche im Abendrot', pic_parrot: 'Papagei', pic_owl: 'Eule und Mond', pic_hoopoe: 'Wiedehopf', pic_fishes: 'Fischschwarm', pic_reef: 'Korallenriff', pic_jelly: 'Quallen', pic_turtle: 'Meeresschildkröte', pic_whale: 'Wal mit Kalb',
         pic_tulips: 'Tulpenfelder', pic_sunflowers: 'Sonnenblumen', pic_roses: 'Rosen im Krug', pic_irises: 'Iris am Bach', pic_lotus: 'Lotusteich', pic_balloons: 'Heißluftballons', pic_kites: 'Drachen steigen', pic_rainbow: 'Regenbogen', pic_planes: 'Papierflieger', pic_aurora: 'Polarlicht', pic_masuleh: 'Masuleh', pic_kandovan: 'Kandovan', pic_abyaneh: 'Abyaneh', pic_windcatchers: 'Windtürme von Yazd', pic_seaside: 'Dorf am Meer', pic_planets: 'Planeten', pic_moonrise: 'Erde vom Mond aus', pic_rocket: 'Rakete', pic_galaxy: 'Galaxie', pic_comet: 'Komet', pic_rings: 'Ringe', pic_stripes: 'Streifen', pic_bulge: 'Gewölbtes Schachbrett', pic_triangles: 'Dreiecke', pic_sunrays: 'Sonnenstrahlen',
+        pic_orosi: 'Orosi-Fenster', pic_rosewin: 'Fensterrose', pic_triptych: 'Drei bunte Fenster', pic_fanlight: 'Oberlicht über der Tür', pic_lattice: 'Holzgitter', pic_samovar: 'Samowar', pic_teapot: 'Teekanne und Tassen', pic_pottery: 'Tonkrüge', pic_lanterns: 'Papierlaternen', pic_books: 'Bücher und Kerze', pic_terraces: 'Reisterrassen', pic_wheat: 'Weizenfeld', pic_teafield: 'Teeplantage', pic_saffron: 'Safranfeld', pic_blossom: 'Obstgarten in Blüte', pic_snowman: 'Schneemann', pic_snowvillage: 'Verschneites Dorf', pic_cabin: 'Hütte im Schnee', pic_skating: 'Eislaufteich', pic_snowflakes: 'Schneeflocken',
+        pic_hextiles: 'Sechseckfliesen', pic_mihrab: 'Gekachelter Mihrab', pic_strapwork: 'Girih-Bandwerk', pic_haftrang: 'Haft-Rang-Fliesen', pic_qashqai: 'Qashqai-Teppich', pic_prayerrug: 'Gebetsteppich', pic_gardenrug: 'Gartenteppich', pic_kilim: 'Kelim', pic_oasis: 'Oase', pic_desertnight: 'Wüstennacht', pic_caravanserai: 'Karawanserei', pic_mesas: 'Rote Felsen', pic_damavand: 'Damavand', pic_autumnlake: 'Herbstsee', pic_frozenlake: 'Zugefrorener See', pic_waterfall: 'Wasserfall', pic_bridge: 'Bogenbrücke bei Nacht', pic_rooftops: 'Dächer im Mondlicht', pic_tower: 'Turm über der Stadt', pic_bazaar: 'Überdachter Basar', pic_charbagh: 'Tschahar Bagh', pic_orangegrove: 'Orangenhain', pic_arbour: 'Rosenlaube', pic_columns: 'Säulenpavillon',
         rules: 'Zieh die Teile aus der Reihe unten nach oben in den Rahmen. Wisch die Reihe seitwärts, um sie durchzusehen, und zieh ein Teil nach oben, um es herauszunehmen. Ein Teil, das nahe seinem Platz losgelassen wird, rastet ein; anderswo geht es in die Reihe zurück und zählt als Fehler. Der Augen-Knopf zeigt das ganze Bild, klein. Jedes Bild ist im Code gezeichnet. Das Puzzle des Tages ist ein Bild und ein Schnitt, für alle gleich.',
         tutTitle1: 'Ziehen und ablegen', tutText1: 'Zieh ein Teil aus der Reihe nach oben und lass es nahe seinem Platz im Rahmen los: Es rastet ein.',
         tutTitle2: 'Schau aufs Bild', tutText2: 'Der Augen-Knopf zeigt das ganze Bild. Rand- und Eckteile mit einer geraden Seite sind ein guter Anfang.'
@@ -1468,6 +2247,8 @@ function JigsawPictures() {
         pic_girih: 'Azulejos khatam', pic_carpet: 'Alfombra de medallón', pic_dunes: 'Dunas', pic_lake: 'Lago de montaña', pic_night: 'Ciudad de noche', pic_garden: 'Jardín persa',
         pic_sail: 'Velero al atardecer', pic_lighthouse: 'Faro', pic_harbour: 'Puerto pequeño', pic_dhow: 'Dhow en el golfo', pic_wave: 'La gran ola', pic_autumn: 'Camino de otoño', pic_pines: 'Pinos al amanecer', pic_birches: 'Abedules', pic_hyrcan: 'Bosque hircano', pic_mushroom: 'Setas del bosque', pic_pomegranate: 'Granadas', pic_watermelon: 'Sandía', pic_oranges: 'Cuenco de naranjas', pic_grapes: 'Uvas en la parra', pic_apples: 'Cesta de manzanas', pic_peacock: 'Pavo real', pic_cranes: 'Grullas al atardecer', pic_parrot: 'Loro', pic_owl: 'Búho y luna', pic_hoopoe: 'Abubilla', pic_fishes: 'Banco de peces', pic_reef: 'Arrecife de coral', pic_jelly: 'Medusas', pic_turtle: 'Tortuga marina', pic_whale: 'Ballena y cría',
         pic_tulips: 'Campos de tulipanes', pic_sunflowers: 'Girasoles', pic_roses: 'Rosas en una jarra', pic_irises: 'Lirios junto al arroyo', pic_lotus: 'Estanque de lotos', pic_balloons: 'Globos aerostáticos', pic_kites: 'Cometas', pic_rainbow: 'Arcoíris', pic_planes: 'Aviones de papel', pic_aurora: 'Aurora boreal', pic_masuleh: 'Masuleh', pic_kandovan: 'Kandovan', pic_abyaneh: 'Abyaneh', pic_windcatchers: 'Torres de viento de Yazd', pic_seaside: 'Pueblo junto al mar', pic_planets: 'Planetas', pic_moonrise: 'La Tierra desde la Luna', pic_rocket: 'Cohete', pic_galaxy: 'Galaxia', pic_comet: 'Cometa', pic_rings: 'Anillos', pic_stripes: 'Rayas', pic_bulge: 'Damero abombado', pic_triangles: 'Triángulos', pic_sunrays: 'Rayos de sol',
+        pic_orosi: 'Ventana orosi', pic_rosewin: 'Rosetón', pic_triptych: 'Tres vitrales', pic_fanlight: 'Montante de abanico', pic_lattice: 'Celosía de madera', pic_samovar: 'Samovar', pic_teapot: 'Tetera y tazas', pic_pottery: 'Vasijas de barro', pic_lanterns: 'Farolillos de papel', pic_books: 'Libros y vela', pic_terraces: 'Terrazas de arroz', pic_wheat: 'Campo de trigo', pic_teafield: 'Plantación de té', pic_saffron: 'Campo de azafrán', pic_blossom: 'Huerto en flor', pic_snowman: 'Muñeco de nieve', pic_snowvillage: 'Pueblo nevado', pic_cabin: 'Cabaña en la nieve', pic_skating: 'Patinaje en el estanque', pic_snowflakes: 'Copos de nieve',
+        pic_hextiles: 'Azulejos hexagonales', pic_mihrab: 'Mihrab de azulejos', pic_strapwork: 'Lacería girih', pic_haftrang: 'Azulejos haft-rang', pic_qashqai: 'Alfombra qashqai', pic_prayerrug: 'Alfombra de oración', pic_gardenrug: 'Alfombra jardín', pic_kilim: 'Kilim', pic_oasis: 'Oasis', pic_desertnight: 'Noche en el desierto', pic_caravanserai: 'Caravasar', pic_mesas: 'Rocas rojas', pic_damavand: 'Damavand', pic_autumnlake: 'Lago de otoño', pic_frozenlake: 'Lago helado', pic_waterfall: 'Cascada', pic_bridge: 'Puente de arcos de noche', pic_rooftops: 'Tejados a la luz de la luna', pic_tower: 'Torre sobre la ciudad', pic_bazaar: 'Bazar cubierto', pic_charbagh: 'Chahar bagh', pic_orangegrove: 'Naranjal', pic_arbour: 'Pérgola de rosas', pic_columns: 'Pabellón de columnas',
         rules: 'Arrastra las piezas desde la fila de abajo hasta el marco. Desliza la fila de lado para recorrerla y arrastra una pieza hacia arriba para sacarla. Una pieza soltada cerca de su sitio encaja y queda fija; en otro lugar vuelve a la fila y cuenta como fallo. El botón del ojo muestra la imagen entera, en pequeño. Todas las imágenes están dibujadas con código. El rompecabezas diario es una imagen y un corte, el mismo para todos.',
         tutTitle1: 'Arrastra y suelta', tutText1: 'Arrastra una pieza hacia arriba desde la fila y suéltala cerca de su sitio en el marco: encaja sola.',
         tutTitle2: 'Mira la imagen', tutText2: 'El botón del ojo muestra la imagen entera. Los bordes y las esquinas, con un lado recto, son un buen comienzo.'
