@@ -191,10 +191,17 @@ function DartsEngineFactory() {
     return { x: x, y: y, dir: Math.atan2(dx, -dy) };
   }
 
+  // The aiming bars (#372): where a bar is after u sweeps, running from -1 to 1
+  // and straight back at an even speed, so stopping it is timing, not luck
+  function sweep(u) {
+    var f = u - Math.floor(u / 2) * 2;
+    return f < 1 ? -1 + 2 * f : 3 - 2 * f;
+  }
+
   var api = {
     ORDER: ORDER, R: R, SPREAD: SPREAD, hit: hit, aimPoint: aimPoint, checkout: checkout,
     newGame: newGame, copy: copy, throwDart: throwDart, think: think, land: land, mk: mk,
-    DART: DART, arc: arc
+    DART: DART, arc: arc, sweep: sweep
   };
   if (typeof self !== 'undefined') self.DartsEngine = api;
   return api;
@@ -226,6 +233,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
         outOf: 'دارت‌ها تمام شد', checkoutLabel: 'امتیاز پایانی',
         rules: 'هر کس از ۵۰۱ (یا ۳۰۱) شروع می‌کند و هر نوبت سه دارت می‌اندازد؛ امتیاز هر دارت از عددش کم می‌شود. حلقه‌ی بیرونی دو برابر است و حلقه‌ی وسطی سه برابر؛ خال وسط ۵۰ و حلقه‌ی دورش ۲۵. باید دقیقاً به صفر برسی و دارت آخر روی دوبرابر یا خال وسط بنشیند. اگر از صفر رد شوی، به یک برسی یا صفر را با دارت غیردوبرابر بزنی، نوبتت می‌سوزد و امتیاز به اول نوبت برمی‌گردد. اولین کسی که به صفر برسد می‌برد.',
         keyboard: 'صفحه‌کلید', aimKey: 'جابه‌جا کردن نشانه', throwKey: 'پرتاب',
+        aimMode: 'نشانه‌گیری', aimDrag: 'کشیدن', aimBars: 'دو خط', barX: 'بزن تا خط عمودی بایستد', barY: 'دوباره بزن تا خط افقی بایستد', stopKey: 'ایستاندن خط',
+        aimHelp: 'دو روش نشانه‌گیری هست و با دکمه‌ی بالای صفحه عوض می‌شود. کشیدن: انگشتت را بکش و رها کن. دو خط: یک بار بزن تا خط عمودی بایستد و بار دوم تا خط افقی؛ دارت به جایی می‌رود که دو خط به هم می‌رسند.',
         tutTitle1: 'نشانه بگیر', tutText1: 'انگشتت را روی صفحه بکش و رها کن تا دارت پرتاب شود. دست کمی می‌لرزد؛ لحظه‌ی رها کردن مهم است.',
         tutTitle2: 'دو برابر و سه برابر', tutText2: 'حلقه‌ی بیرونی امتیاز را دو برابر می‌کند و حلقه‌ی وسطی سه برابر. سه‌برابر ۲۰ بیشترین امتیاز است.',
         tutTitle3: 'روی دوبرابر تمام کن', tutText3: 'باید دقیقاً به صفر برسی و دارت آخر دوبرابر یا خال وسط باشد. پیشنهاد پایان زیر صفحه نشان داده می‌شود.'
@@ -240,6 +249,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
         outOf: 'Out of darts', checkoutLabel: 'Checkout',
         rules: 'Everyone starts at 501 (or 301) and throws three darts a turn; each dart\'s score comes off. The outer ring doubles, the middle ring trebles; the bullseye is 50 and the ring round it 25. You must reach exactly zero, with the last dart on a double or the bullseye. Going below zero, reaching one, or hitting zero without a double is a bust: the turn ends and the score goes back to where it started. The first to reach zero wins.',
         keyboard: 'Keyboard', aimKey: 'Move the sight', throwKey: 'Throw',
+        aimMode: 'Aim', aimDrag: 'Drag', aimBars: 'Two lines', barX: 'Tap to stop the upright line', barY: 'Tap again to stop the level line', stopKey: 'Stop the line',
+        aimHelp: 'There are two ways to aim; switch with the button above the board. Drag: drag your finger and let go. Two lines: tap once to stop the upright line and again to stop the level one; the dart goes where they cross.',
         tutTitle1: 'Take aim', tutText1: 'Drag your finger over the board and let go to throw. Your hand wobbles a little; when you let go matters.',
         tutTitle2: 'Doubles and trebles', tutText2: 'The outer ring doubles a number, the middle ring trebles it. Treble 20 is the biggest score.',
         tutTitle3: 'Finish on a double', tutText3: 'Reach exactly zero, with the last dart on a double or the bullseye. A suggested finish shows under the board.'
@@ -254,6 +265,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
         outOf: '飞镖用完了', checkoutLabel: '收镖分数',
         rules: '每人从501（或301）开始，每轮投三支飞镖，每支的分数从中扣除。外圈双倍，中圈三倍；红心50分，红心外圈25分。必须正好减到零，且最后一镖落在双倍区或红心。减到零以下、剩下1分、或不用双倍减到零都算爆镖：本轮结束，分数退回本轮开始时。先减到零者获胜。',
         keyboard: '键盘', aimKey: '移动准星', throwKey: '投掷',
+        aimMode: '瞄准', aimDrag: '拖动', aimBars: '两条线', barX: '点击停住竖线', barY: '再点击停住横线', stopKey: '停住线',
+        aimHelp: '有两种瞄准方式，可用镖盘上方的按钮切换。拖动：拖动手指后松手。两条线：点一下停住竖线，再点一下停住横线；飞镖落在两线交点。',
         tutTitle1: '瞄准', tutText1: '在镖盘上拖动手指，松手即投掷。手会轻微晃动，松手的时机很重要。',
         tutTitle2: '双倍和三倍', tutText2: '外圈让分数翻倍，中圈让分数翻三倍。三倍20是最高分。',
         tutTitle3: '用双倍收镖', tutText3: '正好减到零，且最后一镖落在双倍区或红心。镖盘下方会提示收镖路线。'
@@ -268,6 +281,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
         outOf: 'Keine Darts mehr', checkoutLabel: 'Checkout',
         rules: 'Alle starten bei 501 (oder 301) und werfen drei Darts pro Aufnahme; jeder Wurf wird abgezogen. Der äußere Ring zählt doppelt, der mittlere dreifach; das Bullseye zählt 50, der Ring darum 25. Du musst genau auf null kommen, mit dem letzten Dart auf einem Doppel oder dem Bullseye. Unter null, auf eins oder auf null ohne Doppel ist überworfen: Die Aufnahme endet und der Stand geht zurück. Wer zuerst null erreicht, gewinnt.',
         keyboard: 'Tastatur', aimKey: 'Visier bewegen', throwKey: 'Werfen',
+        aimMode: 'Zielen', aimDrag: 'Ziehen', aimBars: 'Zwei Linien', barX: 'Tippen, um die senkrechte Linie anzuhalten', barY: 'Noch einmal tippen für die waagerechte Linie', stopKey: 'Linie anhalten',
+        aimHelp: 'Es gibt zwei Arten zu zielen; der Knopf über der Scheibe wechselt. Ziehen: Finger ziehen und loslassen. Zwei Linien: einmal tippen hält die senkrechte Linie an, ein zweites Mal die waagerechte; der Dart fliegt dorthin, wo sie sich kreuzen.',
         tutTitle1: 'Zielen', tutText1: 'Zieh den Finger über die Scheibe und lass los, um zu werfen. Die Hand zittert ein wenig; der Moment des Loslassens zählt.',
         tutTitle2: 'Doppel und Triple', tutText2: 'Der äußere Ring verdoppelt eine Zahl, der mittlere verdreifacht sie. Triple 20 bringt am meisten.',
         tutTitle3: 'Mit Doppel beenden', tutText3: 'Komm genau auf null, mit dem letzten Dart auf einem Doppel oder dem Bullseye. Unter der Scheibe steht ein Finish-Vorschlag.'
@@ -282,6 +297,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
         outOf: 'Sin dardos', checkoutLabel: 'Cierre',
         rules: 'Todos empiezan en 501 (o 301) y lanzan tres dardos por turno; cada dardo se resta. El anillo exterior es doble y el del medio triple; el centro vale 50 y el anillo que lo rodea 25. Hay que llegar justo a cero, con el último dardo en un doble o en el centro. Pasar de cero, quedarse en uno o llegar a cero sin doble es pasarse: el turno termina y la puntuación vuelve a la del inicio. Gana quien llegue antes a cero.',
         keyboard: 'Teclado', aimKey: 'Mover la mira', throwKey: 'Lanzar',
+        aimMode: 'Apuntar', aimDrag: 'Arrastrar', aimBars: 'Dos líneas', barX: 'Toca para parar la línea vertical', barY: 'Toca otra vez para parar la horizontal', stopKey: 'Parar la línea',
+        aimHelp: 'Hay dos formas de apuntar; el botón sobre la diana cambia entre ellas. Arrastrar: arrastra el dedo y suelta. Dos líneas: toca una vez para parar la línea vertical y otra para la horizontal; el dardo va adonde se cruzan.',
         tutTitle1: 'Apunta', tutText1: 'Arrastra el dedo por la diana y suelta para lanzar. La mano tiembla un poco; el momento de soltar importa.',
         tutTitle2: 'Dobles y triples', tutText2: 'El anillo exterior dobla el número y el del medio lo triplica. El triple 20 es la mayor puntuación.',
         tutTitle3: 'Cierra con un doble', tutText3: 'Llega justo a cero, con el último dardo en un doble o en el centro. Bajo la diana aparece un cierre sugerido.'
@@ -299,8 +316,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
   // a random moment, a smaller wobble finished 501 in 14 darts, better than any
   // bot; at these values a well-timed player lands near the hard bot.
   var WOBBLE = 0.09, SCATTER = 0.025;
+  // The two-line control (#372): a line crosses this far each side of the
+  // centre, in board radii (1 is the double ring), in BAR_MS one way. A tap
+  // late by 45 ms, a steady hand, puts the line about 0.08 off: near the
+  // drag control's wobble, so neither control is the easy one.
+  var BAR_REACH = 1.15, BAR_MS = 1300;
 
-  var prefs = ctx.store.get('prefs', { mode: 'bot', level: 'medium', start: 501 });
+  var prefs = ctx.store.get('prefs', { mode: 'bot', level: 'medium', start: 501, aim: 'drag' });
+  if (prefs.aim !== 'bars') prefs.aim = 'drag';
   if (prefs.mode !== 'bot' && prefs.mode !== 'people') prefs.mode = 'bot';
   if (LEVELS.indexOf(prefs.level) < 0) prefs.level = 'medium';
   if (prefs.start !== 301 && prefs.start !== 501) prefs.start = 501;
@@ -308,6 +331,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
   // G: the game. phase: 'aim' (a person throws), 'busy' (a dart flies or a bot
   // throws), 'done'.
   var G = null, timer = null, aiming = null, flight = null, raf = 0, kbAim = null, marks = [];
+  // bars: the two-line aim while it runs, { stage: 0 or 1, x: the stopped upright line, t0, ph }
+  var bars = null;
 
   var cv = document.createElement('canvas');
   cv.className = 'dt-canvas';
@@ -378,6 +403,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
 
   function fly(x, y, h) {
     G.phase = 'busy';
+    bars = null;
     G.msg = '';
     C.feedback('whoosh');
     flight = { x: x, y: y, h: h, t0: performance.now(), dur: C.ui.reduceMotion() ? 60 : 420 };
@@ -584,6 +610,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
       paintDart(g, p.x * rb, p.y * rb, col.c[o.seat] || col.c[0], 1 + 1.8 * Math.pow(1 - t, 1.4), p.dir * (1 - t) * 0.6, rb);
     }
     if (o.sight) paintSight(g, o.sight[0] * rb, o.sight[1] * rb, W);
+    if (o.bars) paintBars(g, o.bars, rb, W);
     g.restore();
   }
 
@@ -642,6 +669,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
     g.fillStyle = '#FFFFFF'; g.beginPath(); g.arc(x, y, Math.max(1.5, W / 300), 0, Math.PI * 2); g.fill();
   }
 
+  // The two aiming lines across the whole board, white over a dark edge so they
+  // read on every bed; once both run, a sight marks where they cross
+  function paintBars(g, b, rb, W) {
+    var e = W / 2, lw = Math.max(2, W / 170);
+    var line = function (x0, y0, x1, y1) {
+      g.lineWidth = lw * 2.4; g.strokeStyle = 'rgba(0,0,0,.55)';
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+      g.lineWidth = lw; g.strokeStyle = '#FFFFFF';
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+    };
+    // kept inside the round board: the canvas is square, and the first draft's
+    // lines ran on into its empty corners, over the page
+    g.save();
+    g.beginPath(); g.arc(0, 0, e, 0, Math.PI * 2); g.clip();
+    line(b.x * rb, -e, b.x * rb, e);
+    if (b.y != null) line(-e, b.y * rb, e, b.y * rb);
+    g.restore();
+    if (b.y != null) paintSight(g, b.x * rb, b.y * rb, W);
+  }
+
   // The hand's wobble at time t (ms): two slow waves on each axis, never still
   function wobble(t) {
     var s = t / 1000;
@@ -657,8 +704,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
     return [base[0] + w[0], base[1] + w[1]];
   }
 
+  function barsOn() { return prefs.aim === 'bars' && canAim(); }
+  function barNow() { return E.sweep(bars.ph + (performance.now() - bars.t0) / BAR_MS) * BAR_REACH; }
+  // Each line starts from a random point of its sweep, so the first tap can't
+  // be learned as a fixed count
+  function barStart(stage, x) { return { stage: stage, x: x, t0: performance.now(), ph: Math.random() * 2 }; }
+  function stopBar() {
+    if (!barsOn()) return;
+    if (!bars) { bars = barStart(0, 0); kick(); return; }
+    var v = barNow();
+    if (bars.stage === 0) { bars = barStart(1, v); C.feedback('tap'); drawStatus(); kick(); return; }
+    release(bars.x, v);
+  }
+
   function draw() {
     if (!G) return;
+    if (barsOn() && !bars) bars = barStart(0, 0);
     var B = boardSize(), dpr = Math.min(2, window.devicePixelRatio || 1);
     // both sides: a new canvas is 300×150, so a board exactly 300px wide kept a
     // 150px-high backing and was drawn squashed (#359, seen in Ludo)
@@ -667,12 +728,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
     var g = cv.getContext('2d');
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, B.w, B.w);
-    paintBoard(g, B.w, { marks: marks, flight: flight, seat: G.s.turn, sight: G.phase === 'aim' ? sightNow() : null });
+    var aimBars = bars && barsOn() ? (bars.stage === 0 ? { x: barNow() } : { x: bars.x, y: barNow() }) : null;
+    paintBoard(g, B.w, { marks: marks, flight: flight, seat: G.s.turn, sight: G.phase === 'aim' && !aimBars ? sightNow() : null, bars: aimBars });
   }
   function loop() {
     raf = 0;
     draw();
-    if (G && (flight || (G.phase === 'aim' && (aiming || kbAim))) && !document.hidden) raf = requestAnimationFrame(loop);
+    if (G && (flight || (G.phase === 'aim' && (aiming || kbAim)) || barsOn()) && !document.hidden) raf = requestAnimationFrame(loop);
   }
   function kick() { if (!raf) raf = requestAnimationFrame(loop); }
 
@@ -714,16 +776,29 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
       top.appendChild(el('span', { class: 'ch-badge ch-badge--accent' },
         [C.icon('calendar', 14), el('span', { text: C.t('dailyDarts') + ' — ' + C.num(G.daily) })]));
       top.appendChild(el('span', { class: 'ch-badge', text: C.t('dailySolo') + ' · ' + C.num(G.s.thrown[0]) + '/' + C.num(DAILY_DARTS) }));
+      top.appendChild(aimToggle());
       return;
     }
     var parts = [C.num(G.start), G.mode === 'bot' ? C.t('vsBot') + ' · ' + C.t(G.level) : C.t('people')];
     top.appendChild(el('button', { class: 'ch-badge ch-tap', type: 'button', onclick: askNew, text: parts.join(' · ') }));
+    top.appendChild(aimToggle());
+  }
+  // Switches the aim control at once, mid-turn too; the choice is kept (#372)
+  function aimToggle() {
+    return el('button', { class: 'ch-badge ch-tap dt-aimmode', type: 'button',
+      onclick: function () {
+        prefs.aim = prefs.aim === 'bars' ? 'drag' : 'bars';
+        ctx.store.set('prefs', prefs);
+        bars = null; aiming = null; kbAim = null;
+        render(); kick();
+      } }, [el('span', { text: C.t('aimMode') + ': ' + C.t(prefs.aim === 'bars' ? 'aimBars' : 'aimDrag') })]);
   }
 
   var touchSeen = false;
   function drawStatus() {
     var who = G.s.turn === 0 ? C.t('yourTurn') : (isBot(G.s.turn) ? C.t('botThrows', { n: pname(G.s.turn) }) : C.t('turnOf', { n: pname(G.s.turn) }));
-    statusMain.textContent = G.msg ? G.msg : (G.phase === 'aim' ? (G.mode === 'people' ? who + ' · ' : '') + C.t(touchSeen ? 'aimTouch' : 'aim') : who);
+    var how = prefs.aim === 'bars' ? (bars && bars.stage === 1 ? 'barY' : 'barX') : (touchSeen ? 'aimTouch' : 'aim');
+    statusMain.textContent = G.msg ? G.msg : (G.phase === 'aim' ? (G.mode === 'people' ? who + ' · ' : '') + C.t(how) : who);
     var co = !G.done && !isBot(G.s.turn) ? E.checkout(G.s.rem[G.s.turn], 3 - G.s.darts.length) : null;
     statusHint.textContent = co ? C.t('finish') + ': ' + co.map(labelOf).join(' · ') : (G.s.rem[G.s.turn] <= 170 && !G.done ? C.t('noFinish') : '');
   }
@@ -750,6 +825,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
   cv.addEventListener('pointerdown', function (e) {
     if (!canAim()) return;
     e.preventDefault();
+    if (prefs.aim === 'bars') { G.msg = ''; stopBar(); return; }
     if (e.pointerType === 'touch' && !touchSeen) { touchSeen = true; drawStatus(); }
     kbAim = null;
     aiming = { id: e.pointerId, at: toBoard(e) };
@@ -772,6 +848,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
   window.addEventListener('keydown', function (e) {
     if (!canAim()) return;
     var k = e.key, step = e.shiftKey ? 0.01 : 0.04;
+    if (prefs.aim === 'bars') {
+      if (k === ' ' || k === 'Enter') { e.preventDefault(); G.msg = ''; stopBar(); }
+      return;
+    }
     var mv = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[k];
     if (mv) {
       e.preventDefault();
@@ -793,7 +873,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
   else window.addEventListener('resize', function () { if (G) draw(); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden && G) kick(); });
   // A pause mid-throw lets that dart land when the game comes back
-  C.onPause(function () { stop(); aiming = null; });
+  C.onPause(function () { stop(); aiming = null; bars = null; });
   C.onResume(function () {
     if (!G || G.done) return;
     if (flight) { var f = flight; landed(f.x, f.y, f.h); return; }
@@ -810,8 +890,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
       title: C.t('help'),
       body: [
         el('p', { class: 'ch-dim', text: C.t('rules') }),
+        el('p', { class: 'ch-dim', text: C.t('aimHelp') }),
         el('h3', { style: { 'margin-top': 'var(--s-4)' }, text: C.t('keyboard') }),
-        el('div', { class: 'ch-list' }, [kb('← → ↑ ↓ / Shift', C.t('aimKey')), kb('Space / Enter', C.t('throwKey'))])
+        el('div', { class: 'ch-list' }, [kb('← → ↑ ↓ / Shift', C.t('aimKey')), kb('Space / Enter', C.t('throwKey') + ' · ' + C.t('stopKey'))])
       ],
       actions: [
         { label: C.t('tutorial'), onClick: function () { ctx.showTutorial(TUT); } },
