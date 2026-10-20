@@ -35,7 +35,7 @@ The games:
 * Darts — 501 or 301, three darts a turn, finish on a double; against a bot or two players
 * Bowling — ten frames, swipe to bowl and bend it for spin; alone, against a bot or two players
 * Sliding Puzzle — slide the numbered tiles back into order, from 3×3 to 5×5, in as few moves as you can
-* Jigsaw — drag the pieces into the frame, 12 to 48 of them, on Persian patterns and scenes drawn in code
+* Jigsaw — drag the pieces into the frame, 12 to 150 of them, on Persian patterns and scenes drawn in code
 * Checkers — 8×8 draughts with forced jumps and kings, classic or Spanish rules (flying kings), against the AI at three levels or two players
 
 Around the games:
