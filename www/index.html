@@ -848,7 +848,14 @@
       ]),
       el('div', { class: 'ch-item' }, [
         el('div', { class: 'ch-item__label', text: C.t('version') }),
-        el('span', { class: 'ch-badge', text: C.num(C.version) })
+        el('div', { class: 'ch-version' }, [
+          el('span', { class: 'ch-badge', text: C.num(C.version) }),
+          // The word says what the code is; the hash itself is Latin hex in every
+          // language, so it sits in its own left-to-right run.
+          C.build ? el('span', { class: 'ch-version__build ch-dim' }, [
+            C.t('commitHash') + ' ', el('bdi', { class: 'ch-version__hash', dir: 'ltr', text: C.build })
+          ]) : null
+        ])
       ]),
       // The same game runs on the web, as the Android app and as a Telegram Mini App
       // (@chogangamebot opens the web build; no Telegram script is loaded here) (#203)

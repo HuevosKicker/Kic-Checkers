@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4239;
+const MIN_CHECKS = 4244;
 
 function ok(cond, msg) {
   checks++;
@@ -8047,6 +8047,25 @@ function testFullscreenCarry() {
   ok(/btn\.setAttribute\('data-fs', ''\)/.test(core), 'the fullscreen button carries data-fs');
 }
 
+function testBuildShown() {
+  head('Profile shows the deployed build under the version (#387)');
+  // Fixes reach the web without a new version, so a screenshot of the profile
+  // could not tell whether a fix was in it (#370).
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const line = (core.match(/^  Chogan\.build = .*$/m) || [''])[0];
+  ok(line.length > 0, 'Chogan.build found in the core');
+  const build = (commit) => {
+    const C = {};
+    try { vm.runInNewContext('(function (global, Chogan) { ' + line + ' })', {})({ APP_COMMIT: commit }, C); } catch (e) { return 'threw ' + e.message; }
+    return C.build;
+  };
+  ok(build('711e157de04557876683c451d9bcac9dc85122b3') === '711e157', 'a stamped commit shows as its 7-character short form');
+  ok(build(undefined) === '', 'an unstamped build (dev, Android) shows nothing');
+  ok(build("x'; alert(1)") === '', 'anything that is not a commit shows nothing');
+  const menu = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
+  ok(/C\.t\('commitHash'\) \+ ' ', el\('bdi', \{ class: 'ch-version__hash', dir: 'ltr', text: C\.build \}\)/.test(menu), 'the profile version row names the commit and shows C.build left to right');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8347,6 +8366,7 @@ testShortcuts();
 testMenu();
 testKeyboardNav();
 testFullscreenCarry();
+testBuildShown();
 testMenuSelect();
 testModalFocus();
 testTelegramPost();
