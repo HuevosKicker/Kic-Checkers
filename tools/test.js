@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4223;
+const MIN_CHECKS = 4228;
 
 function ok(cond, msg) {
   checks++;
@@ -95,6 +95,32 @@ function testSudoku() {
     for (let r = 0; r < 9; r++) if (q.slice(r * 9, r * 9 + 9).every((v) => !v)) emptyRow++;
   }
   ok(emptyRow > 0, 'مولد جدولی با ردیف کاملاً خالی هم می‌سازد، پس این حالت واقعی است');
+
+  // "Same digit only" highlight (#377): the page's own functions run over a real grid. With it on no
+  // cell gets the row, column and box shading and the cells with the selected digit still do;
+  // the default keeps today's look. The choice is saved in prefs and repaints at once.
+  const fnSrc = (name) => {
+    const at = sdHtml.indexOf('function ' + name + '(');
+    if (at < 0) return '';
+    for (let i = sdHtml.indexOf('{', at), d = 0; i < sdHtml.length; i++) {
+      if (sdHtml[i] === '{') d++;
+      else if (sdHtml[i] === '}' && --d === 0) return sdHtml.slice(at, i + 1);
+    }
+    return '';
+  };
+  const hlSrc = fnSrc('hlMarks'), peerSrc = fnSrc('isPeer');
+  ok(hlSrc.length > 0 && peerSrc.length > 0, 'the Sudoku page has hlMarks and isPeer (#377)');
+  if (hlSrc && peerSrc) {
+    const hlMarks = new Function(peerSrc + '\n' + hlSrc + '\nreturn hlMarks;')();
+    const sol = E.makePuzzle(rng(377), 'easy').solution, sel = 40, sv = sol[sel];
+    const count = (mode) => { let p = 0, s2 = 0; for (let c = 0; c < 81; c++) { const m = hlMarks(c, sel, sv, sol[c], mode); if (m.peer) p++; if (m.same) s2++; } return [p, s2]; };
+    const [pDef, sDef] = count(undefined), [pPeer] = count('peers'), [pDig, sDig] = count('digit');
+    ok(pDef === 20 && pPeer === 20 && sDef === 8, 'by default the selected cell\'s 20 row, column and box cells are shaded and the 8 other cells with its digit too (' + pDef + ', ' + sDef + ')');
+    ok(pDig === 0 && sDig === 8, 'with "Same digit only" no cell gets the peer shading and the 8 matching digits still stand out (' + pDig + ', ' + sDig + ')');
+  }
+  ok(/var hl = hlMarks\(c, selected, selVal, v, prefs\.highlight\);/.test(sdHtml) && /prefs\.highlight = v; ctx\.store\.set\('prefs', prefs\); paint\(\);/.test(sdHtml),
+    'the page paints with the saved choice, and switching saves it and repaints without a restart');
+  ok(['fa', 'en', 'zh', 'de', 'es'].every((l) => new RegExp('\\n      ' + l + ": \\{[\\s\\S]*?highlight: '[^']+', hlPeers: '[^']+', hlDigit: '[^']+'").test(sdHtml)), 'the option is labelled in all five languages');
 
   // شمارنده‌ی زیر دکمه‌های عدد (#124): هر عدد روی جدول شمرده می‌شود، درست یا غلط،
   // و قفل فقط با نُه جاگذاری درست. تابع واقعی صفحه اجرا می‌شود.

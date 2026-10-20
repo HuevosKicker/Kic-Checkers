@@ -357,7 +357,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
     strings: {
       fa: {
         mistakes: 'خطا', hints: 'راهنمایی', notes: 'یادداشت', erase: 'پاک‌کن', move: 'جابه‌جایی',
-        autoNotes: 'یادداشت خودکار', showErrors: 'نمایش خطا', newPuzzle: 'جدول تازه',
+        autoNotes: 'یادداشت خودکار', showErrors: 'نمایش خطا',
+        highlight: 'برجسته‌سازی', hlPeers: 'سطر، ستون و بلوک', hlDigit: 'فقط رقم یکسان', newPuzzle: 'جدول تازه',
         solvedIn: 'در {t} حل شد', noMoreEmpty: 'خانه‌ی خالی نمانده',
         dailySudoku: 'سودوکوی روزانه', clues: 'سرنخ',
         tutTitle1: 'قانون بازی', tutText1: 'هر سطر، هر ستون و هر بلوک سه‌درسه باید اعداد یک تا نه را دقیقاً یک بار داشته باشد.',
@@ -366,7 +367,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       },
       en: {
         mistakes: 'Errors', hints: 'Hints', notes: 'Notes', erase: 'Erase', move: 'Move',
-        autoNotes: 'Auto notes', showErrors: 'Show errors', newPuzzle: 'New puzzle',
+        autoNotes: 'Auto notes', showErrors: 'Show errors',
+        highlight: 'Highlight', hlPeers: 'Row, column and box', hlDigit: 'Same digit only', newPuzzle: 'New puzzle',
         solvedIn: 'Solved in {t}', noMoreEmpty: 'No empty cells left',
         dailySudoku: 'Daily sudoku', clues: 'clues',
         tutTitle1: 'The rule', tutText1: 'Every row, column and 3x3 block must contain each digit from one to nine exactly once.',
@@ -375,7 +377,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       },
       zh: {
         mistakes: '错误', hints: '提示', notes: '笔记', erase: '擦除', move: '移动',
-        autoNotes: '自动笔记', showErrors: '显示错误', newPuzzle: '新题',
+        autoNotes: '自动笔记', showErrors: '显示错误',
+        highlight: '高亮', hlPeers: '行、列和宫', hlDigit: '仅相同数字', newPuzzle: '新题',
         solvedIn: '用时 {t} 解开', noMoreEmpty: '没有空格了',
         dailySudoku: '每日数独', clues: '提示数',
         tutTitle1: '规则', tutText1: '每一行、每一列和每个三宫格都必须包含一到九各一次。',
@@ -384,7 +387,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       },
       de: {
         mistakes: 'Fehler', hints: 'Tipps', notes: 'Notizen', erase: 'Löschen', move: 'Bewegen',
-        autoNotes: 'Auto-Notizen', showErrors: 'Fehler zeigen', newPuzzle: 'Neues Rätsel',
+        autoNotes: 'Auto-Notizen', showErrors: 'Fehler zeigen',
+        highlight: 'Hervorheben', hlPeers: 'Zeile, Spalte und Block', hlDigit: 'Nur gleiche Ziffer', newPuzzle: 'Neues Rätsel',
         solvedIn: 'Gelöst in {t}', noMoreEmpty: 'Keine leeren Felder mehr',
         dailySudoku: 'Tages-Sudoku', clues: 'Vorgaben',
         tutTitle1: 'Die Regel', tutText1: 'Jede Zeile, jede Spalte und jeder 3x3-Block muss jede Ziffer von eins bis neun genau einmal enthalten.',
@@ -393,7 +397,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       },
       es: {
         mistakes: 'Errores', hints: 'Pistas', notes: 'Notas', erase: 'Borrar', move: 'Mover',
-        autoNotes: 'Notas auto', showErrors: 'Ver errores', newPuzzle: 'Nuevo sudoku',
+        autoNotes: 'Notas auto', showErrors: 'Ver errores',
+        highlight: 'Resaltar', hlPeers: 'Fila, columna y bloque', hlDigit: 'Solo el mismo número', newPuzzle: 'Nuevo sudoku',
         solvedIn: 'Resuelto en {t}', noMoreEmpty: 'No quedan casillas vacías',
         dailySudoku: 'Sudoku diario', clues: 'pistas',
         tutTitle1: 'La regla', tutText1: 'Cada fila, cada columna y cada bloque de 3x3 debe contener cada número del uno al nueve exactamente una vez.',
@@ -555,6 +560,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
     return { left: left, locked: locked };
   }
 
+  // Which shading a cell gets. "Same digit only" drops the row, column and box shading for a
+  // harder, more focused look, and keeps the cells with the selected digit (#377)
+  function hlMarks(c, sel, selVal, v, mode) {
+    return {
+      peer: mode !== 'digit' && sel >= 0 && c !== sel && isPeer(c, sel),
+      same: !!selVal && v === selVal && c !== sel
+    };
+  }
+
   function paint() {
     var bad = prefs.showErrors ? E.conflicts(S.grid) : {};
     var selVal = selected >= 0 ? S.grid[selected] : 0;
@@ -568,8 +582,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       if (given) cls += ' sd-cell--given';
       else if (S.hinted[c]) cls += ' sd-cell--hinted';
       else if (v) cls += ' sd-cell--user';
-      if (selected >= 0 && c !== selected && isPeer(c, selected)) cls += ' sd-cell--peer';
-      if (selVal && v === selVal && c !== selected) cls += ' sd-cell--same';
+      var hl = hlMarks(c, selected, selVal, v, prefs.highlight);
+      if (hl.peer) cls += ' sd-cell--peer';
+      if (hl.same) cls += ' sd-cell--same';
       if (bad[c]) cls += ' sd-cell--bad';
       if (c === selected) cls += ' sd-cell--sel';
       b.className = cls;
@@ -813,6 +828,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
         el('div', { class: 'ch-list' }, [
           settingRow('showErrors', 'showErrors'),
           el('div', { class: 'ch-item' }, [
+            el('div', { class: 'ch-item__label', text: C.t('highlight') }),
+            hlSeg()
+          ]),
+          el('div', { class: 'ch-item' }, [
             el('div', { class: 'ch-item__label', text: C.t('autoNotes') }),
             el('button', { class: 'ch-btn ch-btn--soft ch-btn--sm', type: 'button', text: C.t('apply'),
               onclick: function () { fillNotes(); } })
@@ -839,6 +858,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       el('div', { class: 'ch-item__label', text: what }),
       el('span', { class: 'ch-badge', text: k })
     ]);
+  }
+  // Two long labels do not fit beside the title on a phone, so the choice takes its own full row
+  function hlSeg() {
+    var seg = C.ui.segmented([{ value: 'peers', label: C.t('hlPeers') }, { value: 'digit', label: C.t('hlDigit') }],
+      prefs.highlight === 'digit' ? 'digit' : 'peers',
+      function (v) { prefs.highlight = v; ctx.store.set('prefs', prefs); paint(); });
+    seg.classList.add('ch-seg--wrap');
+    return seg;
   }
   function settingRow(key, labelKey) {
     return el('div', { class: 'ch-item' }, [
