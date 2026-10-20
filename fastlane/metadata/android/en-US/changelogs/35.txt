@@ -1,0 +1,5 @@
+Improvements:
+- Jigsaw: 100 pictures, none repeated until all are finished, and 96 or 150 pieces on bigger screens
+- Sudoku: an option to highlight only the same digit
+- Backgammon: rotate the board in four directions
+- Darts: a second aiming control with two sweeping lines

@@ -1,0 +1,4 @@
+Rompecabezas: 100 imágenes, ninguna se repite hasta terminarlas todas, y 96 o 150 piezas en pantallas más grandes.
+Sudoku: opción para resaltar solo el mismo dígito.
+Backgammon: girar el tablero en cuatro direcciones.
+Dardos: un segundo modo de apuntar con dos líneas que se mueven.
