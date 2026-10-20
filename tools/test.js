@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4203;
+const MIN_CHECKS = 4210;
 
 function ok(cond, msg) {
   checks++;
@@ -6985,6 +6985,20 @@ function testDarts() {
   ok(/C\.feedback\('whoosh'\)/.test(html) && /C\.feedback\(h\.m \? 'thud' : 'tap'\)/.test(html), 'a throw whooshes and a dart on the board thuds');
   ok(/C\.daily\('darts', G\.daily \+ '\|' \+ G\.s\.thrown\[0\]\)\.rng/.test(html) && /C\.stats\.daily\('darts', G\.daily/.test(html) && /DAILY_DARTS = 60/.test(html), 'the daily scatter comes from the day and the dart number, is recorded, and stops after 60 darts');
   ok(/ctx\.autosave\(/.test(html) && /ctx\.tutorialIfNew\(TUT\)/.test(html), 'the game autosaves and shows its tutorial once');
+  // The two-line aim (#372): an even sweep from edge to edge and back
+  ok(typeof E.sweep === 'function', 'the engine has the aiming sweep');
+  if (typeof E.sweep === 'function') {
+    const at = [0, 0.25, 0.5, 1, 1.5, 2, 2.5, 3].map((u) => +E.sweep(u).toFixed(9));
+    ok(JSON.stringify(at) === JSON.stringify([-1, -0.5, 0, 1, 0, -1, 0, 1]), 'the sweep runs -1 to 1 and back at an even speed (' + at + ')');
+    let even = true;
+    for (let u = 0; u < 4; u += 0.01) if (Math.abs(Math.abs(E.sweep(u + 0.01) - E.sweep(u)) - 0.02) > 1e-9 && Math.floor(u) === Math.floor(u + 0.01)) even = false;
+    ok(even, 'the sweep never speeds up or slows down within a pass');
+  }
+  const reach = +(html.match(/BAR_REACH = ([\d.]+)/) || [])[1];
+  ok(reach > 1 && reach < 1.28, 'the lines reach past the double ring but stay on the board (' + reach + ')');
+  ok(/if \(prefs\.aim !== 'bars'\) prefs\.aim = 'drag';/.test(html) && /prefs\.aim = prefs\.aim === 'bars' \? 'drag' : 'bars';\s*ctx\.store\.set\('prefs', prefs\);/.test(html), 'the aim control switches both ways and is remembered');
+  ok(/if \(prefs\.aim === 'bars'\) \{ G\.msg = ''; stopBar\(\); return; \}/.test(html) && /if \(k === ' ' \|\| k === 'Enter'\) \{ e\.preventDefault\(\); G\.msg = ''; stopBar\(\); \}/.test(html), 'a tap or Space stops the lines in the two-line control');
+  ok((html.match(/top\.appendChild\(aimToggle\(\)\)/g) || []).length === 2, 'the aim switch shows in normal games and in the daily');
   ok(Date.now() - t0 < 8000, 'the Darts group runs in under eight seconds (' + (Date.now() - t0) + 'ms)');
 }
 
