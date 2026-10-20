@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4185;
+const MIN_CHECKS = 4203;
 
 function ok(cond, msg) {
   checks++;
@@ -7804,6 +7804,71 @@ function testMenu() {
   ok(fsAvail('browser', { api: false }) === false, 'مرورگر بی Fullscreen API: دکمه نیست');
 }
 
+function testFullscreenCarry() {
+  head('Fullscreen carries over to the next page (#370)');
+  // Every page load leaves fullscreen, so opening a game from a fullscreen
+  // menu dropped back to the browser window. The real core code runs here
+  // against a fake browser: one tab's sessionStorage, shared by its pages.
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const from = core.indexOf('Chogan.fullscreen = {');
+  const to = core.indexOf('/* ======================================================= playing cards */');
+  ok(from > 0 && to > from, 'fullscreen section found in the core');
+  const tab = new Map();
+  const page = () => {
+    const L = {};
+    const calls = { req: 0 };
+    const add = (t, f) => { (L[t] = L[t] || []).push(f); };
+    const rm = (t, f) => { L[t] = (L[t] || []).filter((g) => g !== f); };
+    const doc = {
+      fullscreenEnabled: true, fullscreenElement: null,
+      documentElement: { requestFullscreen: () => { calls.req++; return { then: (a) => { calls.ok = a; } }; } },
+      exitFullscreen: () => ({ then() {} }),
+      addEventListener: add, removeEventListener: rm,
+    };
+    const g = {
+      matchMedia: () => ({ matches: false }),
+      navigator: { userActivation: { isActive: true } },
+      sessionStorage: { getItem: (k) => (tab.has(k) ? tab.get(k) : null), setItem: (k, v) => tab.set(k, String(v)), removeItem: (k) => tab.delete(k) },
+      addEventListener: add, removeEventListener: rm,
+    };
+    const fire = (t, e) => (L[t] || []).slice().forEach((f) => f(Object.assign({ type: t }, e || {})));
+    try {
+      vm.runInNewContext('(function (global, document, Chogan, el) { ' + core.slice(from, to) + ' })', {})(g, doc, {}, () => ({}));
+    } catch (e) { ok(false, 'fullscreen section did not run: ' + e.message); }
+    const setOn = (v) => { doc.fullscreenElement = v ? {} : null; fire('fullscreenchange'); };
+    return { calls, fire, setOn, g, listening: () => ['pointerup', 'keydown', 'click'].some((t) => (L[t] || []).length) };
+  };
+  const tap = { target: { closest: () => null } };
+
+  const menu = page();
+  ok(!menu.listening(), 'a fresh tab does not wait to enter fullscreen');
+  menu.setOn(true);
+  ok(tab.get('chogan.fullscreen') === '1', 'entering fullscreen is remembered for the tab');
+  menu.fire('pagehide');
+  menu.setOn(false);
+  ok(tab.get('chogan.fullscreen') === '1', 'the exit caused by leaving the page does not forget it');
+
+  const game = page();
+  ok(game.listening(), 'the next page waits for a tap');
+  game.fire('keydown', { key: 'Escape', target: tap.target });
+  ok(game.calls.req === 0, 'Escape does not re-enter fullscreen');
+  game.fire('pointerup', { target: { closest: (q) => (q === '[data-fs]' ? {} : null) } });
+  ok(game.calls.req === 0, 'a tap on the fullscreen button is left to the button');
+  game.g.navigator.userActivation.isActive = false;
+  game.fire('pointerup', tap);
+  ok(game.calls.req === 0, 'no request without a user activation');
+  game.g.navigator.userActivation.isActive = true;
+  game.fire('pointerup', tap);
+  ok(game.calls.req === 1, 'the first real tap re-enters fullscreen');
+  if (game.calls.ok) game.calls.ok();
+  ok(!game.listening(), 'after that the page stops listening');
+  game.setOn(true);
+  game.setOn(false);
+  ok(!tab.has('chogan.fullscreen'), 'leaving fullscreen on the page forgets it');
+  ok(!page().listening(), 'so the page after that stays in the window');
+  ok(/btn\.setAttribute\('data-fs', ''\)/.test(core), 'the fullscreen button carries data-fs');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8103,6 +8168,7 @@ testUndoKey();
 testShortcuts();
 testMenu();
 testKeyboardNav();
+testFullscreenCarry();
 testMenuSelect();
 testModalFocus();
 testTelegramPost();

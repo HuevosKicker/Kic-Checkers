@@ -1682,6 +1682,7 @@
     button: function (extraClass) {
       if (!Chogan.fullscreen.available()) return null;
       var btn = el('button', { class: 'ch-iconbtn' + (extraClass ? ' ' + extraClass : ''), type: 'button' });
+      btn.setAttribute('data-fs', '');
       var sync = function () {
         var on = Chogan.fullscreen.on();
         btn.innerHTML = '';
@@ -1700,6 +1701,48 @@
       return btn;
     }
   };
+
+  // Every page load leaves fullscreen and a browser only enters it again on a
+  // tap, so opening a game from a fullscreen menu dropped back to the browser
+  // window (#370). The choice is kept for this tab only (sessionStorage), and
+  // the first tap or key on the next page takes it back. Leaving the page also
+  // ends fullscreen; that exit must not count as the player turning it off.
+  (function () {
+    var KEY = 'chogan.fullscreen';
+    var leaving = false;
+    function wanted() {
+      try { return global.sessionStorage.getItem(KEY) === '1'; } catch (e) { return false; }
+    }
+    function remember(v) {
+      try {
+        if (v) global.sessionStorage.setItem(KEY, '1');
+        else global.sessionStorage.removeItem(KEY);
+      } catch (e) { /* storage blocked: fullscreen just won't carry over */ }
+    }
+    if (!Chogan.fullscreen.available()) return;
+    document.addEventListener('fullscreenchange', function () {
+      if (!leaving) remember(Chogan.fullscreen.on());
+    });
+    global.addEventListener('pagehide', function () { leaving = true; });
+    global.addEventListener('pageshow', function () { leaving = false; });
+    if (!wanted() || Chogan.fullscreen.on()) return;
+    var events = ['pointerup', 'keydown', 'click'];
+    var restore = function (e) {
+      if (Chogan.fullscreen.on() || !wanted()) return done();
+      if (e.type === 'keydown' && e.key === 'Escape') return;
+      // The button's own click toggles; restoring first would make it exit again.
+      if (e.target && e.target.closest && e.target.closest('[data-fs]')) return;
+      // Without a real user activation the request is refused; wait for one.
+      var ua = global.navigator && global.navigator.userActivation;
+      if (ua && !ua.isActive) return;
+      var p = Chogan.fullscreen.toggle();
+      if (p && p.then) p.then(done, function () { /* refused: try the next tap */ });
+    };
+    var done = function () {
+      events.forEach(function (t) { global.removeEventListener(t, restore, true); });
+    };
+    events.forEach(function (t) { global.addEventListener(t, restore, true); });
+  })();
 
   /* ======================================================= playing cards */
   // Shared by every card game (Pasur, Hokm): a game never draws its own deck (#178).
