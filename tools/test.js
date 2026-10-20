@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4211;
+const MIN_CHECKS = 4221;
 
 function ok(cond, msg) {
   checks++;
@@ -6650,8 +6650,9 @@ function testJigsaw() {
   const E = loadEngine('jigsaw', 'JigsawEngineFactory');
   const html = fs.readFileSync(path.join(ROOT, 'www/games/jigsaw/index.html'), 'utf8');
   const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
-  ok(['cut', 'edges', 'outline', 'layout', 'deal', 'fits', 'place', 'restore'].every((f) => typeof E[f] === 'function'), 'the engine has its API');
-  ok(JSON.stringify(E.COUNTS) === '[12,24,48]' && E.COUNTS.every((n) => E.CUTS[n][0] * E.CUTS[n][1] === n) && E.DAILY_COUNT === 24, '12, 24 and 48 pieces, each cut into whole rows and columns, and 24 for the daily one');
+  ok(['cut', 'edges', 'outline', 'layout', 'offered', 'picsFor', 'pick', 'deal', 'fits', 'place', 'restore'].every((f) => typeof E[f] === 'function'), 'the engine has its API');
+  ok(JSON.stringify(E.COUNTS) === '[12,24,48,96,150]' && E.COUNTS.every((n) => E.CUTS[n][0] * E.CUTS[n][1] === n) && E.DAILY_COUNT === 24 && E.CUTS[96].join() === '8,12' && E.CUTS[150].join() === '10,15',
+    '12, 24, 48, 96 (8×12) and 150 (10×15) pieces, each cut into whole rows and columns, and 24 for the daily one (#376)');
 
   // Piece size on a phone, with the page's own room for the row of pieces and the bars
   const trayH = +((html.match(/var TRAY_H = (\d+)/) || [])[1]);
@@ -6661,7 +6662,7 @@ function testJigsaw() {
   // a game page's top bar is about 61px; the rest of the screen is the game's
   const sizes = [];
   for (const [W, H] of [[390, 844], [360, 640]]) {
-    for (const n of E.COUNTS) {
+    for (const n of [12, 24, 48]) {
       const L = E.layout(W - side, H - 61 - trayH - extra, n);
       sizes.push(W + 'x' + H + '/' + n + ': ' + Math.floor(Math.min(L.cw, L.ch)) + 'px');
       ok(Math.min(L.cw, L.ch) >= 44 && L.w <= W - side && L.h <= H - 61 - trayH - extra, 'on a ' + W + '×' + H + ' phone, ' + n + ' pieces are ' + Math.floor(L.cw) + '×' + Math.floor(L.ch) + 'px: at least a fingertip, and the picture fits');
@@ -6669,6 +6670,47 @@ function testJigsaw() {
   }
   const L390 = E.layout(390 - side, 844 - 61 - trayH - extra, 48);
   ok(L390.cw >= 58, 'on a 390px phone even 48 pieces are about 60px wide (' + L390.cw.toFixed(1) + ')');
+  // 96 is offered everywhere, about 45px a piece on a 390px phone; 150 only where a piece keeps 44px (#376)
+  const room = (W, H) => [Math.min(W, 900) - side, Math.max(H - 61 - trayH - extra, 200)];
+  const L96 = E.layout(...room(390, 844), 96), L150 = (W, H) => E.layout(...room(W, H), 150);
+  ok(L96.cw >= 44 && L96.ch >= 39, 'on a 390×844 phone 96 pieces are ' + L96.cw.toFixed(1) + '×' + L96.ch.toFixed(1) + 'px');
+  const offers = (W, H) => E.offered(...room(W, H)).join();
+  ok(offers(390, 844) === '12,24,48,96' && offers(360, 640) === '12,24,48,96' && offers(412, 915) === '12,24,48,96' && offers(1280, 800) === '12,24,48,96',
+    'phones and a 1280×800 window do not offer 150 pieces (they would be ' + Math.min(L150(390, 844).cw, L150(390, 844).ch).toFixed(1) + ' and ' + Math.min(L150(1280, 800).cw, L150(1280, 800).ch).toFixed(1) + 'px)');
+  ok(offers(768, 1024) === '12,24,48,96,150' && offers(1280, 1024) === '12,24,48,96,150' && offers(1920, 1080 - 130) === '12,24,48,96,150' && Math.min(L150(768, 1024).cw, L150(768, 1024).ch) >= E.MIN_PIECE,
+    'a tablet, a 1280×1024 window and a full-HD browser offer 150 pieces of at least 44px (' + Math.min(L150(768, 1024).cw, L150(768, 1024).ch).toFixed(1) + 'px on the tablet)');
+  ok(/E\.offered\(r\[0\], r\[1\]\)/.test(html) && /function room\(\) \{/.test(html), 'the page offers the counts from the same room its layout uses');
+
+  // Pictures per size, and a new picture is one not finished yet at that size (#376)
+  ok(E.COUNTS.every((n) => E.picsFor(n).length >= 2) && E.PICS.every((id) => ['simple', 'detailed', 'both'].includes(E.FITS[id])) && E.PICS.every((id) => E.COUNTS.some((n) => E.picsFor(n).includes(id))),
+    'every count has pictures of its own and every picture is tagged with the sizes it suits (' + E.COUNTS.map((n) => n + ': ' + E.picsFor(n).length).join(', ') + ')');
+  ok(E.PICS.filter((id) => E.FITS[id] === 'simple').every((id) => E.picsFor(12).includes(id) && !E.picsFor(48).includes(id)) && E.PICS.filter((id) => E.FITS[id] === 'detailed').every((id) => !E.picsFor(24).includes(id) && E.picsFor(96).includes(id)),
+    'simple pictures are offered at 12 and 24 only, detailed ones at 48 and up');
+  let pickRuns = 0, pickBad = [];
+  for (const n of E.COUNTS) {
+    const pool = E.picsFor(n), pr = rng(0x376 + n);
+    let fin = [], last = null, round = [], resets = 0;
+    for (let g = 0; g < 110; g++) {
+      const got = E.pick(n, fin, last, pr);
+      pickRuns++;
+      if (!pool.includes(got.id)) pickBad.push(n + ': ' + got.id + ' is not for this size');
+      if (got.id === last) pickBad.push(n + ': ' + got.id + ' twice in a row');
+      if (got.finished.length === 0 && fin.length) { resets++; if (round.length !== pool.length) pickBad.push(n + ': started over after ' + round.length + ' of ' + pool.length); round = []; }
+      if (round.includes(got.id)) pickBad.push(n + ': ' + got.id + ' again before the round was over');
+      round.push(got.id);
+      fin = got.finished.concat([got.id]);
+      last = got.id;
+    }
+    if (resets < Math.floor(110 / pool.length) - 1) pickBad.push(n + ': only ' + resets + ' rounds');
+    // a game left unfinished is not counted, and the next one is still another picture
+    const a = E.pick(n, [], null, rng(1)), b = E.pick(n, a.finished, a.id, rng(1));
+    if (b.id === a.id || b.finished.length) pickBad.push(n + ': an unfinished game counted or repeated');
+  }
+  ok(pickRuns === 550 && !pickBad.length, 'over 110 finished games per size a picture never comes back before every one of that size is finished, never twice in a row, and an abandoned game is not counted (' + pickRuns + ' picks' + (pickBad.length ? '; ' + pickBad.slice(0, 3).join('; ') : '') + ')');
+  const other = E.picsFor(24).filter((id) => !E.picsFor(96).includes(id))[0] || E.picsFor(24)[0];
+  ok(!E.pick(96, [other], null, rng(2)).finished.length || !E.picsFor(96).includes(other), 'a picture finished at 24 pieces is still new at 96');
+  ok(/prefs\.done\[n\] = got;/.test(html) && /E\.pick\(n, prefs\.done\[n\], prefs\.last, rnd\)/.test(html) && /pool = E\.picsFor\(n\)/.test(html),
+    'the page counts a finished picture per size, picks through the engine, and draws the daily picture from the daily size\'s pictures');
 
   // Edges: a knob on one side is a hole on the other, and the picture's border is straight
   const r = rng(0x1650);
@@ -6684,7 +6726,7 @@ function testJigsaw() {
       if (right && down && border) edgeOk++;
     }
   }
-  ok(edgeAll === 84 && edgeOk === edgeAll, 'every piece of every cut fits its neighbours and the border is straight (' + edgeOk + ' of ' + edgeAll + ')');
+  ok(edgeAll === 330 && edgeOk === edgeAll, 'every piece of every cut fits its neighbours and the border is straight (' + edgeOk + ' of ' + edgeAll + ')');
 
   // The outlines meet: a piece's right side is its right neighbour's left side, point for point
   const sides = (e, cmds) => {
@@ -6734,7 +6776,11 @@ function testJigsaw() {
 
   // The pictures are our own, drawn in code
   const drawn = (html.match(/var DRAW = \{([^}]*)\}/) || [])[1] || '';
-  ok(E.PICS.length === 6 && E.PICS.every((id) => new RegExp('\\b' + id + ': ' + id + '\\b').test(drawn) && new RegExp('function ' + id + '\\(g\\)').test(html)), 'each of the six pictures has its own drawing function');
+  ok(E.PICS.length >= 6 && new Set(E.PICS).size === E.PICS.length && E.PICS.every((id) => new RegExp('\\b' + id + ': ' + id + '\\b').test(drawn) && new RegExp('function ' + id + '\\(g\\)').test(html)), 'each of the ' + E.PICS.length + ' pictures has its own drawing function');
+  const langs = ['fa', 'en', 'zh', 'de', 'es'], blocks = langs.map((l) => (html.match(new RegExp('\\n      ' + l + ': \\{([\\s\\S]*?)\\n      \\}')) || [])[1] || '');
+  const unnamed = [];
+  E.PICS.forEach((id) => blocks.forEach((b, i) => { if (!new RegExp('\\bpic_' + id + ": '[^']+'").test(b)) unnamed.push(langs[i] + ':' + id); }));
+  ok(blocks.every((b) => b.length > 500) && !unnamed.length, 'every picture has a name in all five languages (' + E.PICS.length * 5 + ' names' + (unnamed.length ? '; missing ' + unnamed.slice(0, 5).join(', ') : '') + ')');
   ok(!/<img\b|data:image|url\(|new Image\(|\.png|\.jpe?g|\.webp/i.test(html), 'the page loads no image of any kind: no photo, no file, no data URL');
 
   // Page wiring and identity
