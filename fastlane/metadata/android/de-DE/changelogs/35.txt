@@ -1,0 +1,4 @@
+Puzzle: 100 Bilder, keines wiederholt sich, bis alle fertig sind, und 96 oder 150 Teile auf größeren Bildschirmen.
+Sudoku: Option, nur die gleiche Ziffer hervorzuheben.
+Backgammon: das Brett in vier Richtungen drehen.
+Darts: eine zweite Zielhilfe mit zwei wandernden Linien.
