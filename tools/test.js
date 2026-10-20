@@ -6776,7 +6776,7 @@ function testJigsaw() {
 
   // The pictures are our own, drawn in code
   const drawn = (html.match(/var DRAW = \{([^}]*)\}/) || [])[1] || '';
-  ok(E.PICS.length >= 6 && new Set(E.PICS).size === E.PICS.length && E.PICS.every((id) => new RegExp('\\b' + id + ': ' + id + '\\b').test(drawn) && new RegExp('function ' + id + '\\(g\\)').test(html)), 'each of the ' + E.PICS.length + ' pictures has its own drawing function');
+  ok(E.PICS.length === 100 && new Set(E.PICS).size === E.PICS.length && E.PICS.every((id) => new RegExp('\\b' + id + ': ' + id + '\\b').test(drawn) && new RegExp('function ' + id + '\\(g\\)').test(html)), 'each of the ' + E.PICS.length + ' pictures has its own drawing function');
   // Every picture really draws, on a canvas that records what it is told (#376). Its shapes,
   // with the colours left out, must differ from every other picture's: a recolour is not a picture.
   const picSrc = (html.match(/function JigsawPictures\(\) \{[\s\S]*?\n\}\n/) || [''])[0];
