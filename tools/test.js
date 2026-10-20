@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4235;
+const MIN_CHECKS = 4239;
 
 function ok(cond, msg) {
   checks++;
@@ -7974,6 +7974,7 @@ function testFullscreenCarry() {
   const page = () => {
     const L = {};
     const calls = { req: 0 };
+    const timers = [];
     const add = (t, f) => { (L[t] = L[t] || []).push(f); };
     const rm = (t, f) => { L[t] = (L[t] || []).filter((g) => g !== f); };
     const doc = {
@@ -7985,6 +7986,7 @@ function testFullscreenCarry() {
     const g = {
       matchMedia: () => ({ matches: false }),
       navigator: { userActivation: { isActive: true } },
+      setTimeout: (f) => { timers.push(f); },
       sessionStorage: { getItem: (k) => (tab.has(k) ? tab.get(k) : null), setItem: (k, v) => tab.set(k, String(v)), removeItem: (k) => tab.delete(k) },
       addEventListener: add, removeEventListener: rm,
     };
@@ -7993,7 +7995,7 @@ function testFullscreenCarry() {
       vm.runInNewContext('(function (global, document, Chogan, el) { ' + core.slice(from, to) + ' })', {})(g, doc, {}, () => ({}));
     } catch (e) { ok(false, 'fullscreen section did not run: ' + e.message); }
     const setOn = (v) => { doc.fullscreenElement = v ? {} : null; fire('fullscreenchange'); };
-    return { calls, fire, setOn, g, listening: () => ['pointerup', 'keydown', 'click'].some((t) => (L[t] || []).length) };
+    return { calls, fire, setOn, g, timers, listening: () => ['pointerup', 'keydown', 'click'].some((t) => (L[t] || []).length) };
   };
   const tap = { target: { closest: () => null } };
 
@@ -8023,6 +8025,25 @@ function testFullscreenCarry() {
   game.setOn(false);
   ok(!tab.has('chogan.fullscreen'), 'leaving fullscreen on the page forgets it');
   ok(!page().listening(), 'so the page after that stays in the window');
+
+  // Back to the menu from the back/forward cache: the page's script does not
+  // run again, so only pageshow can make it wait for the restoring tap.
+  tab.clear();
+  const cached = page();
+  cached.setOn(true);
+  cached.fire('pagehide', { persisted: true });
+  cached.setOn(false);
+  cached.fire('pageshow', { persisted: true });
+  cached.setOn(false);
+  ok(tab.get('chogan.fullscreen') === '1', 'an exit arriving just after a cache restore does not forget fullscreen');
+  ok(cached.listening(), 'a page restored from the cache waits for a tap');
+  cached.fire('pointerup', tap);
+  ok(cached.calls.req === 1, 'the first tap on a page restored from the cache re-enters fullscreen');
+  if (cached.calls.ok) cached.calls.ok();
+  cached.timers.forEach((f) => f());
+  cached.setOn(true);
+  cached.setOn(false);
+  ok(!tab.has('chogan.fullscreen'), 'after the restore, turning fullscreen off is remembered again');
   ok(/btn\.setAttribute\('data-fs', ''\)/.test(core), 'the fullscreen button carries data-fs');
 }
 

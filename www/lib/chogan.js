@@ -1725,9 +1725,22 @@
       if (!leaving) remember(Chogan.fullscreen.on());
     });
     global.addEventListener('pagehide', function () { leaving = true; });
-    global.addEventListener('pageshow', function () { leaving = false; });
-    if (!wanted() || Chogan.fullscreen.on()) return;
     var events = ['pointerup', 'keydown', 'click'];
+    // The game's back button is history.back(), so the menu often comes back
+    // from the back/forward cache without running this script again: nothing
+    // waited for a tap there, and the tap that should restore fullscreen did
+    // nothing (#370). An exit queued while the page was cached may arrive just
+    // after pageshow, so it still counts as leaving for a moment.
+    global.addEventListener('pageshow', function (e) {
+      if (!e || !e.persisted) { leaving = false; return; }
+      global.setTimeout(function () { leaving = false; }, 1000);
+      arm();
+    });
+    var arm = function () {
+      if (!wanted() || Chogan.fullscreen.on()) return;
+      done();
+      events.forEach(function (t) { global.addEventListener(t, restore, true); });
+    };
     var restore = function (e) {
       if (Chogan.fullscreen.on() || !wanted()) return done();
       if (e.type === 'keydown' && e.key === 'Escape') return;
@@ -1742,7 +1755,7 @@
     var done = function () {
       events.forEach(function (t) { global.removeEventListener(t, restore, true); });
     };
-    events.forEach(function (t) { global.addEventListener(t, restore, true); });
+    arm();
   })();
 
   /* ======================================================= playing cards */
