@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4259;
+const MIN_CHECKS = 4266;
 
 function ok(cond, msg) {
   checks++;
@@ -8109,6 +8109,36 @@ function testBuildShown() {
   ok(/C\.t\('commitHash'\) \+ ' ', el\('bdi', \{ class: 'ch-version__hash', dir: 'ltr', text: C\.build \}\)/.test(menu), 'the profile version row names the commit and shows C.build left to right');
 }
 
+function testDarkInk() {
+  head('Dark theme: text on a game accent picks its ink by contrast (#394)');
+  // A fixed dark ink on primary buttons read at 2.4:1 on Bowling's blue in the
+  // dark theme, and below 4.5:1 on 25 of 35 accents.
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const fn = (core.match(/^  Chogan\.inkOn = function \(hex\) \{[\s\S]*?^  \};$/m) || [''])[0];
+  ok(fn.length > 0, 'Chogan.inkOn found in the core');
+  const C = {};
+  try { vm.runInNewContext('(function (Chogan) { ' + fn + ' })', { Math, String, parseInt, isNaN })(C); } catch (e) { /* reported below */ }
+  const ink = (h) => { try { return C.inkOn(h); } catch (e) { return 'threw'; } };
+  const lum = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const cr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  ok(games.length >= 35, 'every game accent is checked (' + games.length + ')');
+  const bad = [], mid = [];
+  for (const g of games) {
+    const got = ink(g.color), best = cr(g.color, '#FFFFFF') >= cr(g.color, '#201410') ? '#FFFFFF' : '#201410';
+    if (got !== best) bad.push(g.id + ' ' + got);
+    else if (cr(g.color, got) < 4.5) mid.push(g.id + ' ' + cr(g.color, got).toFixed(2));
+  }
+  ok(!bad.length, 'each accent gets the ink that contrasts more' + (bad.length ? ': ' + bad.join(', ') : ''));
+  // measured: five mid-tones where neither ink reaches 4.5:1, all from 4.27:1
+  ok(mid.every((m) => +m.split(' ')[1] >= 4.25) && mid.length <= 5, 'only mid-tones where neither ink reaches 4.5:1 stay under it, at 4.25:1 or more (' + (mid.join(', ') || 'none') + ')');
+  ok(ink('#3C4F9A') === '#FFFFFF' && ink('#A47551') === '#201410' && ink('nonsense') === '#201410', 'Bowling\'s blue gets white, Backgammon\'s brown keeps the dark ink, and a bad colour falls back to it');
+  ok((css.match(/--c-accent-ink: +var\(--game-ink-dark, #201410\);/g) || []).length === 2 && (css.match(/--c-accent-ink: +#FFFFFF;/g) || []).length === 1,
+    'both dark theme blocks take the per-game ink; the light theme keeps white');
+  ok(/r\.style\.setProperty\('--game-ink-dark', Chogan\.inkOn\(color\)\);/.test(core) && /r\.style\.removeProperty\('--game-ink-dark'\);/.test(core), 'setting a game accent sets its dark ink on the root, and clearing it removes it');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8410,6 +8440,7 @@ testMenu();
 testKeyboardNav();
 testFullscreenCarry();
 testBuildShown();
+testDarkInk();
 testMenuSelect();
 testModalFocus();
 testTelegramPost();
