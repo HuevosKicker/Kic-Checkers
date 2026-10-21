@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4244;
+const MIN_CHECKS = 4259;
 
 function ok(cond, msg) {
   checks++;
@@ -6650,7 +6650,47 @@ function testCheckers() {
   let spOk = true;
   for (let i = 0; i < 300 && sp.winner < 0; i++) if (!E.applyMove(sp, E.aiMove(sp.board, sp.turn, i % 2 ? 'hard' : 'easy', sr, 'spanish'))) { spOk = false; break; }
   ok(spOk && sp.winner >= 0 && sp.rules === 'spanish', 'a whole Spanish game between the AIs plays only legal moves and ends (winner ' + sp.winner + ')');
-  ok(/prefs\.rules = v;/.test(html) && /var rules = daily \? 'classic' : prefRules\(\);/.test(html) && /E\.aiMove\(S\.board, 2, S\.level, rnd, S\.rules\)/.test(html), 'the page offers both rule sets, keeps the daily game classic and gives the AI the rules in play');
+  // Capturing optional, as the reporter plays at home (#391): a jump is one more
+  // choice, for either rule set, and a started jump still runs to its end
+  const fr = E.moves(forced, 1, 'classic', true);
+  ok(fr.length === 4 && fr[0].caps.length === 1 && fr.slice(1).every((m) => !m.caps.length) && fr.some((m) => m.from === sq(4, 4) && !m.caps.length),
+    'with optional capture the jump comes first and every step stays legal, the jumping man\'s own included (' + fr.length + ' moves)');
+  ok(E.moves(qty, 1, 'spanish', true).some((m) => m.caps.length === 1) && E.moves(qual, 1, 'spanish', true).filter((m) => m.caps.length).length === 2,
+    'Spanish quantity and quality rules give way to the choice too');
+  const Sf = { mode: '2p', rules: 'classic', free: true, board: forced.slice(), turn: 1, quiet: 0, history: [], winner: -1 };
+  const Sx = { mode: '2p', rules: 'classic', board: forced.slice(), turn: 1, quiet: 0, history: [], winner: -1 };
+  ok(!!E.applyMove(Sf, { from: sq(2, 6), path: [sq(1, 5)] }) && E.applyMove(Sx, { from: sq(2, 6), path: [sq(1, 5)] }) === null && Sf.board[sq(3, 3)] === 2,
+    'a quiet move beside an open jump is played with optional capture and refused without');
+  ok(E.applyMove({ mode: '2p', rules: 'classic', free: true, board: dbl.slice(), turn: 1, quiet: 0, history: [], winner: -1 }, { from: sq(5, 2), path: [sq(3, 4)] }) === null,
+    'stopping halfway through a double jump stays illegal with optional capture');
+  ok(E.newState('ai', 'classic', true).free === true && E.newState('ai').free === false, 'a new game carries the choice, forced by default');
+  const frng = (seed) => { let k = seed; return () => ((k = (k * 1103515245 + 12345) % 2147483648) / 2147483648); };
+  for (const rules of ['classic', 'spanish']) {
+    const F = E.newState('2p', rules, true), fr2 = frng(391);
+    let fOk = true, stepsBeside = 0;
+    const tf = Date.now();
+    for (let i = 0; i < 300 && F.winner < 0; i++) {
+      const lv = i % 2 ? 'hard' : 'easy', m = E.aiMove(F.board, F.turn, lv, fr2, rules, true);
+      const all = E.moves(F.board, F.turn, rules, true);
+      if (m && !m.caps.length && all[0].caps.length) stepsBeside++;
+      if (!E.applyMove(F, m)) { fOk = false; break; }
+    }
+    ok(fOk && F.winner >= 0, 'a whole ' + rules + ' game with optional capture between the AIs plays only legal moves and ends (winner ' + F.winner + ', ' + F.history.length + ' plies, ' + stepsBeside + ' quiet moves beside an open jump, ' + (Date.now() - tf) + ' ms)');
+  }
+  // measured on 6 games a rule set (#391): hard beat easy 6 of 6 from both sides
+  const fw = [0, 1, 2, 3].map((g) => {
+    const F = E.newState('2p', 'classic', true), r = frng(100 + g), hardSide = g % 2 ? 2 : 1;
+    for (let i = 0; i < 400 && F.winner < 0; i++) if (!E.applyMove(F, E.aiMove(F.board, F.turn, F.turn === hardSide ? 'hard' : 'easy', r, 'classic', true))) return -9;
+    return F.winner === hardSide ? 1 : 0;
+  });
+  ok(fw.every((w) => w === 1), 'with optional capture hard still beats easy in 4 of 4 games, from both sides (' + fw.join(',') + ')');
+  const tfh = Date.now(); E.aiMove(E.initial(), 1, 'hard', frng(5), 'classic', true); const tFree = Date.now() - tfh;
+  ok(tFree < 1500, 'a hard move from the start with optional capture takes under 1.5 s here (' + tFree + ' ms)');
+  ok(/prefs\.free = v === 'free';/.test(html) && /free = !daily && prefs\.free === true;/.test(html) && /E\.aiMove\(S\.board, 2, S\.level, rnd, S\.rules, S\.free\)/.test(html) &&
+    (html.match(/E\.moves\(S\.board, S\.turn, S\.rules, S\.free\)/g) || []).length === 4 && !/E\.moves\(S\.board, S\.turn, S\.rules\)/.test(html) &&
+    /var jump = !S\.done && !busy\(\) && !S\.free && /.test(html) && /free: !v\.daily && v\.free === true,/.test(html),
+    'the page offers the choice, keeps the daily game forced, saves it, gives it to the AI and every move list, and drops the "must jump" note');
+  ok(/prefs\.rules = v;/.test(html) && /var rules = daily \? 'classic' : prefRules\(\),/.test(html) && /E\.aiMove\(S\.board, 2, S\.level, rnd, S\.rules[,)]/.test(html), 'the page offers both rule sets, keeps the daily game classic and gives the AI the rules in play');
 
   // Undo puts back exactly what was there, captured pieces included
   const S6 = E.newState('2p');

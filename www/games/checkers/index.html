@@ -52,7 +52,8 @@ function CheckersEngineFactory() {
   // classic checkers (English draughts), where a king steps one square, and
   // Spanish draughts, which the issue asked for: kings fly along a whole
   // diagonal, and a capture must take as many pieces as possible, then as many
-  // kings as possible.
+  // kings as possible. Either can be played with capturing optional (#391), as
+  // many people play at home: a jump is then one more choice, never a duty.
   var N = 8;
   var ALL = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
   var UP = [[-1, -1], [-1, 1]], DOWN = [[1, -1], [1, 1]];
@@ -106,7 +107,10 @@ function CheckersEngineFactory() {
   // All legal moves of player p. Capturing is compulsory: if any piece can
   // jump, only jumps are legal, and each runs to its end. Spanish rules then
   // keep only the jumps taking the most pieces, and of those the most kings.
-  function moves(b, p, rules) {
+  // With free set, every jump and every step is legal, and so is any jump of
+  // the Spanish ones: a capture still runs to its end once started. Jumps come
+  // first, so moves(...)[0].caps says whether one is open.
+  function moves(b, p, rules, free) {
     var caps = [], steps = [];
     for (var i = 0; i < 64; i++) {
       var v = b[i];
@@ -114,7 +118,7 @@ function CheckersEngineFactory() {
       b[i] = 0;
       jumps(b, i, v, i, [], [], caps, rules);
       b[i] = v;
-      if (caps.length) continue;
+      if (caps.length && !free) continue;
       var r = (i / N) | 0, c = i % N, ds = dirs(v), fly = flying(rules, v);
       for (var k = 0; k < ds.length; k++) {
         for (var rr = r + ds[k][0], cc = c + ds[k][1]; rr >= 0 && rr < N && cc >= 0 && cc < N && b[rr * N + cc] === 0; rr += ds[k][0], cc += ds[k][1]) {
@@ -124,6 +128,7 @@ function CheckersEngineFactory() {
       }
     }
     if (!caps.length) return steps;
+    if (free) return caps.concat(steps);
     if (rules !== 'spanish') return caps;
     var most = 0, kings = function (m) { return m.caps.filter(function (j) { return isKing(b[j]); }).length; };
     caps.forEach(function (m) { most = Math.max(most, m.caps.length); });
@@ -159,15 +164,15 @@ function CheckersEngineFactory() {
     return n;
   }
 
-  function newState(mode, rules) {
-    return { mode: mode || 'ai', rules: rules === 'spanish' ? 'spanish' : 'classic', board: initial(), turn: 1, quiet: 0, history: [], winner: -1 };
+  function newState(mode, rules, free) {
+    return { mode: mode || 'ai', rules: rules === 'spanish' ? 'spanish' : 'classic', free: !!free, board: initial(), turn: 1, quiet: 0, history: [], winner: -1 };
   }
 
   // A move on the full state, as the page and the tests play it. Returns null
   // for an illegal move, else { over, winner } (winner 0 is a draw).
   function applyMove(S, m) {
     if (S.winner >= 0) return null;
-    var legal = moves(S.board, S.turn, S.rules), mv = null;
+    var legal = moves(S.board, S.turn, S.rules, S.free), mv = null;
     for (var k = 0; k < legal.length; k++) if (same(legal[k], m)) mv = legal[k];
     if (!mv) return null;
     var u = play(S.board, mv);
@@ -176,7 +181,7 @@ function CheckersEngineFactory() {
     var p = S.turn;
     S.turn = 3 - p;
     // a player who cannot move, with no pieces or all of them blocked, has lost
-    if (!moves(S.board, S.turn, S.rules).length) S.winner = p;
+    if (!moves(S.board, S.turn, S.rules, S.free).length) S.winner = p;
     else if (S.quiet >= DRAW_PLIES[S.rules === 'spanish' ? 'spanish' : 'classic']) S.winner = 0;
     return { over: S.winner >= 0, winner: S.winner, move: mv };
   }
@@ -218,15 +223,24 @@ function CheckersEngineFactory() {
   }
 
   var WIN = 100000;
-  function negamax(b, p, depth, alpha, beta, ply, rules) {
-    var ms = moves(b, p, rules);
+  function negamax(b, p, depth, alpha, beta, ply, rules, free) {
+    var ms = moves(b, p, rules, free);
     if (!ms.length) return -WIN + ply;
     // a jump is never left half-seen: forced captures extend the search
     if (depth <= 0 && !ms[0].caps.length) return evaluate(b, p);
     var best = -Infinity;
+    // When capturing is optional, extending every quiet move as well would
+    // never end while a jump stays open, so past the horizon only the jumps
+    // are searched and the side may also stand on the evaluation.
+    if (depth <= 0 && free) {
+      ms = ms.filter(function (m) { return m.caps.length; });
+      best = evaluate(b, p);
+      if (best >= beta) return best;
+      if (best > alpha) alpha = best;
+    }
     for (var k = 0; k < ms.length; k++) {
       var u = play(b, ms[k]);
-      var v = -negamax(b, 3 - p, depth - 1, -beta, -alpha, ply + 1, rules);
+      var v = -negamax(b, 3 - p, depth - 1, -beta, -alpha, ply + 1, rules, free);
       unplay(b, ms[k], u);
       if (v > best) best = v;
       if (best > alpha) alpha = best;
@@ -239,16 +253,16 @@ function CheckersEngineFactory() {
   // ahead and often misjudges, medium three, hard seven.
   var LEVELS = { easy: { d: 1, noise: 70 }, medium: { d: 3, noise: 12 }, hard: { d: 7, noise: 1 } };
 
-  function aiMove(board, p, level, rnd, rules) {
+  function aiMove(board, p, level, rnd, rules, free) {
     rnd = rnd || Math.random;
-    var ms = moves(board, p, rules);
+    var ms = moves(board, p, rules, free);
     if (!ms.length) return null;
     if (ms.length === 1) return ms[0];
     var L = LEVELS[level] || LEVELS.medium, b = board.slice();
     var best = ms[0], bestScore = -Infinity;
     for (var k = 0; k < ms.length; k++) {
       var u = play(b, ms[k]);
-      var v = -negamax(b, 3 - p, L.d - 1, -Infinity, Infinity, 1, rules);
+      var v = -negamax(b, 3 - p, L.d - 1, -Infinity, Infinity, 1, rules, free);
       unplay(b, ms[k], u);
       var sv = v + rnd() * L.noise;
       if (sv > bestScore) { bestScore = sv; best = ms[k]; }
@@ -301,6 +315,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         newMatch: 'دست تازه', undoMove: 'برگرداندن حرکت', cancelPick: 'لغو انتخاب',
         dailyCheckers: 'چکرز روزانه', vsHard: 'مقابل حریف سخت',
         classic: 'کلاسیک', spanish: 'اسپانیایی',
+        capForced: 'زدن اجباری', capFree: 'زدن اختیاری',
+        freeNote: 'با زدن اختیاری، زدن فقط یک انتخاب است و می‌توانی به جایش حرکت دیگری بکنی؛ ولی زدنی که شروع شد تا آخر می‌رود.',
         rulesNote: 'در قانون اسپانیایی شاه در کل قطر می‌رود و از دور می‌زند، و باید بیشترین مهره را بزنی، بعد بیشترین شاه را.',
         mustJump: 'باید بزنی', drawNote: 'حرکت‌های زیادی بی‌زدن: مساوی',
         boardLabel: 'تخته‌ی چکرز',
@@ -315,6 +331,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         newMatch: 'New match', undoMove: 'Undo move', cancelPick: 'Cancel the pick',
         dailyCheckers: 'Daily checkers', vsHard: 'against the hard AI',
         classic: 'Classic', spanish: 'Spanish',
+        capForced: 'Forced capture', capFree: 'Optional capture',
+        freeNote: 'With optional capture, jumping is only a choice and you may make another move instead; a jump once started still runs to its end.',
         rulesNote: 'In Spanish rules a king flies along the whole diagonal and captures from a distance, and you must take the most pieces, then the most kings.',
         mustJump: 'You must jump', drawNote: 'Too many moves without a capture: a draw',
         boardLabel: 'Checkers board',
@@ -329,6 +347,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         newMatch: '新一局', undoMove: '撤销一步', cancelPick: '取消选择',
         dailyCheckers: '每日跳棋', vsHard: '对战困难电脑',
         classic: '经典', spanish: '西班牙',
+        capForced: '强制吃子', capFree: '自由吃子',
+        freeNote: '自由吃子时，吃子只是一种选择，你可以改走别的棋；但一旦开始吃子，就要连跳到底。',
         rulesNote: '西班牙规则下，王棋可沿整条斜线飞行并隔空吃子；必须吃最多的子，数量相同时吃最多的王。',
         mustJump: '必须吃子', drawNote: '太多步没有吃子：平局',
         boardLabel: '西洋跳棋棋盘',
@@ -343,6 +363,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         newMatch: 'Neue Partie', undoMove: 'Zug zurück', cancelPick: 'Auswahl aufheben',
         dailyCheckers: 'Tägliche Dame', vsHard: 'gegen die starke KI',
         classic: 'Klassisch', spanish: 'Spanisch',
+        capForced: 'Schlagzwang', capFree: 'Schlagen frei',
+        freeNote: 'Ohne Schlagzwang ist Schlagen nur eine Wahl, und du darfst stattdessen anders ziehen; ein begonnener Sprung läuft aber bis zum Ende.',
         rulesNote: 'Nach spanischen Regeln fliegt eine Dame über die ganze Diagonale und schlägt aus der Ferne, und du musst die meisten Steine schlagen, dann die meisten Damen.',
         mustJump: 'Schlagen ist Pflicht', drawNote: 'Zu viele Züge ohne Schlagen: unentschieden',
         boardLabel: 'Dame-Brett',
@@ -357,6 +379,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         newMatch: 'Nueva partida', undoMove: 'Deshacer', cancelPick: 'Cancelar la selección',
         dailyCheckers: 'Damas del día', vsHard: 'contra la IA difícil',
         classic: 'Clásicas', spanish: 'Españolas',
+        capForced: 'Captura obligatoria', capFree: 'Captura libre',
+        freeNote: 'Con captura libre, capturar es solo una opción y puedes hacer otra jugada; pero una captura empezada sigue hasta el final.',
         rulesNote: 'Con reglas españolas la dama vuela por toda la diagonal y captura a distancia, y debes capturar el mayor número de piezas y, a igualdad, de damas.',
         mustJump: 'Tienes que capturar', drawNote: 'Demasiadas jugadas sin captura: empate',
         boardLabel: 'Tablero de damas',
@@ -369,7 +393,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
 
   var params = new URLSearchParams(location.search);
   var dailyDate = params.get('daily');
-  var prefs = ctx.store.get('prefs', { mode: 'ai', level: 'medium', rules: 'classic', p2name: '' });
+  var prefs = ctx.store.get('prefs', { mode: 'ai', level: 'medium', rules: 'classic', free: false, p2name: '' });
   function prefRules() { return prefs.rules === 'spanish' ? 'spanish' : 'classic'; }
 
   // the daily game reaches the player after four opening moves; even, so it is
@@ -403,11 +427,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
   function newGame(mode, level, daily) {
     stopAi();
     anim = null; sel = null;
-    // the daily game is always classic, so everyone plays the same rules
-    var rules = daily ? 'classic' : prefRules();
-    var st = E.newState(mode, rules);
+    // the daily game is always classic with forced capture, so everyone plays
+    // the same rules
+    var rules = daily ? 'classic' : prefRules(), free = !daily && prefs.free === true;
+    var st = E.newState(mode, rules, free);
     S = {
-      mode: mode, level: level, daily: daily || null, rules: rules,
+      mode: mode, level: level, daily: daily || null, rules: rules, free: free,
       board: st.board, turn: 1, quiet: 0, history: [], winner: -1,
       done: false, startedAt: Date.now(), last: null
     };
@@ -527,7 +552,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
   // The moves still open to the picked piece, and where the next tap may land
   function pickState() {
     if (!sel) return { cands: [], targets: [] };
-    var cands = E.moves(S.board, S.turn, S.rules).filter(function (m) {
+    var cands = E.moves(S.board, S.turn, S.rules, S.free).filter(function (m) {
       if (m.from !== sel.from) return false;
       for (var k = 0; k < sel.steps.length; k++) if (m.path[k] !== sel.steps[k]) return false;
       return true;
@@ -539,7 +564,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
 
   function movable() {
     var out = [];
-    E.moves(S.board, S.turn, S.rules).forEach(function (m) { if (out.indexOf(m.from) < 0) out.push(m.from); });
+    E.moves(S.board, S.turn, S.rules, S.free).forEach(function (m) { if (out.indexOf(m.from) < 0) out.push(m.from); });
     return out;
   }
 
@@ -619,6 +644,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
           newGame(S.mode, S.level);
         });
       }));
+      top.appendChild(C.ui.segmented([
+        { value: 'forced', label: C.t('capForced') }, { value: 'free', label: C.t('capFree') }
+      ], S.free ? 'free' : 'forced', function (v) {
+        guard(v === (S.free ? 'free' : 'forced'), function () {
+          prefs.free = v === 'free'; ctx.store.set('prefs', prefs);
+          newGame(S.mode, S.level);
+        });
+      }));
       if (S.mode === 'ai') {
         top.appendChild(C.ui.segmented([
           { value: 'easy', label: C.t('easy') }, { value: 'medium', label: C.t('medium') }, { value: 'hard', label: C.t('hard') }
@@ -658,7 +691,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         playersRow.appendChild(box);
       })(i);
     }
-    var jump = !S.done && !busy() && E.moves(S.board, S.turn, S.rules).some(function (m) { return m.caps.length; });
+    var jump = !S.done && !busy() && !S.free && E.moves(S.board, S.turn, S.rules, S.free).some(function (m) { return m.caps.length; });
     note.textContent = jump ? C.t('mustJump') : '';
   }
 
@@ -734,7 +767,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
       aiTimer = null;
       if (!S || S.done || S.turn !== 2) return;
       var rnd = S.daily ? C.daily('checkers', S.daily + '|' + S.history.length).rng : Math.random;
-      var m = E.aiMove(S.board, 2, S.level, rnd, S.rules);
+      var m = E.aiMove(S.board, 2, S.level, rnd, S.rules, S.free);
       if (m) doMove(m, false);
     }, 480);
   }
@@ -810,7 +843,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
     if (!S || S.done || !S.history.length) return { inProgress: false };
     return {
       s: {
-        mode: S.mode, level: S.level, daily: S.daily, rules: S.rules,
+        mode: S.mode, level: S.level, daily: S.daily, rules: S.rules, free: S.free,
         board: S.board, turn: S.turn, quiet: S.quiet, history: S.history, last: S.last,
         elapsed: Date.now() - S.startedAt
       },
@@ -822,12 +855,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
   function restore(v) {
     S = {
       mode: v.mode, level: v.level, daily: v.daily || null, rules: v.rules === 'spanish' ? 'spanish' : 'classic',
+      free: !v.daily && v.free === true,
       board: v.board, turn: v.turn, quiet: v.quiet || 0, history: v.history, last: v.last || null, winner: -1,
       done: false, startedAt: Date.now() - (v.elapsed || 0)
     };
     render();
     // closed right after the last move: the finished game gets its result
-    if (!E.moves(S.board, S.turn, S.rules).length) { S.winner = 3 - S.turn; finish(); } else maybeAi();
+    if (!E.moves(S.board, S.turn, S.rules, S.free).length) { S.winner = 3 - S.turn; finish(); } else maybeAi();
   }
   function validSave(sv) {
     return !!(sv && sv.s && Array.isArray(sv.s.board) && sv.s.board.length === 64 &&
@@ -869,6 +903,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         el('p', { class: 'ch-dim', text: C.t('tutText2') }),
         el('p', { class: 'ch-dim', text: C.t('tutText3') }),
         el('p', { class: 'ch-dim', text: C.t('rulesNote') }),
+        el('p', { class: 'ch-dim', text: C.t('freeNote') }),
         el('h3', { style: { 'margin-top': 'var(--s-4)' }, text: C.t('keyboard') }),
         el('div', { class: 'ch-list' }, [
           kb('← ↑ → ↓', C.t('move')),
