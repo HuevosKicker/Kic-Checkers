@@ -762,6 +762,21 @@ a  { color: var(--c-accent); text-decoration: none; }
   color: var(--game, var(--c-accent));
   box-shadow: var(--sh-1);
 }
+/* In the dark theme, text in the game's colour takes a lightened copy of it
+   (--game-text-dark, set with --game) that reads at 4.5:1; deep accents were
+   at 2.2:1 (#396). Fills keep the accent. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .ch-game__pin--on,
+  :root:not([data-theme="light"]) .ch-badge--accent,
+  :root:not([data-theme="light"]) .ch-btn--soft,
+  :root:not([data-theme="light"]) .ch-iconbtn[aria-pressed="true"],
+  :root:not([data-theme="light"]) .ch-seg button[aria-selected="true"] { color: var(--game-text-dark, var(--game, var(--c-accent))); }
+}
+:root[data-theme="dark"] .ch-game__pin--on,
+:root[data-theme="dark"] .ch-badge--accent,
+:root[data-theme="dark"] .ch-btn--soft,
+:root[data-theme="dark"] .ch-iconbtn[aria-pressed="true"],
+:root[data-theme="dark"] .ch-seg button[aria-selected="true"] { color: var(--game-text-dark, var(--game, var(--c-accent))); }
 /* با چهار زبان، انتخاب زبان در ۳۲۰ پیکسل از کارت بیرون می‌زد و «Deutsch» بریده
    می‌شد (#121). فقط روی صفحه‌ی خیلی باریک فاصله‌ی داخل دکمه کم می‌شود. */
 @media (max-width: 360px) {

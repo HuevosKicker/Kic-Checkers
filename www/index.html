@@ -365,7 +365,7 @@
         } }, [C.icon('pin', 22)]);
       return el('div', {
         class: 'ch-card ch-game ch-tap ch-enter ch-kbnav', tabindex: '0', role: 'link', 'aria-label': gname(g),
-        style: { '--game': g.color, '--game-soft': g.soft, 'animation-delay': (60 + i * 55) + 'ms' },
+        style: { '--game': g.color, '--game-soft': g.soft, '--game-text-dark': C.textOnDark(g.color), 'animation-delay': (60 + i * 55) + 'ms' },
         onclick: function () { goGame(g); }
       }, [
         pinBtn,
@@ -393,7 +393,7 @@
     if (recentGames.length) {
       var row = el('div', { class: 'ch-recent' });
       recentGames.forEach(function (g) {
-        row.appendChild(el('button', { class: 'ch-recent__item ch-tap ch-kbnav', type: 'button', style: { '--game': g.color, '--game-soft': g.soft },
+        row.appendChild(el('button', { class: 'ch-recent__item ch-tap ch-kbnav', type: 'button', style: { '--game': g.color, '--game-soft': g.soft, '--game-text-dark': C.textOnDark(g.color) },
           onclick: function () { goGame(g); } }, [
           el('img', { src: g.icon, alt: '', width: 32, height: 32 }),
           el('span', { class: 'ch-recent__name', text: gname(g) })
@@ -573,7 +573,7 @@
         ]),
         r ? C.icon('check', 22) : el('button', {
           class: 'ch-btn ch-btn--soft ch-btn--sm', type: 'button', text: C.t('play'),
-          style: { '--game': g.color, '--game-soft': g.soft },
+          style: { '--game': g.color, '--game-soft': g.soft, '--game-text-dark': C.textOnDark(g.color) },
           onclick: function () { goGame(g, key); }
         })
       ]));
@@ -936,7 +936,7 @@
     m = C.ui.modal({
       title: gname(g), closeButton: true,
       body: [
-        el('div', { class: 'ch-row ch-sheet__head', style: { '--game': g.color, '--game-soft': g.soft } }, [
+        el('div', { class: 'ch-row ch-sheet__head', style: { '--game': g.color, '--game-soft': g.soft, '--game-text-dark': C.textOnDark(g.color) } }, [
           el('div', { class: 'ch-game__icon' }, [el('img', { src: g.icon, alt: '', width: 56, height: 56 })]),
           el('p', { class: 'ch-dim', text: gsum(g) })
         ]),
