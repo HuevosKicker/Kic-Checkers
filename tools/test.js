@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4266;
+const MIN_CHECKS = 4274;
 
 function ok(cond, msg) {
   checks++;
@@ -8139,6 +8139,43 @@ function testDarkInk() {
   ok(/r\.style\.setProperty\('--game-ink-dark', Chogan\.inkOn\(color\)\);/.test(core) && /r\.style\.removeProperty\('--game-ink-dark'\);/.test(core), 'setting a game accent sets its dark ink on the root, and clearing it removes it');
 }
 
+function testDarkAccentText() {
+  head('Dark theme: text in a game colour reads at 4.5:1 (#396)');
+  // A selected option in Bowling's blue read at 2.2:1 on the dark surface,
+  // and 26 of 35 accents were under 4.5:1.
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
+  const menu = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const fn = (core.match(/^  Chogan\.textOnDark = function \(hex\) \{[\s\S]*?^  \};$/m) || [''])[0];
+  ok(fn.length > 0, 'Chogan.textOnDark found in the core');
+  const C = {};
+  try { vm.runInNewContext('(function (Chogan) { ' + fn + ' })', { Math, String, parseInt, isNaN })(C); } catch (e) { /* reported below */ }
+  const txt = (h) => { try { return C.textOnDark(h); } catch (e) { return 'threw'; } };
+  const lum = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const cr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  ok(games.length >= 35, 'every game accent is checked (' + games.length + ')');
+  const low = [], far = [], changed = [];
+  for (const g of games) {
+    const t = txt(g.color);
+    if (!/^#[0-9A-F]{6}$/.test(t) || cr(t, '#342C22') < 4.5) { low.push(g.id + ' ' + t); continue; }
+    // as close to the accent as reading allows: an accent already at 4.5:1 is kept
+    if (cr(g.color, '#342C22') >= 4.5 ? t !== g.color.toUpperCase() : false) far.push(g.id + ' ' + t);
+    if (t !== g.color.toUpperCase()) changed.push(g.id);
+  }
+  ok(!low.length, 'every accent\'s dark-theme text reads at 4.5:1 or more on the lightest dark surface' + (low.length ? ': ' + low.join(', ') : ''));
+  ok(!far.length && changed.length >= 20 && changed.length <= 30, 'accents that already read keep their colour; ' + changed.length + ' are lightened' + (far.length ? ' (changed needlessly: ' + far.join(', ') + ')' : ''));
+  const bw = txt('#3C4F9A');
+  ok(cr(bw, '#342C22') < 5.5 && lum(bw) > lum('#3C4F9A') && txt('nonsense') === '', 'Bowling\'s blue is lightened only as far as needed (' + bw + ', ' + cr(bw, '#342C22').toFixed(2) + ':1), and a bad colour gives nothing');
+  const rules = ['.ch-game__pin--on', '.ch-badge--accent', '.ch-btn--soft', '.ch-iconbtn[aria-pressed="true"]', '.ch-seg button[aria-selected="true"]'];
+  ok(rules.every((r) => css.indexOf(':root:not([data-theme="light"]) ' + r) > 0 && css.indexOf(':root[data-theme="dark"] ' + r) > 0) &&
+    (css.match(/\{ color: var\(--game-text-dark, var\(--game, var\(--c-accent\)\)\); \}/g) || []).length === 2,
+    'the dark theme gives the lightened text to the selected option, soft buttons, accent badges, pressed icon buttons and menu pins');
+  ok(/r\.style\.setProperty\('--game-text-dark', Chogan\.textOnDark\(color\)\);/.test(core) && /r\.style\.removeProperty\('--game-text-dark'\);/.test(core), 'a game sets and clears it with its accent');
+  ok((menu.match(/'--game': g\.color, '--game-soft': g\.soft, '--game-text-dark': C\.textOnDark\(g\.color\)/g) || []).length === 4 && !/'--game': g\.color, '--game-soft': g\.soft \}/.test(menu),
+    'every menu element that carries a game colour carries its dark text too');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8441,6 +8478,7 @@ testKeyboardNav();
 testFullscreenCarry();
 testBuildShown();
 testDarkInk();
+testDarkAccentText();
 testMenuSelect();
 testModalFocus();
 testTelegramPost();

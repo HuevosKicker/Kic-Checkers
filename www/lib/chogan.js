@@ -594,16 +594,39 @@
     return 1.05 / (L + 0.05) > (L + 0.05) / (dark + 0.05) ? '#FFFFFF' : '#201410';
   };
 
+  // Text drawn in a game's own colour on the dark theme's surfaces: the colour
+  // lightened toward white just enough to read at 4.5:1 on the lightest
+  // surface (#342C22). Bowling's blue read at 2.2:1 as a selected option, and
+  // 26 of 35 accents were under 4.5:1 (#396). Fills keep the accent itself.
+  Chogan.textOnDark = function (hex) {
+    var h = String(hex).replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    var n = parseInt(h, 16);
+    if (h.length !== 6 || isNaN(n)) return '';
+    var lum = function (rgb) {
+      var c = rgb.map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    };
+    var base = [(n >> 16) & 255, (n >> 8) & 255, n & 255], bg = lum([0x34, 0x2C, 0x22]), rgb = base;
+    for (var t = 0; t <= 1.0001; t += 0.02) {
+      rgb = base.map(function (v) { return Math.round(v + (255 - v) * t); });
+      if ((lum(rgb) + 0.05) / (bg + 0.05) >= 4.5) break;
+    }
+    return '#' + rgb.map(function (v) { return (v < 16 ? '0' : '') + v.toString(16); }).join('').toUpperCase();
+  };
+
   Chogan.setAccent = function (color, soft) {
     var r = document.documentElement;
     if (color) {
       r.style.setProperty('--game', color);
       r.style.setProperty('--game-soft', soft || Chogan.alpha(color, 0.16));
       r.style.setProperty('--game-ink-dark', Chogan.inkOn(color));
+      r.style.setProperty('--game-text-dark', Chogan.textOnDark(color));
     } else {
       r.style.removeProperty('--game');
       r.style.removeProperty('--game-soft');
       r.style.removeProperty('--game-ink-dark');
+      r.style.removeProperty('--game-text-dark');
     }
   };
 
