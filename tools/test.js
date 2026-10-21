@@ -6670,20 +6670,23 @@ function testCheckers() {
     let fOk = true, stepsBeside = 0;
     const tf = Date.now();
     for (let i = 0; i < 300 && F.winner < 0; i++) {
-      const lv = i % 2 ? 'hard' : 'easy', m = E.aiMove(F.board, F.turn, lv, fr2, rules, true);
+      // medium, not hard: hard games here cost about 5 s, which pushed the
+      // checkers tests past their 20 s limit on CI (run 39663935567)
+      const lv = i % 2 ? 'medium' : 'easy', m = E.aiMove(F.board, F.turn, lv, fr2, rules, true);
       const all = E.moves(F.board, F.turn, rules, true);
       if (m && !m.caps.length && all[0].caps.length) stepsBeside++;
       if (!E.applyMove(F, m)) { fOk = false; break; }
     }
     ok(fOk && F.winner >= 0, 'a whole ' + rules + ' game with optional capture between the AIs plays only legal moves and ends (winner ' + F.winner + ', ' + F.history.length + ' plies, ' + stepsBeside + ' quiet moves beside an open jump, ' + (Date.now() - tf) + ' ms)');
   }
-  // measured on 6 games a rule set (#391): hard beat easy 6 of 6 from both sides
-  const fw = [0, 1, 2, 3].map((g) => {
-    const F = E.newState('2p', 'classic', true), r = frng(100 + g), hardSide = g % 2 ? 2 : 1;
-    for (let i = 0; i < 400 && F.winner < 0; i++) if (!E.applyMove(F, E.aiMove(F.board, F.turn, F.turn === hardSide ? 'hard' : 'easy', r, 'classic', true))) return -9;
-    return F.winner === hardSide ? 1 : 0;
+  // measured (#391): hard beat easy 6 of 6 a rule set from both sides, medium
+  // beat easy 6 of 6; medium is what is played here, hard costs seconds a game
+  const fw = [0, 1, 2, 3, 4, 5].map((g) => {
+    const F = E.newState('2p', 'classic', true), r = frng(200 + g), side = g % 2 ? 2 : 1;
+    for (let i = 0; i < 400 && F.winner < 0; i++) if (!E.applyMove(F, E.aiMove(F.board, F.turn, F.turn === side ? 'medium' : 'easy', r, 'classic', true))) return -9;
+    return F.winner === side ? 1 : 0;
   });
-  ok(fw.every((w) => w === 1), 'with optional capture hard still beats easy in 4 of 4 games, from both sides (' + fw.join(',') + ')');
+  ok(fw.every((w) => w === 1), 'with optional capture medium still beats easy in 6 of 6 games, from both sides (' + fw.join(',') + ')');
   const tfh = Date.now(); E.aiMove(E.initial(), 1, 'hard', frng(5), 'classic', true); const tFree = Date.now() - tfh;
   ok(tFree < 1500, 'a hard move from the start with optional capture takes under 1.5 s here (' + tFree + ' ms)');
   ok(/prefs\.free = v === 'free';/.test(html) && /free = !daily && prefs\.free === true;/.test(html) && /E\.aiMove\(S\.board, 2, S\.level, rnd, S\.rules, S\.free\)/.test(html) &&
