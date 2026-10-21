@@ -577,14 +577,33 @@
 
   // رنگ تأکید هر بازی روی ریشه می‌نشیند تا همه‌ی توکن‌ها از آن پیروی کنند.
   // رنگ نرم نیمه‌شفاف است تا هم روی تم روشن هم تاریک درست بنشیند.
+  // The ink for text on a game's accent in the dark theme: white or the dark
+  // ink, whichever contrasts more. A fixed dark ink read at 2.4:1 on Bowling's
+  // blue and below 4.5:1 on 25 of 35 accents (#394). The light theme keeps
+  // white, which every accent is chosen for.
+  Chogan.inkOn = function (hex) {
+    var h = String(hex).replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    var n = parseInt(h, 16);
+    if (h.length !== 6 || isNaN(n)) return '#201410';
+    var lum = function (rgb) {
+      var c = rgb.map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    };
+    var L = lum([(n >> 16) & 255, (n >> 8) & 255, n & 255]), dark = lum([0x20, 0x14, 0x10]);
+    return 1.05 / (L + 0.05) > (L + 0.05) / (dark + 0.05) ? '#FFFFFF' : '#201410';
+  };
+
   Chogan.setAccent = function (color, soft) {
     var r = document.documentElement;
     if (color) {
       r.style.setProperty('--game', color);
       r.style.setProperty('--game-soft', soft || Chogan.alpha(color, 0.16));
+      r.style.setProperty('--game-ink-dark', Chogan.inkOn(color));
     } else {
       r.style.removeProperty('--game');
       r.style.removeProperty('--game-soft');
+      r.style.removeProperty('--game-ink-dark');
     }
   };
 

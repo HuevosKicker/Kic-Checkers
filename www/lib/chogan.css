@@ -116,7 +116,7 @@
     --c-text-faint:  #7C7162;
     --c-accent:      #E8917A;
     --c-accent-soft: #3A2620;
-    --c-accent-ink:  #201410;
+    --c-accent-ink:  var(--game-ink-dark, #201410);
     --c-good:        #7ABE8A;
     --c-good-soft:   #24301F;
     --c-warn:        #DFB45E;
@@ -143,7 +143,7 @@
   --c-text-faint:  #7C7162;
   --c-accent:      #E8917A;
   --c-accent-soft: #3A2620;
-  --c-accent-ink:  #201410;
+  --c-accent-ink:  var(--game-ink-dark, #201410);
   --c-good:        #7ABE8A;
   --c-good-soft:   #24301F;
   --c-warn:        #DFB45E;
