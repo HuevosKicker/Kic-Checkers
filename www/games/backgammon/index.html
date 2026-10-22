@@ -544,6 +544,42 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
 
   var S = null, sel = null, kf = -1, aiTimer = null, aiPass = false, lastTo = null;
 
+  // #407: a checker jumped to its new point in one frame, a hit checker was
+  // simply on the bar, and new dice just appeared. Now the checker slides
+  // there, a hit one slides to the bar just after, and new dice tumble before
+  // they settle. State is final first; taps and the bot never wait for these.
+  var SLIDE_MS = 260, HIT_DELAY = 140, HIT_MS = 260, ROLL_MS = 480;
+  var bfx = {}, bfxRaf = 0;
+  function countAt(pts, bar, key, p) { return key === 'bar' ? bar[p] : key === 'off' ? 0 : Math.abs(pts[key - 1]); }
+  function topIdx(key, n) { return key === 'bar' ? Math.min(n, 2) - 1 : key === 'off' ? 0 : Math.min(n, 5) - 1; }
+  // where a step's checker leaves and lands, and where a hit checker lands on
+  // the bar; pts and bar are the position before the step
+  function stepFx(src, dst, p, pts, bar, hit) {
+    var o = { p: p, from: { key: src, k: topIdx(src, countAt(pts, bar, src, p)) } };
+    o.to = { key: dst, k: dst === 'off' ? 0 : topIdx(dst, hit ? 1 : countAt(pts, bar, dst, p) + 1) };
+    if (hit) o.hit = { p: 3 - p, from: { key: dst, k: 0 }, to: { key: 'bar', k: topIdx('bar', bar[3 - p] + 1) } };
+    return o;
+  }
+  function fxK(e, ms, now, delay) { return e ? Math.max(0, Math.min(1, (now - e.t0 - (delay || 0)) / ms)) : 1; }
+  function fxNow(now) {
+    var o = {}, k = fxK(bfx.step, SLIDE_MS, now), kh = bfx.step && bfx.step.hit ? fxK(bfx.step, HIT_MS, now, HIT_DELAY) : 1;
+    if (k < 1 || kh < 1) o.step = { spec: bfx.step, k: k, kh: kh };
+    k = fxK(bfx.roll, ROLL_MS, now); if (k < 1) o.roll = k;
+    return o.step || o.roll !== undefined ? o : null;
+  }
+  function fxStart(kind, e) {
+    if (C.ui.reduceMotion()) return;
+    e.t0 = performance.now();
+    bfx[kind] = e;
+    if (!bfxRaf) bfxRaf = requestAnimationFrame(fxTick);
+  }
+  function fxTick(now) {
+    bfxRaf = 0;
+    var on = fxNow(now);
+    paint();
+    if (on) bfxRaf = requestAnimationFrame(fxTick);
+  }
+
   var canvas = el('canvas', { class: 'bg-canvas', 'aria-label': C.t('pickChecker') });
   var boardBox = el('div', { class: 'bg-boardbox ch-fit' }, [canvas]);
   var top = el('div', { class: 'bg-top ch-above' });
@@ -570,8 +606,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
     S = E.newGame(seed);
     S.mode = mode; S.level = level; S.daily = daily || null;
     S.startedAt = Date.now();
-    sel = null; kf = -1; lastTo = null;
+    sel = null; kf = -1; lastTo = null; bfx = {};
     render();
+    fxStart('roll', {});
     announceOpening();
     save();
     maybeAi();
@@ -669,8 +706,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
   var PIPS = { 1: [[0, 0]], 2: [[-1, -1], [1, 1]], 3: [[-1, -1], [0, 0], [1, 1]],
     4: [[-1, -1], [1, -1], [-1, 1], [1, 1]], 5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]],
     6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]] };
-  function drawDie(g, x, y, s, v, pc, faded) {
-    g.save(); g.translate(x, y); g.rotate(upright); x = 0; y = 0;
+  function drawDie(g, x, y, s, v, pc, faded, spin) {
+    g.save(); g.translate(x, y); g.rotate(upright + (spin || 0)); x = 0; y = 0;
     g.globalAlpha = faded ? 0.3 : 1;
     g.fillStyle = pc.fill; g.strokeStyle = pc.edge; g.lineWidth = Math.max(1.5, s * 0.05);
     C.rrect(g, x - s / 2, y - s / 2, s, s, s * 0.2); g.fill(); g.stroke();
@@ -714,7 +751,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
       : { x: G.x0, y: G.trayY, w: G.colW, h: G.trayH };
   }
 
-  /* v: { pts, bar, off, dice, left, turn, showDice, sel, dests, srcs, focus, lastTo } */
+  // the centre of a checker spot { key, k } for player p (#407)
+  function spotXY(G, spot, p) {
+    if (spot.key === 'bar') return barPos(G, p, spot.k);
+    if (spot.key === 'off') { var tr = trayRect(G, p); return { x: tr.x + tr.w / 2, y: tr.y + tr.h / 2 }; }
+    return stackPos(G, spot.key, spot.k);
+  }
+
+  /* v: { pts, bar, off, dice, left, turn, showDice, sel, dests, srcs, focus, lastTo, fx } */
   function drawBoard(g, w, h, c, v) {
     var G = geo(w, h);
     // بستر و قاب
@@ -745,12 +789,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
     C.rrect(g, G.x0, G.y0, G.bw, G.boardH, G.rh * 0.3);
     g.strokeStyle = c.game; g.lineWidth = 3; g.stroke();
     // مهره‌ها
+    var F = v.fx && v.fx.step, hideAt = F && F.k < 1 ? F.spec.to : null, hideBar = F && F.spec.hit && F.kh < 1 ? F.spec.hit.to : null;
     for (var b = 1; b <= 24; b++) {
       var val = v.pts[b - 1];
       if (!val) continue;
       var p = val > 0 ? 1 : 2, n = Math.abs(val);
       var shown = Math.min(n, 5);
       for (var k = 0; k < shown; k++) {
+        // the landing checker is drawn by its slide until it arrives
+        if (hideAt && hideAt.key === b && hideAt.k === k && n <= 5) continue;
         var sp = stackPos(G, b, k);
         drawChecker(g, sp.x, sp.y, G.cr, PC[p]);
       }
@@ -776,6 +823,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
     for (var pl = 1; pl <= 2; pl++) {
       var nb = v.bar[pl];
       for (var kb = 0; kb < Math.min(nb, 2); kb++) {
+        if (hideBar && F.spec.hit.p === pl && hideBar.k === kb && nb <= 2) continue;
         var bp = barPos(G, pl, kb);
         drawChecker(g, bp.x, bp.y, G.cr * 0.9, PC[pl]);
       }
@@ -786,6 +834,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
       if (nb && v.sel === 'bar' && v.turn === pl) ring(g, barPos(G, pl, Math.min(nb, 2) - 1), G.cr + 1, c.gold, 4);
       if (nb && v.focus === 'bar' && v.turn === pl) ring(g, barPos(G, pl, Math.min(nb, 2) - 1), G.cr + 4, c.text, 2, true);
     }
+    // the moving checkers, above the board: the hit one first, so the mover passes over it
+    if (F) {
+      var lerp = function (a, b2, t) { var e = 1 - Math.pow(1 - t, 3); return { x: a.x + (b2.x - a.x) * e, y: a.y + (b2.y - a.y) * e }; };
+      if (F.spec.hit && F.kh < 1) {
+        var hp = lerp(spotXY(G, F.spec.hit.from, F.spec.hit.p), spotXY(G, F.spec.hit.to, F.spec.hit.p), F.kh);
+        drawChecker(g, hp.x, hp.y, G.cr * (1 + 0.12 * Math.sin(Math.PI * F.kh)), PC[F.spec.hit.p]);
+      }
+      if (F.k < 1) {
+        var mp = lerp(spotXY(G, F.spec.from, F.spec.p), spotXY(G, F.spec.to, F.spec.p), F.k);
+        drawChecker(g, mp.x, mp.y, G.cr * (1 + 0.12 * Math.sin(Math.PI * F.k)), PC[F.spec.p]);
+      }
+    }
     // تاس‌ها وسط نوار، به رنگ مهره‌ی کسی که نوبتش است
     if (v.showDice && v.dice) {
       var dd = v.dice[0] === v.dice[1] ? [v.dice[0], v.dice[0], v.dice[0], v.dice[0]] : v.dice.slice();
@@ -794,7 +854,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
       var left = v.left.slice();
       // تاس مصرف‌شده کم‌رنگ می‌شود؛ از آخر شمرده می‌شود تا ترتیب دیده‌شده ثابت بماند
       var used = dd.map(function (x) { var i = left.indexOf(x); if (i >= 0) { left.splice(i, 1); return false; } return true; });
-      for (var di = 0; di < dd.length; di++) drawDie(g, sx + di * (s + gap), G.barY + G.barH / 2, s, dd[di], PC[v.turn], used[di]);
+      var rk = v.fx && v.fx.roll !== undefined ? v.fx.roll : 1;
+      for (var di = 0; di < dd.length; di++) {
+        if (rk < 1) {
+          // tumbling: spinning, hopping and flicking through faces before the real one settles
+          var re = 1 - Math.pow(1 - rk, 2), face = rk < 0.7 ? 1 + ((Math.floor(rk * 16) + di * 2 + dd[di]) % 6) : dd[di];
+          drawDie(g, sx + di * (s + gap), G.barY + G.barH / 2 - Math.sin(Math.PI * rk) * s * 0.35, s, face, PC[v.turn], false,
+            (1 - re) * Math.PI * 2.5 * (di % 2 ? -1 : 1));
+        } else drawDie(g, sx + di * (s + gap), G.barY + G.barH / 2, s, dd[di], PC[v.turn], used[di]);
+      }
     }
     // سینی‌ها
     for (var tp = 1; tp <= 2; tp++) {
@@ -853,7 +921,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
     var cands = human ? candidates() : [];
     return {
       pts: S.pts, bar: S.bar, off: S.off, dice: S.dice, left: S.left, turn: S.turn,
-      showDice: !S.winner, sel: sel, lastTo: lastTo,
+      showDice: !S.winner, sel: sel, lastTo: lastTo, fx: fxNow(performance.now()),
       dests: human && sel !== null ? destsOf(sel) : null,
       focus: human && kf >= 0 && kf < cands.length ? cands[kf] : null
     };
@@ -1008,8 +1076,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
 
   function doStep(m, byHuman) {
     var hit = m.hit, off = m.to === 0;
-    var to = dstOf(m);
+    var to = dstOf(m), spec = stepFx(srcOf(m), to, S.turn, S.pts, S.bar, !!hit);
     if (!E.play(S, m)) { C.feedback('bad'); return; }
+    fxStart('step', spec);
     lastTo = to === 'off' ? null : to;
     C.audio.sfx(hit ? 'hit' : (off ? 'coin' : 'place'));
     // لرزش فقط برای دست خود بازیکن؛ حرکت حریف گوشی را نلرزاند، و کروم لرزشِ
@@ -1033,6 +1102,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
 
   function afterRoll() {
     sel = null; kf = -1; lastTo = null;
+    bfx.step = null;
+    fxStart('roll', {});
     C.audio.sfx('dig');
     if (!busy() && S.bar[S.turn] && sourcesNow().indexOf('bar') >= 0) sel = 'bar';
     refresh();
@@ -1075,7 +1146,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Backgammon
   function undo() {
     if (!S || S.winner || busy()) return;
     if (!E.undo(S)) { C.feedback('bad'); return; }
-    sel = null; kf = -1; lastTo = null;
+    sel = null; kf = -1; lastTo = null; bfx = {};
     if (S.bar[S.turn] && sourcesNow().indexOf('bar') >= 0) sel = 'bar';
     C.feedback('tap');
     refresh();
