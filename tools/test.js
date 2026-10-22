@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4395;
+const MIN_CHECKS = 4402;
 
 function ok(cond, msg) {
   checks++;
@@ -8633,6 +8633,33 @@ function testPegMotion() {
   ok(/hop = C\.ui\.reduceMotion\(\) \? null : hopFx\(/.test(src) && /prefers-reduced-motion: reduce\) \{[^}]*\.pg-hop \{ animation: none/.test(src), 'reduced motion draws the jump still');
 }
 
+function testMorrisMotion() {
+  head('Morris: pieces drop in and slide, a mill flashes, a taken piece fades (#407)');
+  // Pieces appeared and vanished in one frame, and a new mill only showed as
+  // the steady highlight.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/morris/index.html'), 'utf8');
+  const a0 = src.indexOf('  var MOVE_MS'), b0 = src.indexOf('\n  }\n', src.indexOf('  function fxTick(', a0)) + 4;
+  ok(a0 > 0 && b0 > a0, 'the effects found in Morris');
+  if (!(a0 > 0 && b0 > a0)) return;
+  let now = 1000, reduced = false, frames = 0;
+  const mills = [[0, 1, 2], [2, 3, 4]];
+  const sb = { Math, E: { MILLS: mills }, C: { ui: { reduceMotion: () => reduced } }, performance: { now: () => now },
+    requestAnimationFrame: () => ++frames, draw: () => {}, pulseRaf: 0 };
+  vm.runInNewContext(src.slice(a0, b0) + ';this.fxStart = fxStart; this.fxView = fxView; this.millsAt = millsAt; this.reset = function () { fx = {}; fxRaf = 0; };', sb);
+  sb.fxStart('move', { from: -1, to: 3 });
+  let v = sb.fxView(1100);
+  ok(v && v.move && v.move.k === 0.5 && v.move.from === -1 && frames === 1, 'a placed piece is halfway in after 100 ms, on one animation loop');
+  now = 1150; sb.fxStart('gone', { q: 5, who: 2 });
+  v = sb.fxView(1250);
+  ok(v.move === undefined && v.gone && Math.abs(v.gone.k - 100 / 260) < 1e-9, 'the removal runs on its own clock after the move has ended');
+  ok(sb.fxView(1500) === null, 'nothing is left over once every effect has ended');
+  const b = [1, 1, 1, 0, 2, 0];
+  ok(sb.millsAt(b, 1).length === 1 && sb.millsAt(b, 1)[0] === mills[0] && sb.millsAt(b, 4).length === 0, 'millsAt finds the mill the piece closed and no other');
+  sb.reset(); reduced = true; now = 2000; sb.fxStart('flash', { mills: [mills[0]] });
+  ok(sb.fxView(2010) === null, 'reduced motion starts nothing');
+  ok(/if \(!shown\) \{\n      fxStart\('move'/.test(src), 'a mill picked by hand is not shown twice');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8869,6 +8896,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testMorrisMotion();
 testPegMotion();
 testCheckersMotion();
 testReversiMotion();
