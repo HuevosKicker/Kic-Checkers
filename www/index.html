@@ -849,11 +849,15 @@
       el('div', { class: 'ch-item' }, [
         el('div', { class: 'ch-item__label', text: C.t('version') }),
         el('div', { class: 'ch-version' }, [
-          el('span', { class: 'ch-badge', text: C.num(C.version) }),
+          // Both lead to GitHub, so a reporter can see what is in the build (#399):
+          // the version to its release notes, the commit to its change.
+          /^\d+\.\d+\.\d+$/.test(C.version)
+            ? el('a', { class: 'ch-badge ch-version__link', href: 'https://github.com/choganhq/chogan/releases/tag/v' + C.version, target: '_blank', rel: 'noopener', text: C.num(C.version) })
+            : el('span', { class: 'ch-badge', text: C.num(C.version) }),
           // The word says what the code is; the hash itself is Latin hex in every
           // language, so it sits in its own left-to-right run.
           C.build ? el('span', { class: 'ch-version__build ch-dim' }, [
-            C.t('commitHash') + ' ', el('bdi', { class: 'ch-version__hash', dir: 'ltr', text: C.build })
+            C.t('commitHash') + ' ', el('a', { class: 'ch-version__hash', dir: 'ltr', href: 'https://github.com/choganhq/chogan/commit/' + C.commit, target: '_blank', rel: 'noopener', text: C.build })
           ]) : null
         ])
       ]),

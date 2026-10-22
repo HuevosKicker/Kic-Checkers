@@ -3114,7 +3114,8 @@
   // Bug fixes reach the web without a new version, so a screenshot of the
   // profile could not tell whether a fix was in it (#370, #387). The commit is
   // stamped only on the published build; elsewhere this stays empty.
-  Chogan.build = /^[0-9a-f]{40}$/.test(global.APP_COMMIT || '') ? global.APP_COMMIT.slice(0, 7) : '';
+  Chogan.commit = /^[0-9a-f]{40}$/.test(global.APP_COMMIT || '') ? global.APP_COMMIT : '';
+  Chogan.build = Chogan.commit.slice(0, 7);
 
   // برای تست‌های خودکار در نود
   if (typeof module !== 'undefined' && module.exports) module.exports = Chogan;

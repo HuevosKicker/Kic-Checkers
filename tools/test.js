@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4298;
+const MIN_CHECKS = 4301;
 
 function ok(cond, msg) {
   checks++;
@@ -8091,22 +8091,30 @@ function testFullscreenCarry() {
 }
 
 function testBuildShown() {
-  head('Profile shows the deployed build under the version (#387)');
+  head('Profile shows the deployed build under the version, both linked to GitHub (#387, #399)');
   // Fixes reach the web without a new version, so a screenshot of the profile
   // could not tell whether a fix was in it (#370).
   const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
-  const line = (core.match(/^  Chogan\.build = .*$/m) || [''])[0];
-  ok(line.length > 0, 'Chogan.build found in the core');
-  const build = (commit) => {
+  const line = ['commit', 'build'].map((k) => (core.match(new RegExp('^  Chogan\\.' + k + ' = .*$', 'm')) || [''])[0]).join('\n');
+  ok(/Chogan\.commit = /.test(line) && /Chogan\.build = /.test(line), 'Chogan.commit and Chogan.build found in the core');
+  const run = (commit) => {
     const C = {};
-    try { vm.runInNewContext('(function (global, Chogan) { ' + line + ' })', {})({ APP_COMMIT: commit }, C); } catch (e) { return 'threw ' + e.message; }
-    return C.build;
+    try { vm.runInNewContext('(function (global, Chogan) { ' + line + ' })', {})({ APP_COMMIT: commit }, C); } catch (e) { return { build: 'threw ' + e.message }; }
+    return C;
   };
+  const build = (commit) => run(commit).build;
   ok(build('711e157de04557876683c451d9bcac9dc85122b3') === '711e157', 'a stamped commit shows as its 7-character short form');
-  ok(build(undefined) === '', 'an unstamped build (dev, Android) shows nothing');
-  ok(build("x'; alert(1)") === '', 'anything that is not a commit shows nothing');
+  ok(run('711e157de04557876683c451d9bcac9dc85122b3').commit === '711e157de04557876683c451d9bcac9dc85122b3', 'the full commit is kept for its link');
+  ok(build(undefined) === '' && run(undefined).commit === '', 'an unstamped build (dev, Android) shows nothing');
+  ok(build("x'; alert(1)") === '' && run("x'; alert(1)").commit === '', 'anything that is not a commit shows nothing');
   const menu = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
-  ok(/C\.t\('commitHash'\) \+ ' ', el\('bdi', \{ class: 'ch-version__hash', dir: 'ltr', text: C\.build \}\)/.test(menu), 'the profile version row names the commit and shows C.build left to right');
+  ok(/C\.t\('commitHash'\) \+ ' ', el\('a', \{ class: 'ch-version__hash', dir: 'ltr', href: 'https:\/\/github\.com\/choganhq\/chogan\/commit\/' \+ C\.commit, target: '_blank', rel: 'noopener', text: C\.build \}\)/.test(menu),
+    'the profile names the commit, shows C.build left to right and links it to the commit on GitHub (#399)');
+  ok(/\/\^\\d\+\\\.\\d\+\\\.\\d\+\$\/\.test\(C\.version\)\n\s+\? el\('a', \{ class: 'ch-badge ch-version__link', href: 'https:\/\/github\.com\/choganhq\/chogan\/releases\/tag\/v' \+ C\.version, target: '_blank', rel: 'noopener', text: C\.num\(C\.version\) \}\)/.test(menu),
+    'the version links to its GitHub release, and only a real version number does (#399)');
+  // the release tag the link names must be the one release.yml checks
+  const rel = fs.readFileSync(path.join(ROOT, '.github/workflows/release.yml'), 'utf8');
+  ok(/if \[ "v\$VERSION" != "\$\{GITHUB_REF_NAME\}" \]; then/.test(rel), 'release tags are v<APP_VERSION>, as the link assumes');
 }
 
 function testDarkInk() {
