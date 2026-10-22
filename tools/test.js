@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4455;
+const MIN_CHECKS = 4460;
 
 function ok(cond, msg) {
   checks++;
@@ -8842,6 +8842,27 @@ function testBreakoutMotion() {
   ok(/if \(!C\.ui\.reduceMotion\(\)\) squashAt = performance\.now\(\);/.test(src) && /var sq = withText \? squash\(now - squashAt\) : \[1, 1\]/.test(src), 'the squash stops with reduced motion and never shows on the result card');
 }
 
+function testBlockdropMotion() {
+  head('Block Drop: cleared rows flash, the rows above fall in, a hard drop thuds (#407)');
+  // Cleared rows only flashed while the rows above were already down, and the
+  // flash ran even with reduced motion.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/blockdrop/index.html'), 'utf8');
+  const a0 = src.indexOf('  var COLLAPSE_AT'), b0 = src.indexOf('\n  }\n', src.indexOf('  function collapseLeft(', a0)) + 4;
+  ok(a0 > 0 && b0 > a0, 'dropOf and collapseLeft found in Block Drop');
+  if (!(a0 > 0 && b0 > a0)) return;
+  const sb = { Math };
+  vm.runInNewContext(src.slice(a0, b0) + ';this.dropOf = dropOf; this.collapseLeft = collapseLeft;', sb);
+  // a 6-row grid with rows 3 and 5 cleared: pre-rows 0,1,2 fall 2, pre-row 4 falls 1
+  const d = sb.dropOf([3, 5], 6);
+  ok(d.join(',') === '0,0,2,2,2,1', 'each row falls by the cleared rows that were below it (' + d.join(',') + ')');
+  // check it against the engine: clear rows and compare where each marked row went
+  const grid = [0, 1, 2, 3, 4, 5].map((r) => r), rows = [3, 5], after = grid.slice();
+  rows.forEach((r) => { after.splice(r, 1); after.unshift(-1); });
+  ok(after.every((v, y) => v < 0 || v + d[y] === y), 'the falls match the engine\'s splice-and-unshift clear');
+  ok(sb.collapseLeft(50) === 1 && sb.collapseLeft(110 + 85) > 0 && sb.collapseLeft(110 + 85) < 1 && sb.collapseLeft(400) === 0, 'rows hold through the flash, then fall into place');
+  ok(/if \(!C\.ui\.reduceMotion\(\)\) flashes\.push\(/.test(src) && /ev\.dropped > 0 && !C\.ui\.reduceMotion\(\)\) \{ canvas\.classList\.remove\('bd-thud'\)/.test(src), 'reduced motion: no flash, no fall, no thud');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9078,6 +9099,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testBlockdropMotion();
 testBreakoutMotion();
 testJigsawGlide();
 testSlidingShimmer();
