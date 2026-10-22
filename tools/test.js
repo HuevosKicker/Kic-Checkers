@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4460;
+const MIN_CHECKS = 4466;
 
 function ok(cond, msg) {
   checks++;
@@ -8863,6 +8863,36 @@ function testBlockdropMotion() {
   ok(/if \(!C\.ui\.reduceMotion\(\)\) flashes\.push\(/.test(src) && /ev\.dropped > 0 && !C\.ui\.reduceMotion\(\)\) \{ canvas\.classList\.remove\('bd-thud'\)/.test(src), 'reduced motion: no flash, no fall, no thud');
 }
 
+function testTowerDefenceKills() {
+  head('Tower defence: a kill pops and its coins float up (#407)');
+  // An enemy vanished in one frame and its bounty only changed the number at the top.
+  const E = loadEngine('tower-defence', 'TdEngineFactory');
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+  const S = E.createGame({ path: E.genPath(rng(4242), { minTurns: 5 }) });
+  let built = 0;
+  // towers right beside the path, so the first wave has kills to show
+  for (const q of S.path) for (const [dr, dc] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) if (built < 6 && E.canBuild(S, q.r + dr, q.c + dc) && E.build(S, q.r + dr, q.c + dc, 'archer')) built++;
+  ok(built > 0, 'towers stand beside the path (' + built + ')');
+  E.startWave(S, rng(7));
+  let kill = null, paid = 0, steps = 0;
+  while (!kill && steps++ < 4000 && !S.over) {
+    const m0 = S.money, k0 = S.kills, active = S.waveActive;
+    E.step(S, 0.05, rng(steps));
+    const ks = S.effects.filter((f) => f.kind === 'kill');
+    if (S.kills > k0 && S.waveActive && active) { kill = ks; paid = S.money - m0; }
+  }
+  ok(!!kill && kill.length >= 1, 'a kill shows up among the step\'s effects (' + (kill ? kill.length : 0) + ')');
+  if (!kill) return;
+  ok(kill.reduce((a, f) => a + f.gain, 0) === paid, 'the floating coins add up to what the kills paid (' + paid + ')');
+  ok(kill.every((f) => isFinite(f.x) && isFinite(f.y) && f.r > 0 && /^#/.test(f.color)), 'each kill says where it fell and how big it was');
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/tower-defence/index.html'), 'utf8');
+  const a0 = src.indexOf('  var POP_MS'), b0 = src.indexOf('\n  }\n', src.indexOf('  function deathAt(', a0)) + 4;
+  const sb = { Math };
+  if (a0 > 0 && b0 > a0) vm.runInNewContext(src.slice(a0, b0) + ';this.deathAt = deathAt;', sb);
+  ok(typeof sb.deathAt === 'function' && sb.deathAt(0).popAlpha === 1 && sb.deathAt(260).popAlpha === 0 && sb.deathAt(375).rise > 0.5 && sb.deathAt(750).coinAlpha === 0, 'the pop is gone in 260 ms and the coin has risen and faded by 750 ms');
+  ok(/if \(f\.kind === 'kill'\) \{ if \(!C\.ui\.reduceMotion\(\) && deaths\.length < 60\)/.test(src) && !/kind === 'kill'[^\n]*shotsLive\.push/.test(src), 'kills are never drawn as shots, and not at all with reduced motion');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9099,6 +9129,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testTowerDefenceKills();
 testBlockdropMotion();
 testBreakoutMotion();
 testJigsawGlide();
