@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4610;
+const MIN_CHECKS = 4671;
 
 function ok(cond, msg) {
   checks++;
@@ -9167,6 +9167,118 @@ function testCrazyEights() {
   ok(Date.now() - t0 < 10000, 'the Crazy Eights tests finish in under 10 s (' + (Date.now() - t0) + ' ms)');
 }
 
+function testGinRummy() {
+  head('Gin Rummy (#417)');
+  const t0 = Date.now();
+  const E = loadEngine('ginrummy', 'GinRummyEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/ginrummy/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+  const c = (r, s) => r * 4 + s;               // ranks 0..12 (A..K), suits ♣ ♦ ♥ ♠
+  const st = (h0, h1, discard) => {
+    const used = new Set([...h0, ...h1, ...discard]), stock = [];
+    for (let x = 0; x < 52; x++) if (!used.has(x)) stock.push(x);
+    return { hands: [h0, h1], stock, discard, turn: 0, phase: 'draw', took: -1, result: null, dealer: 1, seen: [[], []] };
+  };
+
+  // The deal
+  const H0 = E.newHand(rng(5), 1);
+  ok(H0.hands[0].length === 10 && H0.hands[1].length === 10 && H0.discard.length === 1 && H0.stock.length === 31 && H0.turn === 0 && E.validHand(H0), 'ten cards each, one upcard, 31 in the stock, the non-dealer first');
+
+  // Melds and deadwood
+  ok(E.value(c(0, 0)) === 1 && E.value(c(8, 0)) === 9 && E.value(c(9, 1)) === 10 && E.value(c(12, 2)) === 10, 'aces 1, numbers their value, court cards 10');
+  const hm = [c(6, 0), c(7, 0), c(8, 0), c(12, 0), c(12, 1), c(12, 2), c(0, 1), c(1, 1), c(2, 1), c(4, 3)];
+  const bm = E.best(hm);
+  ok(bm.points === 5 && bm.melds.length === 3 && bm.dead.length === 1 && bm.dead[0] === c(4, 3), 'a run, a set of kings and A-2-3 leave only the 5♠ (deadwood 5)');
+  ok(E.deadwood([c(11, 3), c(12, 3), c(0, 3)]) === 21, 'Q-K-A does not wrap round: no run');
+  // the 7♦ fits a set of sevens or a run of diamonds; the best arrangement uses it where it saves most
+  // (a first version of this check gave six cards that make both a set and a run, deadwood 0)
+  const over = [c(6, 0), c(6, 2), c(6, 1), c(7, 1), c(8, 1)];
+  ok(E.deadwood(over) === 14, 'a card in both a set and a run goes where it leaves least deadwood (7-8-9♦ run, two sevens left: 14, not 17)');
+  ok(E.deadwood([c(4, 0), c(4, 1), c(4, 2), c(4, 3)]) === 0, 'four of a kind is one meld');
+
+  // Turns: draw one, discard one; the card just taken from the pile can't go straight back
+  const T = st([c(0, 0), c(1, 0), c(2, 0), c(5, 1), c(5, 2), c(5, 3), c(9, 0), c(10, 1), c(11, 2), c(12, 3)], H0.hands[1].filter(() => false).concat([c(3, 1), c(3, 2), c(3, 3), c(7, 0), c(7, 1), c(7, 2), c(8, 0), c(8, 1), c(8, 2), c(8, 3)]), [c(9, 3)]);
+  ok(E.draw(T, 'discard') === c(9, 3) && T.phase === 'discard' && !E.canDiscard(T, c(9, 3)), 'the upcard can be taken, but not thrown straight back');
+  ok(E.draw(T, 'stock') === -1, 'and only one card is drawn a turn');
+  ok(!E.canKnock(T, c(12, 3)), 'with 39 deadwood left there is no knock');
+  ok(E.discard(T, c(12, 3), false) && T.turn === 1 && T.phase === 'draw' && E.top(T) === c(12, 3), 'a discard passes the turn');
+  const Lo = st([], [], [c(0, 0)]);
+  Lo.stock = Lo.stock.slice(0, 2);
+  ok(E.draw(Lo, 'stock') === -1 && E.stockDead(Lo), 'with two cards left in the stock nobody draws from it');
+
+  // The showdown: a knock scores the difference after lay-offs
+  const K = st([c(0, 0), c(1, 0), c(2, 0), c(5, 1), c(5, 2), c(5, 3), c(8, 2), c(9, 2), c(10, 2), c(3, 3), c(1, 3)],
+               [c(3, 0), c(12, 1), c(12, 2), c(12, 3), c(6, 0), c(6, 1), c(4, 3), c(4, 2), c(9, 0), c(11, 2)], [c(10, 0)]);
+  K.phase = 'discard';
+  // you: A-2-3♣, three sixes, 9-10-J♥ and the 4♠ + 2♠ (6 deadwood) — throw the 2♠ and knock with 4
+  ok(E.canKnock(K, c(1, 3)) && E.discard(K, c(1, 3), true), 'with 4 deadwood after the discard you may knock');
+  const R = K.result;
+  // the bot: three kings; 4♣ lays off on A-2-3♣, Q♥ on 9-10-J♥; left 7♣ 7♦ 5♠ 5♥ 10♣ = 7+7+5+5+10 = 34
+  ok(R.knocker === 0 && R.off.length === 2 && R.off.indexOf(c(3, 0)) >= 0 && R.off.indexOf(c(11, 2)) >= 0, 'the defender lays off the 4♣ and the Q♥ on the knocker\'s runs');
+  ok(R.dPts === 34 && R.kPts === 4 && R.winner === 0 && R.points === 30 && !R.undercut && !R.gin, 'the knocker scores 34 − 4 = 30');
+  // An undercut: the defender with as much or less deadwood takes the difference plus 25
+  const U = st([c(0, 0), c(1, 0), c(2, 0), c(5, 1), c(5, 2), c(5, 3), c(8, 2), c(9, 2), c(10, 2), c(6, 3), c(12, 3)],
+               [c(3, 1), c(3, 2), c(3, 3), c(7, 0), c(7, 1), c(7, 2), c(10, 0), c(10, 1), c(10, 3), c(1, 1)], [c(4, 0)]);
+  U.phase = 'discard';
+  E.discard(U, c(12, 3), true);            // you knock with the 7♠ (7); the bot holds only a 2♦ (2)
+  ok(U.result.winner === 1 && U.result.undercut && U.result.points === 7 - 2 + 25, 'a defender with less deadwood undercuts and scores 5 + 25');
+  const Q = st([c(0, 0), c(1, 0), c(2, 0), c(5, 1), c(5, 2), c(5, 3), c(8, 2), c(9, 2), c(10, 2), c(2, 3), c(12, 3)],
+               [c(3, 1), c(3, 2), c(3, 3), c(7, 0), c(7, 1), c(7, 2), c(10, 0), c(10, 1), c(10, 3), c(2, 1)], [c(4, 0)]);
+  Q.phase = 'discard';
+  E.discard(Q, c(12, 3), true);            // you knock with the 3♠ (3); the bot holds a 3♦ (3)
+  ok(Q.result.winner === 1 && Q.result.undercut && Q.result.points === 25, 'equal deadwood is an undercut too: 0 + 25');
+  // Gin: 25 plus the defender's deadwood, and no laying off
+  const G = st([c(0, 0), c(1, 0), c(2, 0), c(5, 1), c(5, 2), c(5, 3), c(8, 2), c(9, 2), c(10, 2), c(11, 2), c(12, 3)],
+               [c(3, 0), c(12, 1), c(12, 2), c(12, 0), c(6, 0), c(6, 1), c(4, 3), c(4, 2), c(9, 0), c(7, 3)], [c(10, 0)]);
+  G.phase = 'discard';
+  E.discard(G, c(12, 3), true);
+  ok(G.result.gin && G.result.off.length === 0 && G.result.points === 25 + G.result.dPts && G.result.dPts === 4 + 7 + 7 + 5 + 5 + 10 + 8, 'gin scores 25 plus all the defender\'s deadwood (46), with nothing laid off');
+
+  // Bots: every move legal, every hand ends, and the levels differ
+  const play = (levels, seed) => {
+    const r = rng(seed), HH = E.newHand(r, Math.floor(seed / 2) % 2);
+    for (let i = 0; i < 400 && HH.phase !== 'over'; i++) {
+      if (HH.phase === 'draw') { if (E.draw(HH, E.botDraw(HH, levels[HH.turn])) < 0) { HH.phase = 'over'; HH.result = { draw: true }; } }
+      else { const m = E.botDiscard(HH, levels[HH.turn], r); if (!E.discard(HH, m.c, m.knock)) return null; }
+    }
+    return HH.phase === 'over' ? HH.result : null;
+  };
+  const pit = (a, b, n) => { const pts = [0, 0]; for (let i = 0; i < n; i++) { const lv = i % 2 ? [a, b] : [b, a]; const res = play(lv, i + 3); if (!res) return null; if (res.draw) continue; pts[res.winner === (i % 2 ? 0 : 1) ? 0 : 1] += res.points; } return pts[0] / (pts[0] + pts[1]); };
+  const me = pit('medium', 'easy', 200), he = pit('hard', 'easy', 200), hm2 = pit('hard', 'medium', 200);
+  ok(me !== null && he !== null && hm2 !== null, 'every bot move is legal and every hand ends');
+  ok(me >= 0.7 && he >= 0.7, 'medium and hard take at least 70 % of the points against easy (' + (me * 100).toFixed(0) + ' %, ' + (he * 100).toFixed(0) + ' %)');
+  ok(hm2 >= 0.42, 'hard is no weaker than medium (' + (hm2 * 100).toFixed(0) + ' % of the points)');
+
+  // Page wiring
+  ok(/C\.cards\.el\(c, cls\.trim\(\)\)/.test(html) && /C\.ui\.fly\(hand\.children\[i\], from, \{ ms: 220, delay: i \* 40, flip: true \}\)/.test(html), 'the cards are Chogan.cards and the deal uses Chogan.ui.fly');
+  ok(/function arranged\(h\)/.test(html) && /hand\.addEventListener\('pointermove'/.test(html) && /M\.order = order;/.test(html), 'an Arrange button, and dragging a card reorders the hand');
+  ok(/'aria-label': C\.t\('settings'\)/.test(html) && /function showSettings\(\)/.test(html), 'the bot\'s level is chosen behind a gear');
+  ok(/C\.daily\('ginrummy', M\.daily\)\.rng/.test(html) && /if \(M\.H\.scored\) newHand\(\); else \{ render\(\); showdown\(\); \}/.test(html), 'the daily hand is seeded, and a hand closed after a knock is scored on return');
+  ok(/\.gr-hand \.ch-pcard__s, \.gr-hand \.ch-pcard__mini \{/.test(html), 'every card in the hand shows its suit in the visible corner');
+
+  // Identity
+  const gm = games.find((g) => g.id === 'ginrummy');
+  ok(!!gm && gm.cat === 'cards' && gm.daily !== false, 'games.json lists it under card games, with a daily hand');
+  ok(!!gm && /accent: '([^']+)'/.test(html) && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/ginrummy/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (x) => [1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16) / 255);
+  const lin = (v) => v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  const lab = (x) => {
+    const [Rr, Gg, Bl] = rgb(x).map(lin), f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    const X = (Rr * 0.4124 + Gg * 0.3576 + Bl * 0.1805) / 0.95047, Y = Rr * 0.2126 + Gg * 0.7152 + Bl * 0.0722, Z = (Rr * 0.0193 + Gg * 0.1192 + Bl * 0.9505) / 1.08883;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  };
+  const dE = (a, b) => { const A = lab(a), B = lab(b); return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]); };
+  const lum = (x) => rgb(x).map((v) => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)).reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const near = games.filter((g) => g.id !== 'ginrummy').map((g) => [g.id, dE(g.color, gm.color)]).sort((x, y) => x[1] - y[1])[0];
+  ok(near[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + near[0] + ', ' + near[1].toFixed(1) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['gr-win', 'gr-gin', 'gr-under'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '[^\\n]*des: '").test(core) && html.indexOf("unlock('" + id + "')") > 0), 'the three Gin Rummy awards exist in every language and are unlocked');
+  ok(Date.now() - t0 < 12000, 'the Gin Rummy tests finish in under 12 s (' + (Date.now() - t0) + ' ms)');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9405,6 +9517,7 @@ testChessMotion();
 testStonesMotion();
 testKlondike();
 testCrazyEights();
+testGinRummy();
 testBowlingBanner();
 testCueSink();
 testBattleshipFx();

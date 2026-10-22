@@ -1,4 +1,4 @@
-Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae treinta y siete juegos, y los nuevos llegan como actualizaciones de la misma app.
+Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae treinta y ocho juegos, y los nuevos llegan como actualizaciones de la misma app.
 
 Los juegos:
 
@@ -39,6 +39,7 @@ Los juegos:
 * Damas — 8×8 con captura obligatoria, reglas clásicas o españolas, contra la IA o para dos
 * Solitario — robo de una o de tres cartas, y una partida diaria siempre con solución
 * Ocho loco — sigue el palo o el número, los ochos cambian el palo; contra 1 a 3 bots
+* Gin Rummy — combinaciones contra un bot: cerrar, gin y contragolpe, hasta 100
 
 Alrededor de los juegos:
 
