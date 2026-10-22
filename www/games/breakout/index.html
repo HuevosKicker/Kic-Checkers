@@ -593,6 +593,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BreakoutEn
     return k.hp >= 3 ? CO.b3 : (k.hp === 2 ? CO.b2 : CO.b1);
   }
 
+  // #407: a broken brick only faded, its fade ran even with reduced motion, and
+  // the ball met the paddle with no give. Now a broken brick also throws shards
+  // in its colour, and the paddle squashes for a moment where the ball lands.
+  var SQUASH_MS = 140, squashAt = -1e9;
+  // the paddle's width and height factors t ms after a hit: wider and flatter, then back
+  function squash(t) {
+    if (t < 0 || t >= SQUASH_MS) return [1, 1];
+    var k = Math.sin(Math.PI * t / SQUASH_MS);
+    return [1 + 0.12 * k, 1 - 0.3 * k];
+  }
+  // a brick's centre on the page, for the shared burst layer
+  function brickOnPage(e) {
+    var r = canvas.getBoundingClientRect(), k = r.width / E.W;
+    return { x: r.left + (e.x + e.w / 2) * k, y: r.top + (e.y + e.h / 2) * k };
+  }
+
   function paintField(g, withText) {
     g.fillStyle = CO.field;
     g.fillRect(0, 0, E.W, E.H);
@@ -614,7 +630,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BreakoutEn
     }
     g.globalAlpha = 1;
     g.fillStyle = CO.paddle;
-    C.rrect(g, S.px - E.PW / 2, E.PY, E.PW, E.PH, 5);
+    var sq = withText ? squash(now - squashAt) : [1, 1], pw = E.PW * sq[0], ph = E.PH * sq[1];
+    C.rrect(g, S.px - pw / 2, E.PY + (E.PH - ph), pw, ph, 5);
     g.fill();
     g.fillStyle = CO.ball;
     g.beginPath(); g.arc(S.ball.x, S.ball.y, E.R, 0, Math.PI * 2); g.fill();
@@ -670,10 +687,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BreakoutEn
         changed = true;
         if (e.destroyed) {
           C.audio.sfx('pop');
-          flashes.push({ x: e.x, y: e.y, w: e.w, h: e.h, at: performance.now(), color: e.max >= 3 ? CO.b3 : (e.max === 2 ? CO.b2 : CO.b1) });
+          var bc = e.max >= 3 ? CO.b3 : (e.max === 2 ? CO.b2 : CO.b1);
+          if (!C.ui.reduceMotion()) {
+            flashes.push({ x: e.x, y: e.y, w: e.w, h: e.h, at: performance.now(), color: bc });
+            C.ui.burst(brickOnPage(e), { count: 10, speed: 200, size: 2.6, life: 480, colors: [bc, bc, '#FFFFFF'] });
+          }
         } else C.audio.sfx('hit');
       } else if (e.type === 'steel') C.audio.sfx('tick');
-      else if (e.type === 'paddle') C.audio.sfx('tap');
+      else if (e.type === 'paddle') {
+        C.audio.sfx('tap');
+        if (!C.ui.reduceMotion()) squashAt = performance.now();
+      }
       else if (e.type === 'lost') {
         changed = true;
         C.audio.sfx('bad'); C.haptic('error'); C.ui.shake(canvas);
