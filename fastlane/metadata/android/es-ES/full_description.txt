@@ -1,4 +1,4 @@
-Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae treinta y cinco juegos, y los nuevos llegan como actualizaciones de la misma app.
+Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae treinta y seis juegos, y los nuevos llegan como actualizaciones de la misma app.
 
 Los juegos:
 
@@ -6,7 +6,7 @@ Los juegos:
 * Sudoku — cuatro dificultades con solución única garantizada, notas, pistas y un reto diario
 * Buscaminas — generación sin adivinar, cuatro tamaños, despeje rápido y banderas
 * Puntos y cajas — dos jugadores en un mismo móvil, o tres niveles de IA
-* Backgammon — dos jugadores o tres niveles de IA, dados que deshacer nunca vuelve a tirar, los gammons cuentan doble
+* Backgammon — dos jugadores o tres niveles de IA, los gammons cuentan doble
 * Mancala — reglas de Kalah, dos jugadores o tres niveles de IA
 * Nonograma — tres tamaños, cada puzle se resuelve solo con lógica
 * FreeCell — las partidas numeradas clásicas, nunca la única imposible, deshacer ilimitado
@@ -37,20 +37,21 @@ Los juegos:
 * Puzle deslizante — ordena las fichas numeradas, de 3×3 a 5×5, con pocos movimientos
 * Rompecabezas — de 12 a 150 piezas al marco; motivos persas y paisajes dibujados con código
 * Damas — 8×8 con captura obligatoria, reglas clásicas o españolas, contra la IA o para dos
+* Solitario — robo de una o de tres cartas, y una partida diaria siempre con solución
 
 Alrededor de los juegos:
 
-* Un reto diario idéntico en todos los dispositivos, sin ningún servidor
+* Un reto diario igual en todas partes, sin ningún servidor
 * Una liga semanal sin conexión con cinco niveles
 * Más de ochenta logros
 * Estadísticas y un perfil
-* Interfaz en persa, inglés, chino simplificado, alemán y español, con temas claro y oscuro
+* En persa, inglés, chino, alemán y español, con tema claro y oscuro
 
 Sobre la privacidad:
 
 * El único permiso que declara la app es la vibración. Ni siquiera acceso a internet
 * Sin anuncios, sin compras dentro de la app, sin analíticas, sin rastreo
 * Todo va dentro del paquete, hasta el sonido se genera con código
-* El progreso se guarda solo en el dispositivo, y la copia de seguridad automática de Google está desactivada
+* El progreso se guarda solo en el dispositivo, sin copia en Google
 
 Gratis y de código abierto con la licencia MIT.
