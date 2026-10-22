@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4351;
+const MIN_CHECKS = 4358;
 
 function ok(cond, msg) {
   checks++;
@@ -8477,6 +8477,37 @@ function testFreecellMotion() {
   ok(peaks.length > 2 && peaks.every((p, i) => i === 0 || p > peaks[i - 1]), 'with gravity 0.6 and 0.72 rebound each bounce peaks lower');
 }
 
+function testChessMotion() {
+  head('Chess: moves slide, captures fade, check pulses (#407)');
+  // Pieces jumped between squares and a taken piece just vanished.
+  const cs = fs.readFileSync(path.join(ROOT, 'www/games/chess/index.html'), 'utf8');
+  const fn = (cs.match(/^  function slide\(\) \{[\s\S]*?^  \}$/m) || [''])[0];
+  ok(fn.length > 0, 'slide found in Chess');
+  // run slide over fake squares: one new ply slides once, a second paint does not
+  const flies = [];
+  const sq = (i) => ({ querySelector: () => ({ id: 'piece' + i }), getBoundingClientRect: () => ({ left: (i & 7) * 40, top: (i >> 3) * 40, width: 40, height: 40 }) });
+  const squares = Array.from({ length: 64 }, (_, i) => sq(i));
+  const sb = { G: { sans: [], lastMove: null }, S: { board: new Array(64).fill('') }, squares, taken: null, shownPly: -1, flipped: () => false,
+    el: () => ({}), document: { body: { appendChild() {} } }, setTimeout() {}, pieceSvg: () => '', Math,
+    C: { ui: { reduceMotion: () => false, fly: (n, from, o) => flies.push([n.id, from.left, from.top, o.ms]) } } };
+  let run = () => {};
+  try { vm.runInNewContext(fn + ';this.slide = slide;', sb); run = () => sb.slide(); } catch (e) { ok(false, 'slide did not run: ' + e.message); }
+  run();
+  ok(flies.length === 0, 'the first paint of a game slides nothing');
+  sb.G.sans.push('e4'); sb.G.lastMove = { from: 52, to: 36 }; sb.S.board[36] = 'P';
+  run(); run();
+  ok(flies.length === 1 && flies[0][0] === 'piece36' && flies[0][1] === 4 * 40 + 2.4 && flies[0][3] === 200, 'a new move slides its piece once from the old square, in 200 ms, however often the board repaints');
+  sb.G.sans.push('O-O'); sb.G.lastMove = { from: 4, to: 6 }; sb.S.board[6] = 'k'; sb.S.board[5] = 'r';
+  run();
+  ok(flies.length === 3 && flies[2][0] === 'piece5' && flies[2][1] === 7 * 40 + 2.4, 'castling slides the rook from its corner as well');
+  sb.G.sans.pop(); sb.G.lastMove = { from: 52, to: 36 };
+  run();
+  ok(flies.length === 3, 'an undo is drawn still');
+  ok((cs.match(/taken = S\.board\[m\.to\] \? \{ sq: m\.to, p: S\.board\[m\.to\] \} : null;\n\s+S = E\.make\(S, m\);/g) || []).length === 2 && /movesEl\.scrollTop = movesEl\.scrollHeight;\n\s+slide\(\);/.test(cs),
+    'a capture is remembered before the move, in games and puzzles alike, and every paint ends with slide');
+  ok(/\.cs-sq--check::before \{[^}]*animation: cs-check/.test(cs) && /if \(gone && !C\.ui\.reduceMotion\(\)\)/.test(cs), 'check pulses, and the taken piece fades unless motion is reduced');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8711,6 +8742,7 @@ testHokmMotion();
 testSudokuAutoNotes();
 testPasurMotion();
 testFreecellMotion();
+testChessMotion();
 testBowling();
 testSliding();
 testJigsaw();

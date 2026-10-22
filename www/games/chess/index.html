@@ -25,7 +25,12 @@
   .cs-sq--d { background: var(--cs-dark); }
   .cs-sq--last::before { content: ''; position: absolute; inset: 0; background: var(--cs-last); }
   .cs-sq--sel::before { content: ''; position: absolute; inset: 0; background: rgba(84, 140, 210, .45); }
-  .cs-sq--check::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle, var(--cs-check) 0%, rgba(220,70,60,0) 70%); }
+  .cs-sq--check::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle, var(--cs-check) 0%, rgba(220,70,60,0) 70%); animation: cs-check 700ms var(--ease) 2; }
+  /* #407: check pulses twice; a taken piece shrinks and fades under the one that took it */
+  @keyframes cs-check { 50% { transform: scale(1.15); opacity: .7; } }
+  .cs-gone { position: fixed; pointer-events: none; z-index: 5; animation: cs-gone 260ms var(--ease) forwards; }
+  .cs-gone svg { position: static; width: 100%; height: 100%; }
+  @keyframes cs-gone { to { opacity: 0; transform: scale(.5); } }
   .cs-sq--cur { outline: 3px solid var(--game); outline-offset: -3px; }
   .cs-sq svg { position: absolute; inset: 6%; width: 88%; height: 88%; pointer-events: none; }
   .cs-dot { position: absolute; left: 50%; top: 50%; width: 30%; height: 30%; transform: translate(-50%, -50%); border-radius: 50%; background: rgba(40, 40, 40, .28); pointer-events: none; }
@@ -1004,6 +1009,8 @@ function ChessBotFactory() {
   ctx.mount();
 
   var squares = [];
+  // #407: moves already shown, so each new one slides once; the piece a move took
+  var shownPly = -1, taken = null;
   for (var v = 0; v < 64; v++) {
     var b = el('button', { class: 'cs-sq', type: 'button', role: 'gridcell' });
     b.setAttribute('data-v', String(v));
@@ -1135,6 +1142,8 @@ function ChessBotFactory() {
   }
   function applyMove(m) {
     G.sans.push(E.san(S, m));
+    // what the move took, for its fade on the next paint (#407); en passant takes beside the square
+    taken = S.board[m.to] ? { sq: m.to, p: S.board[m.to] } : null;
     S = E.make(S, m);
     G.fens.push(E.fen(S));
     G.lastMove = { from: m.from, to: m.to };
@@ -1438,6 +1447,32 @@ function ChessBotFactory() {
     for (var k = 0; k < G.sans.length; k += 2) parts.push((k / 2 + 1) + '. ' + G.sans[k] + (G.sans[k + 1] ? ' ' + G.sans[k + 1] : ''));
     movesEl.textContent = parts.join('  ');
     movesEl.scrollTop = movesEl.scrollHeight;
+    slide();
+  }
+
+  // The piece of a new move slides from its old square (200 ms, as on Lichess);
+  // in castling the rook comes too, and a taken piece fades beneath (#407).
+  // Restored games, undo and a puzzle's wrong try are drawn still.
+  function slide() {
+    var ply = G.sans.length, lm = G.lastMove, gone = taken;
+    taken = null;
+    if (shownPly < 0 || ply !== shownPly + 1 || !lm) { shownPly = ply; return; }
+    shownPly = ply;
+    var view = function (i) { return flipped() ? 63 - i : i; };
+    var pieceIn = function (sq) { return squares[view(sq)].querySelector('svg'); };
+    var inner = function (sq) { var r = squares[view(sq)].getBoundingClientRect(); return { left: r.left + r.width * 0.06, top: r.top + r.height * 0.06, width: r.width * 0.88, height: r.height * 0.88 }; };
+    // the fading piece floats above the board, so a repaint of the square cannot cut it short
+    if (gone && !C.ui.reduceMotion()) {
+      var at = inner(gone.sq);
+      var g = el('span', { class: 'cs-gone', html: pieceSvg(gone.p), style: { left: at.left + 'px', top: at.top + 'px', width: at.width + 'px', height: at.height + 'px' } });
+      document.body.appendChild(g);
+      setTimeout(function () { if (g.parentNode) g.parentNode.removeChild(g); }, 320);
+    }
+    C.ui.fly(pieceIn(lm.to), inner(lm.from), { ms: 200 });
+    if (/^k$/i.test(S.board[lm.to]) && Math.abs(lm.to - lm.from) === 2) {
+      var row = lm.to & ~7, right = lm.to > lm.from;
+      C.ui.fly(pieceIn(row + (right ? 5 : 3)), inner(row + (right ? 7 : 0)), { ms: 200 });
+    }
   }
 
   function resultText(st) {
@@ -1490,6 +1525,7 @@ function ChessBotFactory() {
   function commit(m) {
     if (isPz()) { pzMove(m); return; }
     var text = E.san(S, m);
+    taken = S.board[m.to] ? { sq: m.to, p: S.board[m.to] } : null;
     S = E.make(S, m);
     G.fens.push(E.fen(S));
     G.sans.push(text);
