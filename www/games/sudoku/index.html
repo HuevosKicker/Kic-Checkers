@@ -362,7 +362,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
     strings: {
       fa: {
         mistakes: 'خطا', hints: 'راهنمایی', notes: 'یادداشت', erase: 'پاک‌کن', move: 'جابه‌جایی',
-        autoNotes: 'یادداشت خودکار', showErrors: 'نمایش خطا',
+        autoNotes: 'یادداشت خودکار', clearNotes: 'پاک کردن همه‌ی یادداشت‌ها', clearBtn: 'پاک کن', notesCleared: 'یادداشت‌ها پاک شد', notesBack: 'برگرداندن آن‌ها را برمی‌گرداند', showErrors: 'نمایش خطا',
         highlight: 'برجسته‌سازی', hlPeers: 'سطر، ستون و بلوک', hlDigit: 'فقط رقم یکسان', newPuzzle: 'جدول تازه',
         solvedIn: 'در {t} حل شد', noMoreEmpty: 'خانه‌ی خالی نمانده',
         dailySudoku: 'سودوکوی روزانه', clues: 'سرنخ',
@@ -372,7 +372,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       },
       en: {
         mistakes: 'Errors', hints: 'Hints', notes: 'Notes', erase: 'Erase', move: 'Move',
-        autoNotes: 'Auto notes', showErrors: 'Show errors',
+        autoNotes: 'Auto notes', clearNotes: 'Clear all notes', clearBtn: 'Clear', notesCleared: 'Notes cleared', notesBack: 'Undo brings them back', showErrors: 'Show errors',
         highlight: 'Highlight', hlPeers: 'Row, column and box', hlDigit: 'Same digit only', newPuzzle: 'New puzzle',
         solvedIn: 'Solved in {t}', noMoreEmpty: 'No empty cells left',
         dailySudoku: 'Daily sudoku', clues: 'clues',
@@ -382,7 +382,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       },
       zh: {
         mistakes: '错误', hints: '提示', notes: '笔记', erase: '擦除', move: '移动',
-        autoNotes: '自动笔记', showErrors: '显示错误',
+        autoNotes: '自动笔记', clearNotes: '清除所有笔记', clearBtn: '清除', notesCleared: '笔记已清除', notesBack: '撤销可以恢复', showErrors: '显示错误',
         highlight: '高亮', hlPeers: '行、列和宫', hlDigit: '仅相同数字', newPuzzle: '新题',
         solvedIn: '用时 {t} 解开', noMoreEmpty: '没有空格了',
         dailySudoku: '每日数独', clues: '提示数',
@@ -392,7 +392,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       },
       de: {
         mistakes: 'Fehler', hints: 'Tipps', notes: 'Notizen', erase: 'Löschen', move: 'Bewegen',
-        autoNotes: 'Auto-Notizen', showErrors: 'Fehler zeigen',
+        autoNotes: 'Auto-Notizen', clearNotes: 'Alle Notizen löschen', clearBtn: 'Löschen', notesCleared: 'Notizen gelöscht', notesBack: 'Rückgängig holt sie zurück', showErrors: 'Fehler zeigen',
         highlight: 'Hervorheben', hlPeers: 'Zeile, Spalte und Block', hlDigit: 'Nur gleiche Ziffer', newPuzzle: 'Neues Rätsel',
         solvedIn: 'Gelöst in {t}', noMoreEmpty: 'Keine leeren Felder mehr',
         dailySudoku: 'Tages-Sudoku', clues: 'Vorgaben',
@@ -402,7 +402,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       },
       es: {
         mistakes: 'Errores', hints: 'Pistas', notes: 'Notas', erase: 'Borrar', move: 'Mover',
-        autoNotes: 'Notas auto', showErrors: 'Ver errores',
+        autoNotes: 'Notas auto', clearNotes: 'Borrar todas las notas', clearBtn: 'Borrar', notesCleared: 'Notas borradas', notesBack: 'Deshacer las recupera', showErrors: 'Ver errores',
         highlight: 'Resaltar', hlPeers: 'Fila, columna y bloque', hlDigit: 'Solo el mismo número', newPuzzle: 'Nuevo sudoku',
         solvedIn: 'Resuelto en {t}', noMoreEmpty: 'No quedan casillas vacías',
         dailySudoku: 'Sudoku diario', clues: 'pistas',
@@ -884,10 +884,32 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
           el('div', { class: 'ch-item__label', text: C.t('highlight') }),
           hlSeg()
         ]),
-        settingRow('autoNotes', 'autoNotes')
+        settingRow('autoNotes', 'autoNotes'),
+        clearRow()
       ])],
       actions: [{ label: C.t('done'), kind: 'primary' }]
     });
+  }
+  // #424: notes filled by the old one-off auto-notes button (before #409) stayed in
+  // saves and looked like the player's own, and could only be erased cell by cell.
+  // One action clears them all, as one undo step.
+  function hasNotes() { for (var i = 0; i < 81; i++) if (S.notes[i] && S.notes[i].length) return true; return false; }
+  function clearNotes() {
+    if (!S || S.done || !hasNotes()) { C.feedback('bad'); return false; }
+    pushUndo();
+    for (var i = 0; i < 81; i++) S.notes[i] = [];
+    C.feedback('tap');
+    paint();
+    save();
+    return true;
+  }
+  function clearRow() {
+    var b = el('button', { class: 'ch-btn ch-btn--soft', type: 'button', text: C.t('clearBtn') });
+    b.disabled = !hasNotes();
+    b.addEventListener('click', function () {
+      if (clearNotes()) { b.disabled = true; C.ui.toast({ icon: 'check', title: C.t('notesCleared'), sub: C.t('notesBack') }); }
+    });
+    return el('div', { class: 'ch-item' }, [el('div', { class: 'ch-item__label', text: C.t('clearNotes') }), b]);
   }
   function kbRow(k, what) {
     return el('div', { class: 'ch-item' }, [

@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4671;
+const MIN_CHECKS = 4676;
 
 function ok(cond, msg) {
   checks++;
@@ -9279,6 +9279,27 @@ function testGinRummy() {
   ok(Date.now() - t0 < 12000, 'the Gin Rummy tests finish in under 12 s (' + (Date.now() - t0) + ' ms)');
 }
 
+function testSudokuClearNotes() {
+  head('Sudoku: clear all notes, with undo (#424)');
+  // Notes filled by the old one-off auto-notes button stayed in saves and could
+  // only be erased one cell at a time.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/sudoku/index.html'), 'utf8');
+  const grab = (name) => { const a = src.indexOf('  function ' + name + '('); return a < 0 ? '' : src.slice(a, src.indexOf('\n  }\n', a) + 4); };
+  const code = ['pushUndo', 'undo', 'hasNotes', 'clearNotes'].map(grab);
+  ok(code.every((x) => x.length > 0), 'clearNotes found in Sudoku');
+  if (!code.every((x) => x.length > 0)) return;
+  const S = { done: false, grid: new Array(81).fill(0), hinted: [], mistakes: 0, undo: [], notes: [] };
+  for (let i = 0; i < 81; i++) S.notes.push(i % 3 ? [1, 4, 7] : []);
+  let saved = 0, painted = 0;
+  const sb = { S, C: { feedback: () => {} }, paint: () => painted++, save: () => saved++, JSON };
+  vm.runInNewContext(code.join('\n') + ';this.clearNotes = clearNotes; this.undo = undo;', sb);
+  ok(sb.clearNotes() === true && S.notes.every((n) => n.length === 0) && saved === 1 && painted === 1, 'every note on the board is cleared, painted and saved');
+  ok(sb.clearNotes() === false && S.undo.length === 1, 'with nothing left to clear it does nothing and adds no undo step');
+  sb.undo();
+  ok(S.notes.filter((n) => n.length === 3).length === 54, 'one undo brings all 54 cells of notes back');
+  ok(/settingRow\('autoNotes', 'autoNotes'\),\n        clearRow\(\)/.test(src), 'the action sits in the settings sheet, under auto notes');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9515,6 +9536,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testSudokuClearNotes();
 testKlondike();
 testCrazyEights();
 testGinRummy();
