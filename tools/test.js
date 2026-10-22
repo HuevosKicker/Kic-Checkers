@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4337;
+const MIN_CHECKS = 4339;
 
 function ok(cond, msg) {
   checks++;
@@ -87,8 +87,16 @@ function testSudoku() {
   const sdHtml = fs.readFileSync(path.join(ROOT, 'www/games/sudoku/index.html'), 'utf8');
   const board = (sdHtml.match(/\.sd-board \{([^}]*)\}/) || [])[1] || '';
   ok(board.length > 0, 'قاعده‌ی .sd-board در صفحه‌ی سودوکو پیدا شد');
-  ok(/grid-template-rows:\s*repeat\(9,\s*minmax\(0,\s*1fr\)\)/.test(board), 'ردیف‌های تخته‌ی سودوکو هم‌اندازه‌اند، نه به اندازه‌ی محتوا');
-  ok(/grid-template-columns:\s*repeat\(9,\s*minmax\(0,\s*1fr\)\)/.test(board), 'ستون‌های تخته‌ی سودوکو هم‌اندازه‌اند، نه به اندازه‌ی محتوا');
+  // since #411 three groups of three equal tracks with a 1px spacer between boxes
+  const eq = '\\s*repeat\\(3,\\s*minmax\\(0,\\s*1fr\\)\\)\\s+1px\\s+repeat\\(3,\\s*minmax\\(0,\\s*1fr\\)\\)\\s+1px\\s+repeat\\(3,\\s*minmax\\(0,\\s*1fr\\)\\);';
+  ok(new RegExp('grid-template-rows:' + eq).test(board), 'ردیف‌های تخته‌ی سودوکو هم‌اندازه‌اند، نه به اندازه‌ی محتوا');
+  ok(new RegExp('grid-template-columns:' + eq).test(board), 'ستون‌های تخته‌ی سودوکو هم‌اندازه‌اند، نه به اندازه‌ی محتوا');
+  // #411: soft tiles; the box gaps are the frame's colour and every cell the same size
+  const cellRule = (sdHtml.match(/\n  \.sd-cell \{([^}]*)\}/) || [])[1] || '';
+  ok(/border-radius: max\(3px, 1\.2cqi\);/.test(cellRule) && !/\.sd-cell[^{]*\{[^}]*border[^}]*c-text-faint/.test(sdHtml) && !/data-b[tl]/.test(sdHtml),
+    'Sudoku cells are rounded tiles, and no darker line or thicker border marks the boxes (#411)');
+  ok(/style: \{ 'grid-row': String\(r \+ 1 \+ \(\(r \/ 3\) \| 0\)\), 'grid-column': String\(c \+ 1 \+ \(\(c \/ 3\) \| 0\)\) \}/.test(sdHtml),
+    'each cell skips the spacer tracks, so the boxes are set apart by the frame (#411)');
   let emptyRow = 0;
   for (let i = 0; i < 40 && !emptyRow; i++) {
     const q = E.makePuzzle(rng(9000 + i), 'expert').puzzle;

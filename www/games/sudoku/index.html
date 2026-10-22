@@ -22,10 +22,12 @@
        ردیفی که هیچ عددی نداشت تا چند پیکسل جمع می‌شد (#118). minmax(0, …) تا
        محتوای خانه اندازه‌ی ستون یا ردیف را بزرگ نکند. */
     display: grid;
-    grid-template-columns: repeat(9, minmax(0, 1fr));
-    grid-template-rows: repeat(9, minmax(0, 1fr));
+    /* the 1px tracks between the boxes widen the gap there, in the frame's own
+       colour, while every cell keeps the same size (#411) */
+    grid-template-columns: repeat(3, minmax(0, 1fr)) 1px repeat(3, minmax(0, 1fr)) 1px repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(3, minmax(0, 1fr)) 1px repeat(3, minmax(0, 1fr)) 1px repeat(3, minmax(0, 1fr));
     aspect-ratio: 1; container-type: inline-size;
-    background: var(--c-line); gap: 1px; padding: 3px;
+    background: var(--c-line); gap: 2px; padding: 3px;
     border-radius: var(--r-md); box-shadow: var(--sh-2);
     border: 3px solid var(--c-line);
     /* خانه‌ها مربع‌اند و بدون این، چهار گوشه‌شان از گوشه‌ی گرد تخته بیرون
@@ -48,9 +50,9 @@
     font-size: max(15px, 5.3cqi); font-weight: 700; color: var(--c-text);
     transition: background var(--t-fast) var(--ease);
     font-variant-numeric: tabular-nums;
+    /* soft tiles on the frame's colour (owner's wish, #411) */
+    border-radius: max(3px, 1.2cqi);
   }
-  .sd-cell[data-bt="1"] { border-top: 2px solid var(--c-text-faint); }
-  .sd-cell[data-bl="1"] { border-inline-start: 2px solid var(--c-text-faint); }
   .sd-cell--given { color: var(--c-text); background: var(--c-surface-2); }
   .sd-cell--user { color: var(--game); }
   .sd-cell--hinted { color: var(--c-good); }
@@ -463,8 +465,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       var r = (idx / 9) | 0, c = idx % 9;
       var b = el('button', {
         class: 'sd-cell', type: 'button', role: 'gridcell',
-        'data-bt': (r % 3 === 0 && r > 0) ? '1' : '0',
-        'data-bl': (c % 3 === 0 && c > 0) ? '1' : '0'
+        // a spacer track follows every third row and column (#411)
+        style: { 'grid-row': String(r + 1 + ((r / 3) | 0)), 'grid-column': String(c + 1 + ((c / 3) | 0)) }
       });
       b.addEventListener('click', function () { pick(idx); });
       cells.push(b);
