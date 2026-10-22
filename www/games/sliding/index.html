@@ -50,6 +50,13 @@
   .sp-tile--home::after { opacity: 1; }
   .sp-tile--cur { outline: 3px solid var(--c-accent); outline-offset: 2px; }
   .sp-board--won .sp-tile { box-shadow: inset 0 -4px 0 var(--sp-tile-edge), 0 0 0 2px var(--sp-home); }
+  /* the win shimmer: a band of light sweeps over the tray, corner to corner (#407) */
+  .sp-shine .sp-tile {
+    background-image: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, .8) 50%, transparent 62%);
+    background-size: 250% 100%; background-repeat: no-repeat;
+    animation: sp-shine var(--shine-ms, 420ms) var(--ease) both; animation-delay: var(--d, 0ms);
+  }
+  @keyframes sp-shine { from { background-position: 110% 0; } to { background-position: -20% 0; } }
   .sp-status { min-height: 1.6em; font-weight: 700; color: var(--c-text-dim); text-align: center; font-size: var(--fs-sm); }
   .sp-tut { display: block; }
 </style>
@@ -252,6 +259,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SlidingEng
   var params = new URLSearchParams(location.search);
   var dailyDate = params.get('daily');
   var GAP = 0.06, WIN_MS = 700, SWIPE_PX = 24;
+  // #407: the solved tray only gained a ring before the result. Now a band of
+  // light sweeps over it from the top-left tile to the bottom-right one,
+  // inside the pause that already waited for the result.
+  var SHINE_MS = 420;
+  function shineDelays(n) {
+    var step = (WIN_MS - SHINE_MS) / (2 * n - 2), d = [0];
+    for (var v = 1; v < n * n; v++) d[v] = Math.round(((((v - 1) / n) | 0) + (v - 1) % n) * step);
+    return d;
+  }
 
   var prefs = ctx.store.get('prefs', null);
   if (!prefs || E.SIZES.indexOf(prefs.size) < 0) prefs = { size: 4 };
@@ -306,6 +322,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SlidingEng
       board.appendChild(b);
     }
     board.classList.toggle('sp-board--won', !!S.done);
+    board.classList.remove('sp-shine');
     place(true);
     requestAnimationFrame(function () { nodes.forEach(function (b) { if (b) b.classList.remove('sp-tile--still'); }); });
   }
@@ -358,6 +375,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SlidingEng
     save();
     render();
     board.classList.add('sp-board--won');
+    if (!C.ui.reduceMotion()) {
+      var sd = shineDelays(S.n);
+      nodes.forEach(function (b) { if (b) b.style.setProperty('--d', sd[b._v] + 'ms'); });
+      board.style.setProperty('--shine-ms', SHINE_MS + 'ms');
+      board.classList.add('sp-shine');
+    }
     C.feedback('good');
     status.textContent = C.t('solvedIt');
     setTimeout(finish, C.ui.reduceMotion() ? 0 : WIN_MS);
