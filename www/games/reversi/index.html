@@ -379,7 +379,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = ReversiEng
 
   // روزانه بعد از چهار حرکت گشایش به بازیکن می‌رسد؛ عدد زوج تا نوبت همیشه با سیاه باشد
   var DAILY_PLIES = 4;
-  var FLIP_MS = 300;
+  // #407: the placed disc drops in first, then the flips ripple out from it,
+  // nearest first. Before, the disc grew while every flip turned at once, so a
+  // long capture read as one blink rather than a chain.
+  var DROP_MS = 150, FLIP_MS = 260, STEP_MS = 70, MAX_STEPS = 5;
+  function animPhase(a, i, now) {
+    var el = now - a.t0;
+    if (i === a.i) return Math.max(0, Math.min(1, el / DROP_MS));
+    return Math.max(0, Math.min(1, (el - flipStart(a, i)) / FLIP_MS));
+  }
+  function flipStart(a, i) {
+    var d = Math.max(Math.abs(i % 8 - a.i % 8), Math.abs(((i / 8) | 0) - ((a.i / 8) | 0)));
+    return DROP_MS + Math.min(d - 1, MAX_STEPS) * STEP_MS;
+  }
+  function animEnd(a) {
+    var end = DROP_MS;
+    for (var k = 0; k < a.flips.length; k++) end = Math.max(end, flipStart(a, a.flips[k]) + FLIP_MS);
+    return end;
+  }
 
   var S = null, aiTimer = null, anim = null, rafOn = false;
   var kbOn = false, cur = { r: 2, c: 3 };
@@ -467,20 +484,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = ReversiEng
     });
 
     var R = cell * 0.4;
-    var a = o.anim, t = 1;
-    if (a) t = Math.max(0, Math.min(1, ((o.now || 0) - a.t0) / FLIP_MS));
+    var a = o.anim, now = o.now || 0;
     var flipping = {};
-    if (a && t < 1) for (var f = 0; f < a.flips.length; f++) flipping[a.flips[f]] = 1;
+    if (a) for (var f = 0; f < a.flips.length; f++) flipping[a.flips[f]] = 1;
 
     for (var i = 0; i < 64; i++) {
       var who = o.board[i];
       if (!who) continue;
       var cx = pad + (i % 8 + 0.5) * cell, cy = pad + (((i / 8) | 0) + 0.5) * cell;
-      if (flipping[i]) {
+      var t = a && (flipping[i] || i === a.i) ? animPhase(a, i, now) : 1;
+      if (flipping[i] && t < 1) {
         // نیم اول رنگ قبلی باریک می‌شود، نیم دوم رنگ تازه باز می‌شود
         discAt(g, cx, cy, R, t < 0.5 ? 3 - who : who, Math.abs(Math.cos(Math.PI * t)), col);
-      } else if (a && t < 1 && i === a.i) {
-        discAt(g, cx, cy, R * (0.55 + 0.45 * Math.min(1, t * 2)), who, 1, col);
+      } else if (t < 1) {
+        // comes down onto the board, a little large and faint first, like a Gomoku stone
+        var de = 1 - Math.pow(1 - t, 3);
+        g.globalAlpha = 0.3 + 0.7 * de;
+        discAt(g, cx, cy, R * (1 + 0.4 * (1 - de)), who, 1, col);
+        g.globalAlpha = 1;
       } else {
         discAt(g, cx, cy, R, who, 1, col);
       }
@@ -531,10 +552,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = ReversiEng
   function startAnim(i, flips) {
     if (C.ui.reduceMotion()) { anim = null; draw(); return; }
     anim = { i: i, flips: flips, t0: performance.now() };
+    anim.end = animEnd(anim);
     if (!rafOn) { rafOn = true; requestAnimationFrame(tick); }
   }
   function tick(now) {
-    if (anim && now - anim.t0 < FLIP_MS) { draw(now); requestAnimationFrame(tick); return; }
+    if (anim && now - anim.t0 < anim.end) { draw(now); requestAnimationFrame(tick); return; }
     anim = null; rafOn = false; draw();
   }
 
