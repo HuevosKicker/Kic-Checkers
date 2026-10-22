@@ -2258,7 +2258,7 @@ function JigsawPictures() {
 
   var params = new URLSearchParams(location.search);
   var dailyDate = params.get('daily');
-  var TRAY_H = 96, LIFT_PX = 8, WIN_MS = 900;
+  var TRAY_H = 96, LIFT_PX = 8, WIN_MS = 900, GLIDE_MS = 200;
 
   var prefs = ctx.store.get('prefs', null);
   if (!prefs || E.COUNTS.indexOf(prefs.count) < 0) prefs = { count: 24, last: null };
@@ -2422,12 +2422,17 @@ function JigsawPictures() {
 
   /* ------------------------------------------------------------ moves */
 
-  function landed(i) {
+  // #407: a piece let go near its spot jumped the last bit into place. Now it
+  // glides there from where it was let go, or from the row when placed by
+  // keyboard; Chogan.ui.fly does nothing under reduced motion.
+  function landed(i, from) {
     E.place(S, i);
     var s = slots[i];
+    var src = from || (s && s.firstChild ? s.firstChild.getBoundingClientRect() : null);
     if (s) s.remove();
     delete slots[i];
     putInFrame(i, true);
+    if (src) C.ui.fly(placedNodes[i], src, { ms: GLIDE_MS });
     C.feedback('place');
     render();
     if (S.done) { won(); return; }
@@ -2646,6 +2651,7 @@ function JigsawPictures() {
     var d = drag;
     drag = null;
     if (!d.node) return;
+    var at = d.node.getBoundingClientRect();
     d.node.remove();
     d.slot.classList.remove('jg-slot--away');
     if (!fire) return;
@@ -2653,7 +2659,7 @@ function JigsawPictures() {
     // where the piece's body corner came to rest, in frame pixels
     var bx = d.x - d.gx + L.m - fr.left, by = d.y - d.gy + L.m - fr.top;
     var inside = bx + L.cw > 0 && by + L.ch > 0 && bx < L.w && by < L.h;
-    if (E.fits(S, d.piece, bx, by, L.cw, L.ch)) landed(d.piece);
+    if (E.fits(S, d.piece, bx, by, L.cw, L.ch)) landed(d.piece, at);
     else if (inside) missed(d.piece);
   }
   window.addEventListener('pointerup', function (e) { endDrag(e, true); });

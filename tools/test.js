@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4446;
+const MIN_CHECKS = 4450;
 
 function ok(cond, msg) {
   checks++;
@@ -6951,7 +6951,7 @@ function testJigsaw() {
   ok(['jg-win', 'jg-48', 'jg-clean'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '[^\\n]*des: '").test(core) && html.indexOf("unlock('" + id + "')") > 0), 'the three Jigsaw awards exist in every language and are unlocked');
   ok(/C\.daily\('jigsaw', daily\)/.test(html) && /newGame\(E\.DAILY_COUNT, dailyDate\)/.test(html) && /C\.stats\.daily\('jigsaw', S\.daily/.test(html), 'the daily picture and cut come from the day\'s seed and the time is recorded');
   ok(/\.jg-frame \{\s*direction: ltr;/.test(html) && /\.jg-tray \{\s*direction: ltr;/.test(html) && /touch-action: pan-x;/.test(html), 'the picture is not mirrored in Persian, and the row scrolls sideways while an upward drag lifts a piece');
-  ok(/ctx\.autosave\(/.test(html) && /ctx\.tutorialIfNew\(TUT\)/.test(html) && /function landed\(i\) \{[\s\S]*?save\(\);/.test(html) && /function missed\(i\) \{[\s\S]*?save\(\);/.test(html), 'the game saves after every drop and shows its tutorial once');
+  ok(/ctx\.autosave\(/.test(html) && /ctx\.tutorialIfNew\(TUT\)/.test(html) && /function landed\(i, from\) \{[\s\S]*?save\(\);/.test(html) && /function missed\(i\) \{[\s\S]*?save\(\);/.test(html), 'the game saves after every drop and shows its tutorial once');
   ok(!/[\s{,]again: '/.test(html), 'the page leaves the core\'s "again" label alone');
   ok(Date.now() - t0 < 5000, 'the Jigsaw group runs in under five seconds (' + (Date.now() - t0) + 'ms; ' + sizes.join(', ') + ')');
 }
@@ -8799,6 +8799,31 @@ function testSlidingShimmer() {
   ok(/board\.classList\.remove\('sp-shine'\);/.test(src), 'a new tray starts without it');
 }
 
+function testJigsawGlide() {
+  head('Jigsaw: a placed piece glides into its slot (#407)');
+  // A piece let go near its spot jumped the last bit into place.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/jigsaw/index.html'), 'utf8');
+  const a0 = src.indexOf('  function landed('), b0 = src.indexOf('\n  }\n', a0) + 4;
+  ok(a0 > 0 && b0 > a0 && /GLIDE_MS = 200/.test(src), 'landed found in Jigsaw');
+  if (!(a0 > 0 && b0 > a0)) return;
+  const flights = [];
+  const mk = () => {
+    const slotCanvas = { getBoundingClientRect: () => ({ left: 10, top: 500, width: 30, height: 30 }) };
+    const sb = { S: { done: false }, E: { place: () => {} }, slots: { 3: { firstChild: slotCanvas, remove() { this.gone = true; } } }, placedNodes: {},
+      putInFrame: (i) => { sb.placedNodes[i] = { piece: i }; }, C: { feedback: () => {}, ui: { fly: (n, r, o) => flights.push({ n, r, o }) } },
+      render: () => {}, save: () => {}, won: () => {}, GLIDE_MS: 200 };
+    vm.runInNewContext(src.slice(a0, b0) + ';this.landed = landed;', sb);
+    return sb;
+  };
+  let sb = mk();
+  sb.landed(3, { left: 100, top: 120, width: 60, height: 60 });
+  ok(flights.length === 1 && flights[0].n === sb.placedNodes[3] && flights[0].r.left === 100 && flights[0].o.ms === 200, 'a dropped piece glides from where it was let go to its placed node');
+  sb = mk();
+  sb.landed(3);
+  ok(flights.length === 2 && flights[1].r.top === 500 && sb.slots[3] === undefined, 'a piece placed by keyboard glides from its spot in the row');
+  ok(/var at = d\.node\.getBoundingClientRect\(\);\n    d\.node\.remove\(\);/.test(src) && /landed\(d\.piece, at\)/.test(src), 'the drop point is read before the floating piece is removed');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9035,6 +9060,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testJigsawGlide();
 testSlidingShimmer();
 testMastermindReveal();
 testBridgesWave();
