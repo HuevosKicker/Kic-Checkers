@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4441;
+const MIN_CHECKS = 4446;
 
 function ok(cond, msg) {
   checks++;
@@ -8782,6 +8782,23 @@ function testMastermindReveal() {
   ok(/if \(C\.ui\.reduceMotion\(\)\) ctx\.finish\(result\);\n    else setTimeout\(function \(\) \{ ctx\.finish\(result\); \}, revealWait\(Lv\.pegs\)\);/.test(src), 'the result waits for the reveal');
 }
 
+function testSlidingShimmer() {
+  head('Sliding puzzle: a shimmer sweeps the solved tray (#407)');
+  // The solved tray only gained a ring before the result.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/sliding/index.html'), 'utf8');
+  const a0 = src.indexOf('  var SHINE_MS'), b0 = src.indexOf('\n  }\n', src.indexOf('  function shineDelays(', a0)) + 4;
+  ok(a0 > 0 && b0 > a0, 'shineDelays found in Sliding');
+  if (!(a0 > 0 && b0 > a0)) return;
+  const sb = { Math, WIN_MS: 700 };
+  vm.runInNewContext(src.slice(a0, b0) + ';this.shineDelays = shineDelays; this.SHINE_MS = SHINE_MS;', sb);
+  for (const n of [3, 5]) {
+    const d = sb.shineDelays(n);
+    ok(d[1] === 0 && d[n * n - 1] + sb.SHINE_MS <= 700 && d[n] > d[1] && d[2] === d[n + 1], n + '×' + n + ': from the top-left tile to the last, along the diagonals, inside the pause before the result');
+  }
+  ok(/if \(!C\.ui\.reduceMotion\(\)\) \{\n      var sd = shineDelays\(S\.n\);/.test(src), 'no shimmer with reduced motion');
+  ok(/board\.classList\.remove\('sp-shine'\);/.test(src), 'a new tray starts without it');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9018,6 +9035,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testSlidingShimmer();
 testMastermindReveal();
 testBridgesWave();
 testNonogramMotion();
