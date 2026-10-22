@@ -565,13 +565,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GomokuEngi
       var who = o.board[i];
       if (!who) continue;
       var cx = pad + (i % n) * cell, cy = pad + ((i / n) | 0) * cell;
-      g.beginPath(); g.arc(cx + R * 0.08, cy + R * 0.12, R, 0, Math.PI * 2);
+      // the stone just placed comes down onto the board, a little large and faint first (#407)
+      var Rs = R;
+      if (o.drop && o.drop.i === i) { var de = 1 - Math.pow(1 - o.drop.k, 3); Rs = R * (1 + 0.4 * (1 - de)); g.globalAlpha = 0.3 + 0.7 * de; }
+      g.beginPath(); g.arc(cx + Rs * 0.08, cy + Rs * 0.12, Rs, 0, Math.PI * 2);
       g.fillStyle = 'rgba(0,0,0,.22)'; g.fill();
-      g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2);
+      g.beginPath(); g.arc(cx, cy, Rs, 0, Math.PI * 2);
       g.fillStyle = who === 1 ? col.black : col.white; g.fill();
       g.lineWidth = Math.max(1, R * 0.08);
       g.strokeStyle = who === 1 ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.28)';
       g.stroke();
+      g.globalAlpha = 1;
       if (i === o.last && !o.line) {
         g.beginPath(); g.arc(cx, cy, R * 0.28, 0, Math.PI * 2);
         g.fillStyle = col.mark; g.fill();
@@ -584,8 +588,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GomokuEngi
       g.lineWidth = Math.max(3, cell * 0.16);
       g.lineCap = 'round';
       g.beginPath();
-      g.moveTo(pad + (a % n) * cell, pad + ((a / n) | 0) * cell);
-      g.lineTo(pad + (z % n) * cell, pad + ((z / n) | 0) * cell);
+      // drawn from one end of the five to the other (#407)
+      var lk = o.lineK === undefined ? 1 : 1 - Math.pow(1 - o.lineK, 3);
+      var ax = pad + (a % n) * cell, ay = pad + ((a / n) | 0) * cell, zx = pad + (z % n) * cell, zy = pad + ((z / n) | 0) * cell;
+      g.moveTo(ax, ay);
+      g.lineTo(ax + (zx - ax) * lk, ay + (zy - ay) * lk);
       g.stroke();
     }
     if (o.cursor) {
@@ -606,7 +613,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GomokuEngi
     var g = cv.getContext('2d');
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, W, W);
-    paintBoard(g, W, { n: S.n, board: S.board, last: S.last, line: S.line, cursor: kbOn && !S.done ? cur : null }, colors());
+    var m = motion(S.history.length, !!S.line);
+    paintBoard(g, W, { n: S.n, board: S.board, last: S.last, line: S.line, cursor: kbOn && !S.done ? cur : null,
+      drop: m.drop < 1 ? { i: S.last, k: m.drop } : null, lineK: m.line }, colors());
+    if (m.drop < 1 || m.line < 1) requestAnimationFrame(draw);
+  }
+
+  // #407: a stone placed since the last draw drops in (180 ms), and the winning
+  // line draws itself (450 ms). Restores, undo and reduced motion draw still.
+  var fx = { len: -1, t0: 0, line: false, lt0: 0 };
+  function motion(len, line) {
+    var now = performance.now(), still = C.ui.reduceMotion();
+    if (fx.len >= 0 && len === fx.len + 1 && !still) fx.t0 = now;
+    if (line && !fx.line) fx.lt0 = fx.len >= 0 && !still ? now : 0;
+    fx.line = line; fx.len = len;
+    return { drop: Math.min(1, (now - fx.t0) / 180), line: Math.min(1, (now - fx.lt0) / 450) };
   }
 
   function cardPaint() {
