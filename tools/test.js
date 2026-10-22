@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4408;
+const MIN_CHECKS = 4418;
 
 function ok(cond, msg) {
   checks++;
@@ -1675,7 +1675,7 @@ function testBackgammon() {
     'a tap goes through the rotation before it is matched to a point');
   ok(/boardBox\.style\.setProperty\('--fit-ar', side \? String\(1 \/ 0\.64\) : '0\.64'\)/.test(page) && /prefs\.rot = \(quarter\(\) \+ 1\) % 4;\s*ctx\.store\.set\('prefs', prefs\);/.test(page),
     'the slot takes the turned shape at 90 and 270 degrees, and the turn is kept in prefs');
-  ok(/g\.rotate\(upright\);\s*g\.fillText\(txt, 0, 1\);/.test(page) && /function drawDie\(g, x, y, s, v, pc, faded\) \{\s*g\.save\(\); g\.translate\(x, y\); g\.rotate\(upright\);/.test(page),
+  ok(/g\.rotate\(upright\);\s*g\.fillText\(txt, 0, 1\);/.test(page) && /function drawDie\(g, x, y, s, v, pc, faded, spin\) \{\s*g\.save\(\); g\.translate\(x, y\); g\.rotate\(upright \+ \(spin \|\| 0\)\);/.test(page),
     'numbers and dice turn back so they stay upright');
   ok(['fa', 'en', 'zh', 'de', 'es'].every((l) => new RegExp('\\n      ' + l + ": \\{[\\s\\S]*?rotateBoard: '[^']+'").test(bgHtml)), 'the rotate button is labelled in all five languages');
 }
@@ -8680,6 +8680,38 @@ function testDotsChain() {
   ok(/\.dt-box, \.dt-boxlabel--new \{ transform-box: fill-box; transform-origin: center; \}/.test(src), 'boxes grow in place');
 }
 
+function testBackgammonMotion() {
+  head('Backgammon: checkers slide, a hit goes to the bar, dice tumble (#407)');
+  // A checker jumped to its point in one frame, a hit checker was simply on
+  // the bar, and new dice just appeared.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/backgammon/index.html'), 'utf8');
+  const a0 = src.indexOf('  var SLIDE_MS'), b0 = src.indexOf('\n  }\n', src.indexOf('  function fxTick(', a0)) + 4;
+  ok(a0 > 0 && b0 > a0, 'the effects found in Backgammon');
+  if (!(a0 > 0 && b0 > a0)) return;
+  let now = 1000, reduced = false, frames = 0;
+  const sb = { Math, C: { ui: { reduceMotion: () => reduced } }, performance: { now: () => now }, requestAnimationFrame: () => ++frames, paint: () => {} };
+  vm.runInNewContext(src.slice(a0, b0) + ';this.stepFx = stepFx; this.fxStart = fxStart; this.fxNow = fxNow; this.reset = function () { bfx = {}; bfxRaf = 0; };', sb);
+  const pts = new Array(24).fill(0); pts[23] = 2; pts[12] = 7; pts[7] = -1; pts[5] = 3;
+  // player 1 moves from 13 (7 checkers, top shown at index 4) to 8, hitting a lone rival checker
+  let f = sb.stepFx(13, 8, 1, pts, [0, 0, 1], true);
+  ok(f.from.key === 13 && f.from.k === 4 && f.to.key === 8 && f.to.k === 0, 'the mover leaves the top of a tall stack and lands first on the hit point');
+  ok(f.hit && f.hit.p === 2 && f.hit.to.key === 'bar' && f.hit.to.k === 1, 'the hit checker goes to the next place on the rival bar');
+  f = sb.stepFx('bar', 6, 1, pts, [0, 1, 0], false);
+  ok(f.from.key === 'bar' && f.from.k === 0 && f.to.k === 3 && !f.hit, 'entering from the bar onto own checkers lands on top of them');
+  sb.fxStart('step', sb.stepFx(13, 8, 1, pts, [0, 0, 1], true));
+  let v = sb.fxNow(1130);
+  ok(v.step.k === 0.5 && v.step.kh === 0 && frames === 1, 'halfway after 130 ms; the hit checker waits for the mover');
+  v = sb.fxNow(1270);
+  ok(v.step.k === 1 && v.step.kh === 0.5, 'the hit checker is halfway to the bar after the mover lands');
+  ok(sb.fxNow(1400) === null, 'nothing is left over at the end');
+  now = 2000; sb.fxStart('roll', {});
+  v = sb.fxNow(2240);
+  ok(v && v.roll === 0.5 && !v.step, 'new dice are halfway through their tumble after 240 ms');
+  sb.reset(); reduced = true; sb.fxStart('roll', {});
+  ok(sb.fxNow(now) === null, 'reduced motion starts nothing');
+  ok(/fxStart\('step', spec\);/.test(src) && /function afterRoll\(\) \{\n[^\n]*\n    bfx\.step = null;\n    fxStart\('roll', \{\}\);/.test(src), 'each step slides and each roll tumbles');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8916,6 +8948,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testBackgammonMotion();
 testDotsChain();
 testMorrisMotion();
 testPegMotion();
