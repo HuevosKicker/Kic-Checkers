@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4346;
+const MIN_CHECKS = 4351;
 
 function ok(cond, msg) {
   checks++;
@@ -8457,6 +8457,26 @@ function testPasurMotion() {
   ok(ai.length > 0 && !/paint\(\)/.test(ai), 'maybeAi does not repaint over cards still in flight');
 }
 
+function testFreecellMotion() {
+  head('FreeCell: a dealt deal, a bouncing win, and reduced motion (#407)');
+  // The cards just appeared at the start, the win went straight to the result,
+  // and the move tween ran even with reduced motion on.
+  const fc = fs.readFileSync(path.join(ROOT, 'www/games/freecell/index.html'), 'utf8');
+  const has = (re) => re.test(fc);
+  ok(has(/function startAnim\(before\) \{\n\s+\/\/[^\n]*\n\s+if \(C\.ui\.reduceMotion\(\)\) \{ anim = null; draw\(\); return; \}/), 'moves snap into place with reduced motion');
+  ok(has(/function dealAnim\(\) \{\n\s+if \(C\.ui\.reduceMotion\(\) \|\| !L \|\| !board\.clientWidth\) return;/) && has(/from\[c\] = deck; delay\[c\] = n\+\+ \* 16; cards\.push\(c\);/) && has(/resetUi\(\);\n\s+dealAnim\(\);\n\s+\}/),
+    'a new deal lays the cards out one by one from a pile; a restored game is drawn still');
+  ok(has(/var pr = Math\.max\(0, Math\.min\(1, \(elapsed - \(anim\.delay \? anim\.delay\[mc\] : 0\)\) \/ anim\.ms\)\);/) && has(/if \(elapsed >= anim\.ms \+ \(anim\.span \|\| 0\)\) anim = null;/),
+    'each card waits for its turn and the move ends with the last card');
+  ok(has(/setTimeout\(function \(\) \{ cascade\(finish\); \}, 260\);/) && has(/function cascade\(done\) \{\n\s+if \(C\.ui\.reduceMotion\(\) \|\| !L \|\| !board\.clientWidth\) \{ done\(\); return; \}/) &&
+    has(/cv\.addEventListener\('pointerdown', stop\);/) && has(/t - t0 > 5000\) \{ stop\(\); return; \}/),
+    'a win bounces the cards before the result, a tap ends it, and it never runs past five seconds');
+  // the cascade's physics settle: a card dropped from the top bounces lower each time
+  let y = 2, vy = -3, floor = 300, peaks = [], up = false;
+  for (let i = 0; i < 400; i++) { vy += 0.6; y += vy; if (y > floor) { y = floor; vy *= -0.72; } if (vy < 0) up = true; if (up && vy >= 0) { peaks.push(y); up = false; } }
+  ok(peaks.length > 2 && peaks.every((p, i) => i === 0 || p > peaks[i - 1]), 'with gravity 0.6 and 0.72 rebound each bounce peaks lower');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8690,6 +8710,7 @@ testDartsVisit();
 testHokmMotion();
 testSudokuAutoNotes();
 testPasurMotion();
+testFreecellMotion();
 testBowling();
 testSliding();
 testJigsaw();
