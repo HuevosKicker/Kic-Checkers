@@ -41,6 +41,9 @@
   .cb-new .cb-pin:nth-child(4) { animation-delay: 180ms; }
   .cb-new .cb-pin:nth-child(5) { animation-delay: 240ms; }
   @keyframes cb-pop { from { transform: scale(0); } }
+  /* the code turns over peg by peg at the end (#407) */
+  .cb-reveal { animation: cb-flip 300ms var(--ease) backwards; animation-delay: var(--d, 0ms); }
+  @keyframes cb-flip { from { transform: rotateY(90deg) scale(.7); opacity: 0; } }
   .cb-secret { border-bottom: 2px dashed var(--c-line); border-radius: 0; padding-bottom: 6px; margin-bottom: 3px; }
   .cb-secret .cb-row__n { color: var(--game); }
   .cb-hidden { fill: var(--c-surface-3); }
@@ -335,7 +338,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Codebreake
   var prefs = ctx.store.get('prefs', { level: 'normal' });
   if (!E.LEVELS[prefs.level]) prefs.level = 'normal';
 
-  var S = null, sel = 0, fresh = -1;
+  var S = null, sel = 0, fresh = -1, reveal = false;
+
+  // #407: the code was simply shown at the end. Now it turns over peg by
+  // peg, after the last row's pins have popped, and the result waits for it.
+  var REVEAL_AT = 200, REVEAL_STEP = 130, FLIP_MS = 300;
+  function revealDelays(n) { var d = []; for (var i = 0; i < n; i++) d.push(REVEAL_AT + i * REVEAL_STEP); return d; }
+  function revealWait(n) { return REVEAL_AT + (n - 1) * REVEAL_STEP + FLIP_MS; }
 
   var top = el('div', { class: 'cb-top' });
   var board = el('div', { class: 'cb-board' });
@@ -439,8 +448,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Codebreake
     board.innerHTML = '';
     // ردیف رمز: تا پایان پنهان
     var sp = el('div', { class: 'cb-pegs' });
+    var rd = reveal ? revealDelays(Lv.pegs) : null;
+    reveal = false;
     for (var i = 0; i < Lv.pegs; i++) {
-      if (S.done) sp.appendChild(peg(S.secret[i]));
+      if (S.done) {
+        var pg = peg(S.secret[i]);
+        if (rd) { pg.classList.add('cb-reveal'); pg.style.setProperty('--d', rd[i] + 'ms'); }
+        sp.appendChild(pg);
+      }
       else { var h = el('span', { class: 'cb-peg' }); h.innerHTML = hiddenSvg(); sp.appendChild(h); }
     }
     var secretRow = el('div', { class: 'cb-row cb-secret' }, [
@@ -560,6 +575,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Codebreake
     else if (row.b > 0) { C.audio.sfx('pop'); C.haptic('tap'); }
     else { C.audio.sfx('place'); C.haptic('tap'); }
     save();
+    reveal = S.done && !C.ui.reduceMotion();
     render();
     if (S.done) { finish(); return; }
     var cur2 = document.getElementById('cb-cur');
@@ -599,7 +615,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Codebreake
     }
     var lines = S.rows.map(function (r) { return pinsText(r, Lv.pegs); });
     ctx.clearSave();
-    ctx.finish({
+    var result = {
       won: won,
       title: won ? C.t('cracked') : C.t('notCracked'),
       timeMs: elapsed, coins: coins, points: points,
@@ -611,7 +627,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Codebreake
         (S.daily ? ('\nروزانه ' + S.daily) : '') + '\n' + score + '\n' + lines.join('\n'),
       paint: cardPaint(),
       onAgain: S.daily ? null : function () { newGame(S.level, null); }
-    });
+    };
+    // the result waits for the code to turn over; everything it shows is fixed already
+    if (C.ui.reduceMotion()) ctx.finish(result);
+    else setTimeout(function () { ctx.finish(result); }, revealWait(Lv.pegs));
   }
 
   /* ------------------------------------------------- تخته روی کارت نتیجه */
