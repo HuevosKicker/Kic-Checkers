@@ -679,6 +679,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SnookerEng
   }
 
   var raf = null, lastT = 0, acc = 0;
+  // potted balls on their way down the pocket (#407, Cue.sinkAt)
+  var sinks = [], sinkRaf = 0;
+  function drawSinks(g) {
+    var now = performance.now(), keep = [];
+    for (var i = 0; i < sinks.length; i++) {
+      var q = (now - sinks[i].t0) / Cue.SINK_MS;
+      if (q >= 1) continue;
+      keep.push(sinks[i]);
+      var p = Cue.sinkAt(T, sinks[i], Math.max(0, q));
+      g.save(); g.globalAlpha = p.a; g.translate(p.x, p.y); g.scale(p.k, p.k);
+      paintBall(g, { id: sinks[i].id, x: 0, y: 0, inPlay: true });
+      g.restore();
+    }
+    sinks = keep;
+    if (sinks.length && !sinkRaf) sinkRaf = requestAnimationFrame(function () { sinkRaf = 0; draw(); });
+  }
   function animate() {
     lastT = 0; acc = 0;
     var step = function (t) {
@@ -692,7 +708,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SnookerEng
         Cue.tick(run);
         acc -= Cue.DT; n++;
         if (run.hits && t - lastHitSfx > 60) { C.audio.sfx('hit'); lastHitSfx = t; }
-        if (run.pots.length) { C.audio.sfx('pop'); C.haptic('tap'); }
+        if (run.pots.length) {
+          C.audio.sfx('pop'); C.haptic('tap');
+          if (!C.ui.reduceMotion()) sinks = sinks.concat(Cue.sinksOf(run, t));
+        }
       }
       draw();
       if (run.moving) raf = requestAnimationFrame(step);
@@ -1004,6 +1023,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SnookerEng
     var cue = balls[0] && balls[0].inPlay;
     var showAim = still && cue && (humanTurn() || aiAnim);
     paintTable(g, balls, { aim: showAim, angle: aimA, cue: showAim, power: power || 0, inHand: still && F.inHand && humanTurn(), ring: still && F.phase === 'order' });
+    drawSinks(g);
   }
 
   function cardPaint() {
