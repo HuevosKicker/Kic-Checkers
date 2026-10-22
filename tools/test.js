@@ -8432,9 +8432,9 @@ function testSudokuAutoNotes() {
   ok(/\} else if \(notesOf\(c\)\.length\) \{/.test(page), 'the board draws notes through notesOf');
   const help = page.slice(page.indexOf('  function showHelp() {'), page.indexOf('  function showSettings() {'));
   const sets = page.slice(page.indexOf('  function showSettings() {'), page.indexOf('  function kbRow('));
-  ok(/topRow\.appendChild\(el\('button', \{ class: 'ch-iconbtn', type: 'button', 'aria-label': C\.t\('settings'\), title: C\.t\('settings'\), onclick: showSettings \}, \[C\.icon\('gear', 20\)\]\)\);/.test(page) && !/icon: 'gear'/.test(page) && help.length > 0 && !/settingRow|hlSeg/.test(help) &&
+  ok(/tool\('gear', 'settings', function \(\) \{ showSettings\(\); \}\);/.test(page) && /\.sd-tools \{ display: grid; grid-template-columns: repeat\(5, 1fr\);/.test(page) && !/icon: 'gear'|C\.icon\('gear'/.test(page) && help.length > 0 && !/settingRow|hlSeg/.test(help) &&
     ['showErrors', 'autoNotes'].every((k) => sets.indexOf("settingRow('" + k + "', '" + k + "')") > 0) && /hlSeg\(\)/.test(sets),
-    'the options have their own gear button beside the difficulty, out of the help sheet and the crowded game bar');
+    'the options have their own gear tool beside hint, out of the help sheet, the crowded game bar and a row of their own (#413)');
 }
 
 function testKeyboardNav() {
