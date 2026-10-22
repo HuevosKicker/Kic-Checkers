@@ -360,8 +360,13 @@ function TdEngineFactory() {
     var armor = armorPierce ? 0 : Math.min(0.75, t.armor + (e.ar || 0));
     e.hp -= amount * (1 - armor);
     if (e.hp <= 0) {
-      S.money += Math.round(t.bounty * (1 + (S.wave - 1) * 0.03));
+      var gain = Math.round(t.bounty * (1 + (S.wave - 1) * 0.03));
+      S.money += gain;
       S.kills++;
+      // for the page only (#407): where it fell and what it paid, so the
+      // player sees the coins come from somewhere; never saved
+      var dp = posAt(S.geo, e.t);
+      S.effects.push({ kind: 'kill', x: dp.x, y: dp.y, r: t.r, color: t.color, gain: gain });
       return true;
     }
     return false;
@@ -822,7 +827,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
 
   function newGame(id, date) {
     closePanel();
-    autoAt = 0; wasActive = false; shotsLive = []; impacts = [];
+    autoAt = 0; wasActive = false; shotsLive = []; impacts = []; deaths = [];
     mapId = id;
     var path = pathFor(id, date);
     S = E.createGame({ path: path, money: 200, lives: 20, lastWave: 20 });
@@ -1031,14 +1036,47 @@ if (typeof module !== 'undefined' && module.exports) module.exports = TdEngineFa
 
     // دشمن‌ها
     for (var n = 0; n < S.enemies.length; n++) drawEnemy(g, S.enemies[n]);
+    drawDeaths(g, performance.now());
   }
 
   var SHOT_MS = { archer: 230, cannon: 340, frost: 260, tesla: 150 };
   var shotsLive = [], impacts = [];
+  // #407: an enemy vanished in one frame and its bounty only changed the
+  // number at the top. Now it pops where it fell and a "+N" coin floats up.
+  var POP_MS = 260, FLOAT_MS = 750, deaths = [];
+  // the pop's scale and alpha, and the float's rise (in cells) and alpha, q ms after the kill
+  function deathAt(q) {
+    var a = Math.min(1, q / POP_MS), b = Math.min(1, q / FLOAT_MS);
+    return { scale: 1 + 0.7 * a, popAlpha: 1 - a, rise: 0.9 * (1 - Math.pow(1 - b, 2)), coinAlpha: b < 0.6 ? 1 : 1 - (b - 0.6) / 0.4 };
+  }
+  function drawDeaths(g, now) {
+    var keep = [];
+    for (var i = 0; i < deaths.length; i++) {
+      var d = deaths[i], q = now - d.t0;
+      if (q >= FLOAT_MS) continue;
+      keep.push(d);
+      var k = deathAt(q), x = d.x * cs, y = d.y * cs;
+      if (k.popAlpha > 0) {
+        g.globalAlpha = k.popAlpha;
+        g.strokeStyle = d.color; g.lineWidth = Math.max(2, cs * 0.07);
+        g.beginPath(); g.arc(x, y, d.r * cs * k.scale, 0, Math.PI * 2); g.stroke();
+      }
+      g.globalAlpha = Math.max(0, k.coinAlpha);
+      g.font = '800 ' + Math.round(cs * 0.36) + 'px Vazirmatn, system-ui, sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      // kept inside the board: a kill on the top row rose out of sight
+      var txt = '+' + C.num(d.gain), ty = Math.max(cs * 0.3, y - k.rise * cs);
+      g.lineWidth = 3; g.strokeStyle = 'rgba(40,30,20,.65)'; g.strokeText(txt, x, ty);
+      g.fillStyle = '#F2B84B'; g.fillText(txt, x, ty);
+      g.globalAlpha = 1;
+    }
+    deaths = keep;
+  }
   function takeShots(now) {
     if (!S || !S.effects.length) return;
     for (var i = 0; i < S.effects.length && shotsLive.length < 160; i++) {
       var f = S.effects[i];
+      if (f.kind === 'kill') { if (!C.ui.reduceMotion() && deaths.length < 60) deaths.push({ x: f.x, y: f.y, r: f.r, color: f.color, gain: f.gain, t0: now }); continue; }
       shotsLive.push({ kind: f.kind, x1: f.x1, y1: f.y1, x2: f.x2, y2: f.y2, color: f.color, t0: now, dur: C.ui.reduceMotion() ? 90 : (SHOT_MS[f.kind] || 220) });
     }
     S.effects.length = 0;
