@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4380;
+const MIN_CHECKS = 4389;
 
 function ok(cond, msg) {
   checks++;
@@ -8592,6 +8592,27 @@ function testReversiMotion() {
   ok(/if \(C\.ui\.reduceMotion\(\)\) \{ anim = null; draw\(\); return; \}/.test(src), 'reduced motion draws the move still');
 }
 
+function testCheckersMotion() {
+  head('Checkers: taken pieces fade, the crown drops on (#407)');
+  // A taken piece vanished the moment the mover landed beyond it, and a new
+  // king simply had its crown.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/checkers/index.html'), 'utf8');
+  const a0 = src.indexOf('  var FADE_MS'), b0 = src.indexOf('\n  }\n', src.indexOf('  function bounce(', a0)) + 4;
+  ok(a0 > 0 && b0 > a0, 'capFade and crownDrop found in Checkers');
+  if (!(a0 > 0 && b0 > a0)) return;
+  const sb = { Math, HOP_MS: 170 };
+  vm.runInNewContext(src.slice(a0, b0) + ';this.capFade = capFade; this.crownDrop = crownDrop; this.trailEnd = trailEnd; this.bounce = bounce; this.FADE_MS = FADE_MS; this.CROWN_MS = CROWN_MS;', sb);
+  ok(sb.capFade(169, 0) === 0 && sb.capFade(170 + sb.FADE_MS / 2, 0) === 0.5, 'the first taken piece stays until the mover lands, then is half faded');
+  ok(sb.capFade(340, 1) === 0 && sb.capFade(340 + sb.FADE_MS, 1) === 1, 'the second waits for the second landing, then is gone');
+  ok(sb.crownDrop(339, 2) === 0 && sb.crownDrop(340 + sb.CROWN_MS, 2) === 1, 'the crown drops only after the slide');
+  ok(sb.bounce(0) === 0 && Math.abs(sb.bounce(1) - 1) < 1e-9 && sb.bounce(0.4) > 0.9, 'the crown lands early and bounces');
+  const end = sb.trailEnd({ path: [1, 2], caps: [3, 4], crown: true });
+  ok(end === 340 + Math.max(sb.FADE_MS, sb.CROWN_MS) && end <= 1000, 'a crowning double jump ends within a second (' + end + ' ms)');
+  ok(sb.trailEnd({ path: [1], caps: [], crown: false }) === 170, 'a plain step adds nothing after the slide');
+  ok(/if \(anim\) \{ trail = anim; anim = null; afterMove\(\); \}/.test(src), 'the fade and the crown never hold the next turn');
+  ok(/function startAnim\(m, v, took\) \{\n    if \(C\.ui\.reduceMotion\(\)\) \{ anim = null; draw\(\); return; \}/.test(src), 'reduced motion draws the move still');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8828,6 +8849,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testCheckersMotion();
 testReversiMotion();
 testSudokuRipple();
 testBowling();
