@@ -351,6 +351,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = LudoEngine
   // token), 'busy' (the die or a token is moving).
   var G = null, timer = null, anim = null, spots = [], sel = -1, kbOn = false;
 
+  // #407: a captured token was back in its base in one frame, and reaching
+  // home was only a message. Now a captured token flies home in an arc, and
+  // home gets a burst in the player's colour. The game state is final first.
+  var FLY_MS = 480, lfx = null, lfxRaf = 0;
+  // each captured token's flight, from where it was taken (at0) to its base (at1)
+  function flyFx(captured, at0, at1) {
+    return captured.map(function (c) { return { seat: c.seat, k: c.k, from: at0(c.seat, c.k), to: at1(c.seat, c.k) }; });
+  }
+  // a flight's point at t (0..1), in board cells; it rises up to 1.6 cells mid-way
+  function flyAt(f, t) {
+    var e = 1 - Math.pow(1 - t, 3);
+    return [f.from[0] + (f.to[0] - f.from[0]) * e, f.from[1] + (f.to[1] - f.from[1]) * e - Math.sin(Math.PI * t) * 1.6];
+  }
+  function lfxTick() {
+    lfxRaf = 0;
+    draw();
+    if (lfx && performance.now() - lfx.t0 < FLY_MS) lfxRaf = requestAnimationFrame(lfxTick);
+    else { lfx = null; draw(); }
+  }
+
   var cv = document.createElement('canvas');
   cv.className = 'lu-canvas';
   cv.setAttribute('role', 'img');
@@ -374,7 +394,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = LudoEngine
   // seat is a bot of the chosen level; in pass-and-play they are people.
   function newGame(o) {
     stop();
-    anim = null;
+    anim = null; lfx = null;
     var daily = o.daily || null;
     G = {
       players: daily ? 2 : o.players, mode: daily ? 'bots' : o.mode, level: daily ? 'medium' : o.level,
@@ -480,8 +500,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = LudoEngine
         later(next, step);
         return;
       }
+      var before = anim.from;
       anim = null;
       G.s = r.state;
+      if (r.captured.length && !C.ui.reduceMotion()) {
+        lfx = { t0: performance.now(), list: flyFx(r.captured,
+          function (st, kk) { return tokenAt(before, st, kk, before.pos[st][kk]); },
+          function (st, kk) { return tokenAt(r.state, st, kk, -1); }) };
+        if (!lfxRaf) lfxRaf = requestAnimationFrame(lfxTick);
+      }
+      if (r.home) {
+        var hr = cv.getBoundingClientRect(), hu = hr.width / 15, hp = tokenAt(G.s, who, k, E.HOME), hc = colors().c[G.s.colours[who]];
+        C.ui.burst({ x: hr.left + hp[0] * hu, y: hr.top + hp[1] * hu }, { count: 26, speed: 260, ring: hu * 1.2, colors: [hc, '#FFF1C9', '#F2B84B'] });
+      }
       if (r.captured.length) {
         C.feedback(who === 0 || !isBot(who) ? 'good' : 'bad');
         if (who === 0) G.captures += r.captured.length;
@@ -708,7 +739,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = LudoEngine
       for (k = 0; k < s.tokens; k++) {
         var pp = s.pos[seat][k];
         if (o.anim && o.anim.seat === seat && o.anim.k === k) pp = o.anim.steps[o.anim.i];
-        var at = tokenAt(s, seat, k, pp);
+        var at = tokenAt(s, seat, k, pp), fl = null;
+        if (o.fly) for (var fi = 0; fi < o.fly.length; fi++) if (o.fly[fi].seat === seat && o.fly[fi].k === k) fl = o.fly[fi];
+        if (fl) { list.push({ seat: seat, k: k, p: pp, x: fl.x, y: fl.y, key: '', flying: true }); continue; }
         list.push({ seat: seat, k: k, p: pp, x: at[0], y: at[1], key: pp >= 0 && pp < E.HOME ? at[0] + ',' + at[1] : '' });
       }
     }
@@ -726,6 +759,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = LudoEngine
     var now = o.now || 0, pulse = 0.5 + 0.5 * Math.sin(now / 160);
     list.forEach(function (t) {
       var c3 = s.colours[t.seat], R = u * (t.small ? 0.3 : (t.p >= E.HOME ? 0.22 : 0.38));
+      if (t.flying) R = u * 0.42;
       var x = t.x * u, y = t.y * u;
       var movable = o.movable && t.seat === s.turn && o.movable.indexOf(t.k) >= 0;
       if (movable) {
@@ -760,7 +794,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = LudoEngine
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, B.w, B.w);
     var movable = G.phase === 'choose' ? E.moves(G.s, G.roll) : null;
-    paintBoard(g, B.w, { s: anim ? anim.from : G.s, anim: anim, movable: movable, sel: kbOn ? sel : -1, now: performance.now() }, colors());
+    var fly = null;
+    if (lfx) {
+      var ft = Math.min(1, (performance.now() - lfx.t0) / FLY_MS);
+      if (ft < 1) fly = lfx.list.map(function (f) { var q = flyAt(f, ft); return { seat: f.seat, k: f.k, x: q[0], y: q[1] }; });
+    }
+    paintBoard(g, B.w, { s: anim ? anim.from : G.s, anim: anim, movable: movable, sel: kbOn ? sel : -1, now: performance.now(), fly: fly }, colors());
   }
   function loop() {
     raf = 0;
