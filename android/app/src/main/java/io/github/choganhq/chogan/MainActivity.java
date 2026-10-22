@@ -1,5 +1,6 @@
 package io.github.choganhq.chogan;
 
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.webkit.WebView;
 
@@ -19,6 +20,8 @@ import com.getcapacitor.BridgeActivity;
  */
 public class MainActivity extends BridgeActivity {
 
+    private BarsBridge bars;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -26,6 +29,9 @@ public class MainActivity extends BridgeActivity {
         // Result images: the WebView can neither download nor share them by itself (#168)
         if (getBridge() != null && getBridge().getWebView() != null) {
             getBridge().getWebView().addJavascriptInterface(new ImageBridge(this), "ChoganAndroid");
+            // System bars in the page's theme, not the device's (#402)
+            bars = new BarsBridge(this);
+            getBridge().getWebView().addJavascriptInterface(bars, "ChoganBars");
         }
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -41,5 +47,12 @@ public class MainActivity extends BridgeActivity {
                 }
             }
         });
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // SystemBars repaints the bars from the device's night mode here; the page's theme wins
+        if (bars != null) bars.reapply();
     }
 }

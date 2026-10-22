@@ -558,6 +558,9 @@
     var dark = t === 'dark' || (t === 'auto' && global.matchMedia && global.matchMedia('(prefers-color-scheme: dark)').matches);
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', dark ? '#15120E' : '#FBF6EF');
+    // The Android app has no theme-color; without this its navigation bar
+    // followed the device and stayed cream under the dark theme (#402)
+    if (global.ChoganBars && global.ChoganBars.setDark) { try { global.ChoganBars.setDark(!!dark); } catch (e) { /* bars keep the device's look */ } }
   };
   Chogan.setTheme = function (t) {
     state.settings.theme = t;
@@ -3003,7 +3006,8 @@
     });
     if (global.matchMedia) {
       var mq = global.matchMedia('(prefers-color-scheme: dark)');
-      var onch = function () { if (state.settings.theme === 'auto') Chogan.applyTheme(); };
+      // a fixed theme is applied again too: the system bars follow the device on a change (#402)
+      var onch = function () { Chogan.applyTheme(); };
       if (mq.addEventListener) mq.addEventListener('change', onch);
       else if (mq.addListener) mq.addListener(onch);
     }
