@@ -28,6 +28,11 @@
   .dt-player__rem { grid-area: rem; font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
   .dt-player__darts { grid-area: darts; display: flex; gap: 4px; min-height: 20px; }
   .dt-player__darts b { flex: 1; min-width: 0; text-align: center; font-size: var(--fs-xs); font-weight: 700; border-radius: 6px; padding: 1px 4px; background: var(--c-surface-2); color: var(--c-text-dim); direction: ltr; }
+  /* each dart says what it scored, the bull too (#404) */
+  .dt-player__darts b.dt-hit { color: var(--c-text); font-weight: 800; }
+  /* the visit just finished stays on its player's card, dimmed, with its total */
+  .dt-player__darts--last b { opacity: .75; }
+  .dt-player__total { flex: 0 0 auto; font-size: var(--fs-xs); font-weight: 800; padding: 1px 4px; color: var(--pc); font-variant-numeric: tabular-nums; }
   .dt-thinking { animation: dt-blink 900ms infinite; }
   @keyframes dt-blink { 50% { opacity: .55; } }
   .ch-fit > .dt-boardbox { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
@@ -373,6 +378,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
   function current() { return { mode: G.mode, level: G.level, start: G.start }; }
   function fromPrefs() { return { mode: prefs.mode, level: prefs.level, start: prefs.start }; }
 
+  var VISIT_MS = 1700, BOT_DART_MS = 1000;
   function isBot(seat) { return G.mode === 'bot' && seat === 1; }
   function stop() { if (timer) { clearTimeout(timer); timer = null; } }
   function later(fn, ms) { stop(); timer = setTimeout(function () { timer = null; fn(); }, ms); }
@@ -415,13 +421,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
     flight = null;
     var who = G.s.turn, r = E.throwDart(G.s, h);
     if (!r) return;
-    marks.push({ x: x, y: y, seat: who });
+    marks.push({ x: x, y: y, seat: who, score: h.score });
     C.feedback(h.m ? 'thud' : 'tap');
     G.s = r.state;
     G.msg = label(h) + (h.score ? ' · ' + C.num(h.score) : '');
     if (r.over && G.s.last) {
-      if (r.bust) { G.msg = C.t('bust'); C.feedback('bad'); }
-      else G.msg = C.t('turnTotal', { n: C.num(G.s.last.total) });
+      // the dart that ended the visit is named before the total, not replaced by it (#404)
+      if (r.bust) { G.msg += ' — ' + C.t('bust'); C.feedback('bad'); }
+      else G.msg += ' — ' + C.t('turnTotal', { n: C.num(G.s.last.total) });
       if (who === 0 && !r.bust) {
         G.bestTurn = Math.max(G.bestTurn, G.s.last.total);
         if (G.s.last.total === 180 && G.mode !== 'people') C.achievements.unlock('dt-180');
@@ -443,8 +450,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
     }
     save();
     render();
-    if (r.over) later(function () { marks = []; startTurn(); }, 1100);
-    else if (isBot(who)) later(botThrow, 650);
+    // a finished visit and each of the bot's darts stay long enough to read (#404)
+    if (r.over) later(function () { marks = []; startTurn(); }, VISIT_MS);
+    else if (isBot(who)) later(botThrow, BOT_DART_MS);
     else { G.phase = 'aim'; render(); }
   }
 
@@ -546,6 +554,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
     if (h.label === '25') return C.t('outerBull');
     return h.label[0] + C.num(h.n);
   }
+  // what a dart written as in the state ('T20', 'BULL', '25', 'MISS') scored
+  function scoreOf(s) {
+    if (s === 'MISS') return 0;
+    if (s === 'BULL') return 50;
+    if (s === '25') return 25;
+    return { S: 1, D: 2, T: 3 }[s[0]] * +s.slice(1);
+  }
   function labelOf(s) { return s === 'MISS' ? C.t('miss') : label(E.mk(s === 'BULL' || s === '25' ? 25 : +s.slice(1), s === 'BULL' ? 2 : s === '25' ? 1 : { S: 1, D: 2, T: 3 }[s[0]])); }
 
   function colors() {
@@ -601,6 +616,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
     // darts of this turn
     var col = colors();
     (o.marks || []).forEach(function (m) { paintDart(g, m.x * rb, m.y * rb, col.c[m.seat] || col.c[0], 1, 0, rb); });
+    // what each dart scored, on a tag beside it, so a bull reads as 50 (#404)
+    if (o.scores) {
+      var placed = [];
+      (o.marks || []).forEach(function (m) { if (m.score != null) paintScore(g, m.x * rb, m.y * rb, m.score, col.c[m.seat] || col.c[0], rb, placed); });
+    }
     if (o.flight) {
       var f = o.flight, t = Math.min(1, (performance.now() - f.t0) / f.dur);
       if (C.ui.reduceMotion()) t = 1;
@@ -611,6 +631,31 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
     }
     if (o.sight) paintSight(g, o.sight[0] * rb, o.sight[1] * rb, W);
     if (o.bars) paintBars(g, o.bars, rb, W);
+    g.restore();
+  }
+
+  // darts close together (three in the bull) would stack their tags, so a tag
+  // moves down past the ones already placed
+  function paintScore(g, x, y, score, colour, rb, placed) {
+    var fs = Math.max(11, rb * 0.085), t = C.num(score);
+    g.save();
+    g.font = '800 ' + fs + 'px ' + (getComputedStyle(document.body).fontFamily || 'sans-serif');
+    var w = g.measureText(t).width + fs * 0.8, h = fs * 1.35;
+    // beside the point, away from the barrel that rises above it
+    var px = x + rb * 0.07, py = y + rb * 0.02;
+    if (px + w > rb * 1.25) px = x - rb * 0.07 - w;
+    for (var i = 0; i < placed.length; i++) {
+      var q = placed[i];
+      if (px < q.x + q.w && q.x < px + w && py < q.y + q.h && q.y < py + h) { py = q.y + q.h + 2; i = -1; }
+    }
+    placed.push({ x: px, y: py, w: w, h: h });
+    g.fillStyle = colour;
+    g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 1.5;
+    g.beginPath();
+    if (g.roundRect) g.roundRect(px, py, w, h, h / 2); else g.rect(px, py, w, h);
+    g.fill(); g.stroke();
+    g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(t, px + w / 2, py + h / 2 + fs * 0.05);
     g.restore();
   }
 
@@ -733,7 +778,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, B.w, B.w);
     var aimBars = bars && barsOn() ? (bars.stage === 0 ? { x: barNow() } : { x: bars.x, y: barNow() }) : null;
-    paintBoard(g, B.w, { marks: marks, flight: flight, seat: G.s.turn, sight: G.phase === 'aim' && !aimBars ? sightNow() : null, bars: aimBars });
+    paintBoard(g, B.w, { marks: marks, scores: true, flight: flight, seat: G.s.turn, sight: G.phase === 'aim' && !aimBars ? sightNow() : null, bars: aimBars });
   }
   function loop() {
     raf = 0;
@@ -761,13 +806,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DartsEngin
   function drawPlayers() {
     playersRow.innerHTML = '';
     for (var seat = 0; seat < G.s.rem.length; seat++) {
-      var on = G.s.turn === seat && !G.done, darts = on ? G.s.darts : [];
+      // The state hands the turn over as the third dart lands, so the visit that
+      // just ended is shown from G.s.last; before, the third dart and the bot's
+      // whole visit vanished at once (#404).
+      var on = G.s.turn === seat && !G.done, last = G.s.last, past = !on && last && last.seat === seat && !(G.s.darts.length && G.s.turn === seat);
+      var darts = on ? G.s.darts : (past ? last.darts : []);
       var cells = [];
-      for (var k = 0; k < 3; k++) cells.push(el('b', { text: darts[k] ? labelOf(darts[k]) : '·' }));
+      // a cell shows what the dart scored; what it hit is its label, on the board and in the status line
+      for (var k = 0; k < 3; k++) cells.push(darts[k] ? el('b', { class: 'dt-hit', title: labelOf(darts[k]), 'aria-label': labelOf(darts[k]), text: C.num(scoreOf(darts[k])) }) : el('b', { text: '·' }));
+      if (past) cells.push(el('span', { class: 'dt-player__total', text: last.bust ? C.t('bust') : '= ' + C.num(last.total) }));
       var box = el('div', { class: 'dt-player' + (on ? ' dt-player--on' : ''), style: { '--pc': 'var(--dt-c' + seat + ')' } }, [
         el('div', { class: 'dt-player__name' }, [el('i', { class: 'dt-player__dot' }), el('span', { text: pname(seat) })]),
         el('div', { class: 'dt-player__rem', text: C.num(G.s.rem[seat]) }),
-        el('div', { class: 'dt-player__darts' }, cells)
+        el('div', { class: 'dt-player__darts' + (past ? ' dt-player__darts--last' : '') }, cells)
       ]);
       if (isBot(seat) && on) box.classList.add('dt-thinking');
       playersRow.appendChild(box);

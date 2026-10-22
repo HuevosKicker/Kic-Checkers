@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4309;
+const MIN_CHECKS = 4316;
 
 function ok(cond, msg) {
   checks++;
@@ -8327,6 +8327,39 @@ function testAndroidBars() {
     'MainActivity registers the bridge and repaints after SystemBars on a configuration change');
 }
 
+function testDartsVisit() {
+  head('Darts: the finished visit and every dart\'s score stay readable (#404)');
+  // The state passes the turn as the third dart lands, and the cards showed only
+  // the current player's darts, so the third dart and the bot's visit vanished;
+  // a bull showed as a word with no score.
+  const page = fs.readFileSync(path.join(ROOT, 'www/games/darts/index.html'), 'utf8');
+  const fnOf = (name) => (page.match(new RegExp('^  function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?^  \\}$', 'm')) || [''])[0];
+  ok(fnOf('scoreOf').length > 0 && fnOf('drawPlayers').length > 0, 'scoreOf and drawPlayers found in Darts');
+  const mk = (tag, attrs, kids) => ({ tag, attrs: attrs || {}, kids: kids || [], classList: { add() {} }, appendChild(k) { this.kids.push(k); } });
+  const text = (n) => (typeof n === 'string' ? n : (n.attrs.text || '') + n.kids.map(text).join(''));
+  const show = (G) => {
+    const row = mk('div');
+    row.innerHTML = '';
+    try {
+      vm.runInNewContext(fnOf('scoreOf') + fnOf('drawPlayers') + 'drawPlayers();', {
+        G, playersRow: row, el: mk, labelOf: (x) => x, pname: (k) => 'p' + k, isBot: (k) => k === 1,
+        C: { num: String, t: (k) => k } });
+    } catch (e) { return ['threw ' + e.message]; }
+    return row.kids.map((b) => text(b.kids[2]));
+  };
+  // you have just thrown T20, the bull and a 5; the bot is up
+  const after = show({ done: false, s: { turn: 1, rem: [386, 501], darts: [], last: { seat: 0, darts: ['T20', 'BULL', 'S5'], bust: false, total: 115 } } });
+  ok(after[0] === '60505= 115' && after[1] === '···', 'after your third dart your card keeps all three as scores, with the total (' + after.join(' | ') + ')');
+  const mid = show({ done: false, s: { turn: 1, rem: [386, 441], darts: ['T20'], last: { seat: 0, darts: ['T20', 'BULL', 'S5'], bust: false, total: 115 } } });
+  ok(mid[0] === '60505= 115' && mid[1] === '60··', 'while the bot throws, both its darts so far and your last visit show');
+  const bust = show({ done: false, s: { turn: 0, rem: [40, 32], darts: [], last: { seat: 1, darts: ['T20'], bust: true, total: 0 } } });
+  ok(bust[1] === '60··bust' && bust[0] === '···', 'a bust visit shows as a bust on its player\'s card');
+  ok(/G\.msg \+= ' — ' \+ C\.t\('bust'\);/.test(page) && /G\.msg \+= ' — ' \+ C\.t\('turnTotal'/.test(page), 'the last dart of a visit is named before its total, not replaced by it');
+  ok(/var VISIT_MS = 1700, BOT_DART_MS = 1000;/.test(page) && /later\(botThrow, BOT_DART_MS\)/.test(page) && /\}, VISIT_MS\);/.test(page), 'the bot\'s darts and a finished visit stay up long enough to read');
+  ok(/marks\.push\(\{ x: x, y: y, seat: who, score: h\.score \}\);/.test(page) && /if \(o\.scores\) \{[\s\S]{0,60}\(o\.marks \|\| \[\]\)\.forEach\(function \(m\) \{ if \(m\.score != null\) paintScore\(g, m\.x \* rb, m\.y \* rb, m\.score, col\.c\[m\.seat\] \|\| col\.c\[0\], rb, placed\);/.test(page) &&
+    /paintBoard\(g, B\.w, \{ marks: marks, scores: true,/.test(page), 'each dart on the board carries a tag with its score, the bull\'s 50 too');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8556,6 +8589,7 @@ testChain();
 testLudo();
 testSnakes();
 testDarts();
+testDartsVisit();
 testBowling();
 testSliding();
 testJigsaw();
