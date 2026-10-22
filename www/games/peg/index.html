@@ -23,7 +23,15 @@
   .pg-ghost { fill: var(--game); opacity: .85; pointer-events: none; }
   .pg-status { color: var(--c-text-dim); font-size: var(--fs-sm); text-align: center; min-height: 1.4em; }
   @keyframes pg-land { from { transform: scale(.6); } to { transform: scale(1); } }
-  @media (prefers-reduced-motion: reduce) { .pg-peg, .pg-peg--new { animation: none; transition: none; } }
+  .pg-hop { animation: pg-hop 280ms var(--ease) backwards; transform-box: fill-box; transform-origin: center; }
+  @keyframes pg-hop {
+    from { transform: translate(var(--dx), var(--dy)); }
+    50% { transform: translate(calc(var(--dx) / 2), calc(var(--dy) / 2 - 60px)) scale(1.15); }
+    to { transform: none; }
+  }
+  .pg-gone { animation: pg-gone 220ms 90ms var(--ease) forwards; transform-box: fill-box; transform-origin: center; pointer-events: none; }
+  @keyframes pg-gone { to { transform: scale(0); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .pg-peg, .pg-peg--new, .pg-hop { animation: none; transition: none; } .pg-gone { display: none; } }
 </style>
 </head>
 <body>
@@ -361,7 +369,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PegEngineF
     paint();
   }
 
+  // #407: a tapped jump landed with only a small pop and the jumped peg
+  // vanished at once. Now the peg arcs over and the jumped peg shrinks out
+  // under it. A dragged peg is already where the finger let go, so it only pops.
+  var hop = null;
+  function hopFx(h, dragged) {
+    return { over: h[1], to: h[2], dx: cx(h[0]) - cx(h[2]), dy: cy(h[0]) - cy(h[2]), arc: !dragged };
+  }
+
   function paint() {
+    var fx = hop, above = [];
+    hop = null;
     svg.innerHTML = '';
     svg.appendChild(node('path', { d: SHAPE, class: 'pg-shape' }));
     var targets = sel >= 0 ? E.movesFrom(S.board, sel).map(function (m) { return m.to; }) : [];
@@ -370,13 +388,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PegEngineF
       var c = E.HOLES[i];
       svg.appendChild(node('circle', { cx: cx(c), cy: cy(c), r: 15, class: 'pg-hole' }));
       if (S.board[c]) {
-        var cls = 'pg-peg' + (c === sel ? ' pg-peg--sel' : '') + (c === S.last ? ' pg-peg--new' : '') +
+        var arc = fx && fx.arc && c === fx.to;
+        var cls = 'pg-peg' + (c === sel ? ' pg-peg--sel' : '') + (c === S.last && !arc ? ' pg-peg--new' : '') +
           (S.done ? ' pg-peg--dead' : '');
-        svg.appendChild(node('circle', { cx: cx(c), cy: cy(c), r: 33, class: cls, 'data-cell': c }));
-        svg.appendChild(node('circle', { cx: cx(c) - 10, cy: cy(c) - 11, r: 10, class: 'pg-shine' }));
+        var peg = node('circle', { cx: cx(c), cy: cy(c), r: 33, class: cls, 'data-cell': c });
+        var shine = node('circle', { cx: cx(c) - 10, cy: cy(c) - 11, r: 10, class: 'pg-shine' });
+        if (arc) {
+          // drawn last, so the hopping peg passes over its neighbours and the jumped one
+          var gp = node('g', { class: 'pg-hop', style: '--dx:' + fx.dx + 'px;--dy:' + fx.dy + 'px' });
+          gp.appendChild(peg); gp.appendChild(shine);
+          above.push(gp);
+        } else {
+          svg.appendChild(peg); svg.appendChild(shine);
+        }
       }
       if (targets.indexOf(c) >= 0) svg.appendChild(node('circle', { cx: cx(c), cy: cy(c), r: 30, class: 'pg-target' }));
     }
+    if (fx) svg.appendChild(node('circle', { cx: cx(fx.over), cy: cy(fx.over), r: 33, class: 'pg-peg pg-gone' }));
+    above.forEach(function (n) { svg.appendChild(n); });
     if (kbOn && !S.done) {
       svg.appendChild(node('rect', { x: cx(cur) - 46, y: cy(cur) - 46, width: 92, height: 92, rx: 18, class: 'pg-cursor' }));
     }
@@ -449,7 +478,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PegEngineF
     if (d.ghost) d.ghost.remove();
     if (cancelled || !d.moved) return;           // ضربه: میخ برداشته می‌ماند تا مقصد را بزند
     var c = cellAt(ev);
-    if (c >= 0 && E.jumpAt(S.board, d.from, c)) doMove(d.from, c);
+    if (c >= 0 && E.jumpAt(S.board, d.from, c)) doMove(d.from, c, true);
     else if (c !== d.from) { sel = -1; paint(); }
   }
   svg.addEventListener('pointerup', function (ev) { endDrag(ev, false); });
@@ -457,8 +486,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PegEngineF
 
   /* ----------------------------------------------------------- حرکت */
 
-  function doMove(from, to) {
+  function doMove(from, to, dragged) {
     if (!E.applyMove(S, from, to)) { C.feedback('bad'); return; }
+    hop = C.ui.reduceMotion() ? null : hopFx(S.history[S.history.length - 1], dragged);
     sel = -1;
     S.last = to;
     cur = to;
