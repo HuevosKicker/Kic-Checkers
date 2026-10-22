@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4301;
+const MIN_CHECKS = 4309;
 
 function ok(cond, msg) {
   checks++;
@@ -8290,6 +8290,43 @@ function gameMotion() {
     'placing a flag drops it in, a loss runs the chain and a win the wave before the result');
 }
 
+function testAndroidBars() {
+  head('Android: system bars follow the app theme, not the device (#402)');
+  // The navigation bar stayed cream under the dark theme: Capacitor's SystemBars
+  // follows the device's night mode, and the page never told Android its theme.
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
+  const fn = (core.match(/^  Chogan\.applyTheme = function \(\) \{[\s\S]*?^  \};$/m) || [''])[0];
+  ok(fn.length > 0, 'Chogan.applyTheme found in the core');
+  const run = (theme, deviceDark, bridge) => {
+    const calls = [];
+    const root = { setAttribute() {}, removeAttribute() {} };
+    const g = { matchMedia: () => ({ matches: deviceDark }) };
+    if (bridge) g.ChoganBars = { setDark: (d) => calls.push(d) };
+    const C = {};
+    try {
+      vm.runInNewContext('(function (Chogan, state, global, document) { ' + fn + ' Chogan.applyTheme(); })', {})(C, { settings: { theme } }, g,
+        { documentElement: root, querySelector: () => null });
+    } catch (e) { return 'threw ' + e.message; }
+    return calls.join(',');
+  };
+  ok(run('dark', false, true) === 'true' && run('light', true, true) === 'false', 'a fixed theme tells the bars its own darkness, against the device');
+  ok(run('auto', true, true) === 'true' && run('auto', false, true) === 'false', 'auto follows the device');
+  ok(run('dark', false, false) === '', 'on the web, with no bridge, nothing is called and nothing throws');
+  ok(/var onch = function \(\) \{ Chogan\.applyTheme\(\); \};/.test(core), 'a device theme change applies the theme again, fixed themes too');
+  const java = (f) => { try { return fs.readFileSync(path.join(ROOT, 'android/app/src/main/java/io/github/choganhq/chogan', f), 'utf8'); } catch (e) { return ''; } };
+  const bars = java('BarsBridge.java'), main = java('MainActivity.java');
+  const bg = (block) => ((css.match(block) || [''])[0].match(/--c-bg: +#([0-9A-F]{6});/) || [])[1];
+  const light = bg(/^:root \{[\s\S]*?^\}/m), dark = bg(/^:root\[data-theme="dark"\] \{[\s\S]*?^\}/m);
+  ok(light && dark && bars.indexOf('BG_LIGHT = 0xFF' + light + ';') > 0 && bars.indexOf('BG_DARK = 0xFF' + dark + ';') > 0,
+    'the bars take the page backgrounds (#' + light + ', #' + dark + ')');
+  ok(/@JavascriptInterface\s+public void setDark\(boolean isDark\)/.test(bars) && /setNavigationBarContrastEnforced\(false\)/.test(bars) &&
+    /setAppearanceLightNavigationBars\(!d\)/.test(bars) && /setAppearanceLightStatusBars\(!d\)/.test(bars) && /getDecorView\(\)\.setBackgroundColor\(bg\)/.test(bars),
+    'the bridge sets the decor background, the bar colours, no scrim, and the icon appearance');
+  ok(/addJavascriptInterface\(bars, "ChoganBars"\)/.test(main) && /super\.onConfigurationChanged\(newConfig\);\s+\/\/[^\n]*\n\s+if \(bars != null\) bars\.reapply\(\);/.test(main),
+    'MainActivity registers the bridge and repaints after SystemBars on a configuration change');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8594,6 +8631,7 @@ testBuildShown();
 testDarkInk();
 testDarkAccentText();
 testAnimations();
+testAndroidBars();
 testMenuSelect();
 testModalFocus();
 testTelegramPost();
