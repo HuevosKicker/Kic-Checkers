@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4550;
+const MIN_CHECKS = 4610;
 
 function ok(cond, msg) {
   checks++;
@@ -8180,7 +8180,8 @@ function testDarkAccentText() {
     if (t !== g.color.toUpperCase()) changed.push(g.id);
   }
   ok(!low.length, 'every accent\'s dark-theme text reads at 4.5:1 or more on the lightest dark surface' + (low.length ? ': ' + low.join(', ') : ''));
-  ok(!far.length && changed.length >= 20 && changed.length <= 30, 'accents that already read keep their colour; ' + changed.length + ' are lightened' + (far.length ? ' (changed needlessly: ' + far.join(', ') + ')' : ''));
+  // the range only proves txt() ran on the list; it grows with the games (31 at Crazy Eights, #416)
+  ok(!far.length && changed.length >= 20 && changed.length <= 40, 'accents that already read keep their colour; ' + changed.length + ' are lightened' + (far.length ? ' (changed needlessly: ' + far.join(', ') + ')' : ''));
   const bw = txt('#3C4F9A');
   ok(cr(bw, '#342C22') < 5.5 && lum(bw) > lum('#3C4F9A') && txt('nonsense') === '', 'Bowling\'s blue is lightened only as far as needed (' + bw + ', ' + cr(bw, '#342C22').toFixed(2) + ':1), and a bad colour gives nothing');
   const rules = ['.ch-game__pin--on', '.ch-badge--accent', '.ch-btn--soft', '.ch-iconbtn[aria-pressed="true"]', '.ch-seg button[aria-selected="true"]'];
@@ -9063,6 +9064,109 @@ function testKlondike() {
   ok(Date.now() - t0 < 15000, 'the Klondike tests finish in under 15 s (' + (Date.now() - t0) + ' ms)');
 }
 
+function testCrazyEights() {
+  head('Crazy Eights (#416)');
+  const t0 = Date.now();
+  const E = loadEngine('crazyeights', 'CrazyEightsEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/crazyeights/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+  const card = (r, s) => r * 4 + s;            // ranks 0..12 (A..K), suits ♣ ♦ ♥ ♠; the eight is rank 7
+
+  // The deal: seven each for two, five each for three or four; the starter is never an eight
+  const R2 = E.newRound(rng(3), 2), R4 = E.newRound(rng(4), 4);
+  ok(R2.hands.every((h) => h.length === 7) && R4.hands.every((h) => h.length === 5) && E.validRound(R2) && E.validRound(R4), 'seven cards each for two players, five for three or four, one full deck');
+  let eightStarter = 0;
+  for (let i = 0; i < 300; i++) if (E.rank(E.top(E.newRound(rng(i), 3))) === 7) eightStarter++;
+  ok(eightStarter === 0, 'the starter is never an eight (300 deals)');
+
+  // Matching: the suit in play or the top card's rank; an eight on anything
+  const R = { n: 2, hands: [[], []], stock: [card(1, 1)], discard: [card(4, 2)], suit: 2, turn: 0, drawn: -1, passes: 0, winner: -1 };   // 5♥ on top
+  ok(E.canPlay(R, card(10, 2)) && E.canPlay(R, card(4, 3)), 'a heart or another five goes on the 5♥');
+  ok(!E.canPlay(R, card(5, 3)) && !E.canPlay(R, card(9, 0)), 'a 6♠ or a 10♣ does not');
+  ok(E.canPlay(R, card(7, 0)) && E.canPlay(R, card(7, 3)), 'an eight goes on anything');
+  R.hands[0] = [card(7, 0), card(2, 1)];
+  ok(E.play(R, card(7, 0), 3) && R.suit === 3 && E.top(R) === card(7, 0) && R.turn === 1, 'an eight names the next suit, and the turn passes');
+  R.hands[1] = [card(2, 1), card(12, 3)];
+  ok(E.legal(R, 1).length === 1 && E.legal(R, 1)[0] === card(12, 3), 'after an eight that named spades, only a spade or an eight follows');
+  ok(!E.play(R, card(2, 1), -1) && R.hands[1].length === 2, 'a card that does not fit is refused and stays in the hand');
+
+  // Drawing: only when stuck, one card a turn, and only that card may then be played
+  const D = E.newRound(rng(9), 2);
+  D.hands[0] = [card(9, 0)]; D.discard = [card(4, 2)]; D.suit = 2;
+  D.stock = D.stock.filter((c) => c !== card(9, 0) && c !== card(4, 2));
+  const fit = card(11, 2);
+  D.stock = D.stock.filter((c) => c !== fit).concat([fit]);
+  ok(E.draw(D) === fit && D.hands[0].length === 2 && D.drawn === fit, 'stuck, you draw one card');
+  ok(E.draw(D) === -1, 'and only one card a turn');
+  ok(E.legal(D, 0).length === 1 && E.legal(D, 0)[0] === fit && E.canPass(D), 'the drawn card may be played, or you pass');
+  const Dfit = E.newRound(rng(10), 2);
+  Dfit.hands[0] = [card(4, 0)]; Dfit.discard = [card(4, 2)]; Dfit.suit = 2;
+  ok(E.draw(Dfit) === -1 && !E.canPass(Dfit), 'with a card that fits you may neither draw nor pass');
+  // An empty stock is made again from the discards under the top card
+  const S = { n: 2, hands: [[card(0, 0)], [card(0, 1)]], stock: [], discard: [card(3, 3), card(5, 3), card(6, 3)], suit: 3, turn: 0, drawn: -1, passes: 0, winner: -1 };
+  const got = E.draw(S, rng(1));
+  ok(got >= 0 && S.discard.length === 1 && S.discard[0] === card(6, 3) && S.stock.length === 1, 'the stock is rebuilt from the discards, the top card staying put');
+  // Nothing to draw and nothing to play, round the table: the lowest hand wins
+  const B = { n: 2, hands: [[card(1, 0)], [card(12, 1)]], stock: [], discard: [card(4, 2)], suit: 2, turn: 0, drawn: -1, passes: 0, winner: -1 };
+  ok(E.canPass(B) && E.pass(B) && B.winner === -1 && E.pass(B) && B.blocked && B.winner === 0, 'when everyone has to pass, the round is blocked and the lowest hand (2 against 10) wins');
+  // A pass after drawing does not count toward a block (a first draft blocked 45 % of rounds that way)
+  const P = E.newRound(rng(12), 2);
+  P.drawn = P.hands[0][0]; P.passes = 1;
+  E.pass(P);
+  ok(P.passes === 0 && P.winner === -1, 'a pass after a draw does not count toward a blocked round');
+
+  // Scoring: the winner takes the others' cards, eights 50, court cards 10, aces 1
+  ok(E.cardPoints(card(7, 0)) === 50 && E.cardPoints(card(11, 1)) === 10 && E.cardPoints(card(0, 2)) === 1 && E.cardPoints(card(5, 3)) === 6, 'eight 50, a court card 10, an ace 1, the rest their number');
+  const W = { n: 3, hands: [[], [card(7, 0), card(0, 1)], [card(12, 2)]], winner: 0 };
+  ok(E.roundPoints(W) === 61, 'the round\'s winner scores 61 from an eight, an ace and a king');
+
+  // Bots: every move legal, rounds always end, and the stronger levels win more
+  const round = (levels, seed) => {
+    const r = rng(seed), RR = E.newRound(r, levels.length, seed % levels.length);
+    for (let i = 0; i < 3000 && RR.winner < 0; i++) {
+      const m = E.botMove(RR, levels[RR.turn], r);
+      if (m.play !== undefined) { if (!E.play(RR, m.play, m.suit)) return -9; }
+      else if (m.draw) { const s = RR.suit, p = RR.turn; if (E.draw(RR, r) < 0) { if (!E.pass(RR)) return -9; } else E.noteShort(RR, p, s); }
+      else if (!E.pass(RR)) return -9;
+    }
+    return RR.winner;
+  };
+  const pit = (a, b, n) => { let w = 0; for (let i = 0; i < n; i++) { const lv = i % 2 ? [a, b] : [b, a]; const g = round(lv, 500 + i); if (g === -9) return -1; if (g === (i % 2 ? 0 : 1)) w++; } return w; };
+  const he = pit('hard', 'easy', 200), me = pit('medium', 'easy', 200);
+  ok(he >= 0 && me >= 0, 'every bot move is legal and every round ends');
+  ok(he >= 115 && me >= 115, 'medium and hard beat easy in at least 115 of 200 rounds (' + me + ', ' + he + ')');
+  const four = [1, 2, 3].map((k) => round(['hard', 'medium', 'easy', 'hard'], 900 + k));
+  ok(four.every((w) => w >= 0 && w < 4), 'four-player rounds end with a winner');
+
+  // Page: shared cards and fly, options behind a gear, the daily round seeded
+  ok(/C\.cards\.el\(c,/.test(html) && /C\.ui\.fly\(hand\.children\[i\], from, \{ ms: 220, delay: i \* DEAL_MS, flip: true \}\)/.test(html), 'the cards are Chogan.cards and the deal uses Chogan.ui.fly');
+  ok(/'aria-label': C\.t\('settings'\)/.test(html) && /function showSettings\(\)/.test(html), 'rivals and level are chosen behind a gear');
+  ok(/C\.daily\('crazyeights', M\.daily\)\.rng/.test(html) && /C\.daily\('crazyeights', M\.daily \+ '\|bots'\)\.rng/.test(html), 'the daily round deals and plays the bots from the day\'s seed');
+  ok(/\.ce-table \{ direction: ltr;/.test(html) && /\.ce-hand \{ direction: ltr;/.test(html), 'the table and the hand are not mirrored in Persian');
+
+  // Identity
+  const gm = games.find((g) => g.id === 'crazyeights');
+  ok(!!gm && gm.cat === 'cards' && gm.daily !== false && gm.name.fa === 'هفت خبیث', 'games.json lists it under card games with the owner\'s Persian name');
+  ok(!!gm && /accent: '([^']+)'/.test(html) && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/crazyeights/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (x) => [1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16) / 255);
+  const lin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const lab = (x) => {
+    const [Rr, G, Bl] = rgb(x).map(lin), f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    const X = (Rr * 0.4124 + G * 0.3576 + Bl * 0.1805) / 0.95047, Y = Rr * 0.2126 + G * 0.7152 + Bl * 0.0722, Z = (Rr * 0.0193 + G * 0.1192 + Bl * 0.9505) / 1.08883;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  };
+  const dE = (a, b) => { const A = lab(a), Q = lab(b); return Math.hypot(A[0] - Q[0], A[1] - Q[1], A[2] - Q[2]); };
+  const lum = (x) => rgb(x).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const near = games.filter((g) => g.id !== 'crazyeights').map((g) => [g.id, dE(g.color, gm.color)]).sort((x, y) => x[1] - y[1])[0];
+  ok(near[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + near[0] + ', ' + near[1].toFixed(1) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['ce-win', 'ce-hard', 'ce-eight'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '[^\\n]*des: '").test(core) && html.indexOf("unlock('" + id + "')") > 0), 'the three Crazy Eights awards exist in every language and are unlocked');
+  ok(Date.now() - t0 < 10000, 'the Crazy Eights tests finish in under 10 s (' + (Date.now() - t0) + ' ms)');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9300,6 +9404,7 @@ testFreecellMotion();
 testChessMotion();
 testStonesMotion();
 testKlondike();
+testCrazyEights();
 testBowlingBanner();
 testCueSink();
 testBattleshipFx();

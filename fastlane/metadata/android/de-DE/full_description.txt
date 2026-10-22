@@ -1,4 +1,4 @@
-Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Sechsunddreißig Spiele sind dabei, und neue kommen als Updates derselben App dazu.
+Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Siebenunddreißig Spiele sind dabei, und neue kommen als Updates derselben App dazu.
 
 Die Spiele:
 
@@ -26,18 +26,19 @@ Die Spiele:
 * Go — Go auf 9×9 mit automatischer Zählung, gegen die KI in drei Stufen oder zu zweit
 * Ausweg — schick jeden Pfeil in einer passenden Reihenfolge vom Brett, drei Herzen pro Level, Level ohne Ende
 * Blackjack — näher an 21 als der Croupier, Partien aus zehn Händen ohne Einsätze
-* 8-Ball — versenke deine Gruppe und zuletzt die 8, mit echter Tischphysik, gegen die KI in drei Stufen oder zu zweit
+* 8-Ball — versenke deine Gruppe und zuletzt die 8, gegen die KI oder zu zweit
 * Snooker — Rot, dann Farbe, zuletzt die Farben der Reihe nach; 6, 10 oder 15 Rote, gegen die KI oder zu zweit
-* Stau — schieb die Autos aus dem Weg und fahr vom Parkplatz, jedes Ziehen zählt als ein Zug, Level ohne Ende
-* Kettenreaktion — Kugeln legen, bis Felder platzen und Ketten übers Brett laufen; 2 bis 4 Spieler an einem Handy oder gegen Bots
-* Ludo — würfeln, mit einer Sechs raus, schlagen und alle Figuren ins Ziel bringen; 2 bis 4 Spieler oder gegen Bots
-* Schlangen und Leitern — würfeln, Leitern hoch, Schlangen runter und zuerst die 100 erreichen; 2 bis 4 Spieler oder gegen Bots
+* Stau — schieb die Autos weg und fahr vom Parkplatz, Level ohne Ende
+* Kettenreaktion — Kugeln legen, bis Felder in Ketten platzen; 2 bis 4 Spieler oder gegen Bots
+* Ludo — mit einer Sechs raus, schlagen, alle Figuren ins Ziel; 2 bis 4 Spieler oder gegen Bots
+* Schlangen und Leitern — Leitern hoch, Schlangen runter, zuerst auf 100; 2 bis 4 Spieler oder gegen Bots
 * Darts — 501 oder 301, drei Darts pro Aufnahme, Finish auf Doppel; gegen einen Bot oder zu zweit
 * Bowling — zehn Frames, wischen zum Werfen, biegen für Drall; allein, gegen einen Bot oder zu zweit
 * Schiebepuzzle — nummerierte Plättchen wieder ordnen, 3×3 bis 5×5, mit wenigen Zügen
 * Puzzle — 12 bis 150 Teile in den Rahmen ziehen; persische Muster und Landschaften, im Code gezeichnet
 * Dame — 8×8 mit Schlagzwang, klassisch oder spanisch, gegen die KI oder zu zweit
 * Klondike — Patience, eine oder drei Karten ziehen, das Tagesspiel ist immer lösbar
+* Verrückte Acht — Farbe oder Wert bedienen, Achten wechseln die Farbe; gegen 1 bis 3 Bots
 
 Rund um die Spiele:
 

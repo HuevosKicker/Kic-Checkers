@@ -864,6 +864,30 @@
       "soft": "#E0EFDC",
       "added": "2026-10-22",
       "files": []
+    },
+    {
+      "id": "crazyeights",
+      "cat": "cards",
+      "name": {
+        "fa": "هفت خبیث",
+        "en": "Crazy Eights",
+        "zh": "疯狂八",
+        "de": "Verrückte Acht",
+        "es": "Ocho loco"
+      },
+      "summary": {
+        "fa": "هم‌خال یا هم‌عدد بازی کن، با هشت خال را عوض کن و زودتر دستت را خالی کن؛ مقابل ۱ تا ۳ ربات.",
+        "en": "Match the suit or rank, change the suit with an eight, and empty your hand first; against 1 to 3 bots.",
+        "zh": "跟花色或点数，用8换花色，抢先出完手牌；对战1到3个电脑。",
+        "de": "Farbe oder Wert bedienen, mit einer Acht die Farbe wechseln, zuerst die Hand leeren; gegen 1 bis 3 Bots.",
+        "es": "Sigue el palo o el número, cambia el palo con un ocho y vacía tu mano primero; contra 1 a 3 bots."
+      },
+      "path": "games/crazyeights/index.html",
+      "icon": "games/crazyeights/icon.svg",
+      "color": "#A06420",
+      "soft": "#F6E7D2",
+      "added": "2026-10-22",
+      "files": []
     }
   ]
 }
