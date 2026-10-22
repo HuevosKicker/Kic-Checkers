@@ -1,4 +1,4 @@
-Chogan is a collection of small, finishable games in a single app. It ships with thirty-five games, and new ones arrive as updates to the same app.
+Chogan is a collection of small, finishable games in a single app. It ships with thirty-six games, and new ones arrive as updates to the same app.
 
 The games:
 
@@ -6,7 +6,7 @@ The games:
 * Sudoku — four difficulties with a guaranteed unique solution, notes, hints and a daily challenge
 * Minesweeper — no-guess generation, four sizes, chording and flags
 * Dots and Boxes — two players on one phone, or three levels of AI
-* Backgammon — two players or three levels of AI, dice that undo can never re-roll, gammons count double
+* Backgammon — two players or three levels of AI, gammons count double
 * Mancala — Kalah rules, two players or three levels of AI
 * Nonogram — three sizes, every puzzle solvable by logic alone
 * FreeCell — the classic numbered deals, never the one unwinnable deal, unlimited undo
@@ -37,6 +37,7 @@ The games:
 * Sliding Puzzle — slide the numbered tiles back into order, from 3×3 to 5×5, in as few moves as you can
 * Jigsaw — drag the pieces into the frame, 12 to 150 of them, on Persian patterns and scenes drawn in code
 * Checkers — 8×8 draughts with forced jumps and kings, classic or Spanish rules (flying kings), against the AI at three levels or two players
+* Klondike — classic solitaire, draw one or three, and a daily deal that is always winnable
 
 Around the games:
 
@@ -50,7 +51,7 @@ On privacy:
 
 * The only permission the app declares is vibration. Not even internet access
 * No ads, no in-app purchases, no analytics, no tracking
-* Every asset ships inside the package. Even the sound is generated with WebAudio, so there is not a single audio file in the build
+* Everything ships inside the package; even the sound is made in code
 * Progress is stored on the device only, and Google auto-backup is turned off
 
 Free and open source under the MIT licence.

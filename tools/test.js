@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4483;
+const MIN_CHECKS = 4550;
 
 function ok(cond, msg) {
   checks++;
@@ -8948,6 +8948,121 @@ function testBowlingBanner() {
   ok(a0 > 0 && /anim = null;\n    var r = E\.roll\(G\.s, res\.down\);/.test(src.slice(a0, b0)), 'the instant path scores the roll exactly as the animated one does');
 }
 
+function testKlondike() {
+  head('Klondike (#415)');
+  const t0 = Date.now();
+  const E = loadEngine('klondike', 'KlondikeEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/klondike/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+  const card = (r, s) => r * 4 + s;            // ranks 0..12 (A..K), suits ♣ ♦ ♥ ♠
+  const empty = () => ({ tab: [[], [], [], [], [], [], []], down: [0, 0, 0, 0, 0, 0, 0], stock: [], waste: [], found: [0, 0, 0, 0], draw: 1, hist: [], undos: 0, passes: 0 });
+
+  // The deal: 1 to 7 cards a column with only the top one up, 24 in the stock
+  const D = E.deal(rng(7), 1);
+  ok(D.tab.map((c) => c.length).join() === '1,2,3,4,5,6,7' && D.down.join() === '0,1,2,3,4,5,6' && D.stock.length === 24 && E.validState(D), 'a deal lays out 1 to 7 cards a column, only the top one face up, and 24 in the stock');
+
+  // Columns: one rank lower, the other colour; only a king into an empty column
+  const S = empty();
+  S.tab[0] = [card(7, 3)];                      // 8♠
+  ok(E.canTab(S, card(6, 2), 0) && E.canTab(S, card(6, 1), 0), 'a red 7 goes on the black 8');
+  ok(!E.canTab(S, card(6, 0), 0) && !E.canTab(S, card(6, 3), 0), 'a black 7 does not go on the black 8');
+  ok(!E.canTab(S, card(5, 2), 0) && !E.canTab(S, card(7, 2), 0), 'only exactly one rank lower');
+  ok(E.canTab(S, card(12, 0), 1) && !E.canTab(S, card(11, 0), 1), 'an empty column takes a king and nothing else');
+  // Foundations: ace first, then up by one in the same suit
+  ok(E.canFound(S, card(0, 2)) && !E.canFound(S, card(1, 2)), 'a foundation starts with the ace');
+  S.found[2] = 4;
+  ok(E.canFound(S, card(4, 2)) && !E.canFound(S, card(4, 1)) && !E.canFound(S, card(5, 2)), 'then the next rank of the same suit only');
+
+  // A move turns over the card it uncovers, and undo turns it back
+  const M = empty();
+  M.tab[0] = [card(3, 0), card(9, 2)]; M.down[0] = 1;        // 4♣ face down, 10♥ on it
+  M.tab[1] = [card(10, 3)];                                  // J♠
+  const h = E.move(M, { k: 'tab', col: 0, i: 1 }, { k: 'tab', col: 1 });
+  ok(h && M.tab[1].length === 2 && M.down[0] === 0 && h.flip, 'moving the 10♥ onto the J♠ turns the 4♣ over');
+  ok(E.move(M, { k: 'tab', col: 1, i: 0 }, { k: 'tab', col: 0 }) === null, 'a move against the rules is refused and changes nothing');
+  E.undo(M);
+  ok(M.tab[0].length === 2 && M.down[0] === 1 && M.tab[1].length === 1 && M.undos === 1, 'undo puts the 10♥ back and the 4♣ face down again');
+  // The stock: one or three cards a tap, then the waste turns back into the stock
+  const T = E.deal(rng(11), 3);
+  const st0 = T.stock.slice();
+  E.drawStock(T);
+  ok(T.waste.length === 3 && T.waste[2] === st0[st0.length - 3] && T.stock.length === 21, 'drawing three turns three over, the third from the top ending on top');
+  for (let i = 0; i < 7; i++) E.drawStock(T);
+  ok(T.stock.length === 0 && T.waste.length === 24, 'eight taps empty a stock of 24');
+  E.drawStock(T);
+  ok(T.stock.join() === st0.join() && T.waste.length === 0 && T.passes === 1, 'one more tap turns the waste back into the same stock');
+  E.undo(T); E.undo(T);
+  ok(T.waste.length === 21 && T.stock.length === 3 && T.passes === 0, 'and undo walks that back exactly');
+
+  // A tap: home first, else a column with cards, an empty column only for a king that is not already at the bottom
+  const A = empty();
+  A.waste = [card(0, 1)]; A.tab[2] = [card(1, 3)];
+  ok(JSON.stringify(E.autoTarget(A, { k: 'waste' })) === '{"k":"found"}', 'a tapped ace goes home');
+  A.waste = [card(12, 1)];
+  ok(JSON.stringify(E.autoTarget(A, { k: 'waste' })) === '{"k":"tab","col":0}', 'a tapped king goes to the first empty column');
+  A.tab[3] = [card(12, 0)];
+  ok(E.autoTarget(A, { k: 'tab', col: 3, i: 0 }) === null, 'a king already at the bottom of a column stays put');
+
+  // Everything face up with the stock and waste empty: the rest goes home by itself
+  const F = empty();
+  for (let s = 0; s < 4; s++) F.found[s] = 12;
+  F.tab[0] = [card(12, 0), card(12, 1)]; F.tab[1] = [card(12, 2)]; F.tab[2] = [card(12, 3)];
+  ok(E.canFinish(F), 'all face up and nothing in the stock: the rest can go home alone');
+  let guard = 0;
+  while (!E.won(F) && guard++ < 10) { const src = E.nextHome(F); if (!src) break; E.move(F, src, { k: 'found' }); }
+  ok(E.won(F) && guard === 4, 'the last four kings go home one by one, and the game is won');
+
+  // The daily deal is one the solver has won; its winning line replays to a win in the game's own rules
+  const dates = ['2026-10-22', '2026-10-23', '2026-11-01'];
+  const ts = Date.now();
+  const days = dates.map((d) => { const r = (() => { let x = 0; for (const ch of d) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return rng(x); })(); return E.dailyDeal(r); });
+  const dt = Date.now() - ts;
+  ok(days.every((Dd) => Dd.draw === 1 && E.validState(Dd)), 'the daily deal draws one card and is a full deck');
+  let replayed = 0;
+  for (const Dd of days) {
+    const sol = E.solve(Dd, E.SOLVE_LIMIT);
+    if (!sol.solved) continue;
+    const R = E.clone(Dd);
+    let fine = true;
+    for (const m of sol.path) { if (m) { if (!E.move(R, m.src, m.dst)) { fine = false; break; } } else E.drawStock(R); }
+    if (fine && E.won(R)) replayed++;
+  }
+  ok(replayed === days.length, 'each daily deal has a winning line, and it replays to a win (' + replayed + '/' + days.length + ')');
+  ok(dt < 3000, 'finding three daily deals takes under 3 s here (' + dt + ' ms)');
+  ok(/E\.dailyDeal\(C\.daily\('klondike', daily\)\.rng\)/.test(html), 'the page takes the daily deal from the day\'s seed');
+  // the same seed gives the same deal for everyone
+  const a1 = E.dailyDeal(rng(99)), a2 = E.dailyDeal(rng(99));
+  ok(JSON.stringify(a1.tab) === JSON.stringify(a2.tab) && a1.stock.join() === a2.stock.join(), 'one seed, one deal');
+
+  // Page: cards from the shared deck, the deal through the shared fly helper, options behind a gear
+  ok(/C\.cards\.el\(c\), C\.cards\.back\(\)/.test(html) && /C\.ui\.fly\(nodes\[c\], from, \{ ms: 220, delay: n\+\+ \* 28, flip: row === S\.down\[col\] \}\)/.test(html), 'the cards are Chogan.cards and the deal uses Chogan.ui.fly');
+  ok(/class: 'ch-iconbtn kl-gear'/.test(html) && /function showSettings\(\)/.test(html) && !/drawRule[^\n]*showHelp/.test(html), 'draw one or three is chosen behind a gear, not in help');
+  ok(/if \(C\.ui\.reduceMotion\(\) \|\| !L\) \{ done\(\); return; \}/.test(html) && /if \(C\.ui\.reduceMotion\(\) \|\| !L\) return;/.test(html), 'no deal animation and no win cascade with reduced motion');
+  ok(/\.kl-board \{ direction: ltr;/.test(html), 'the table is not mirrored in Persian');
+
+  // Identity
+  const gm = games.find((g) => g.id === 'klondike');
+  ok(!!gm && gm.cat === 'cards' && gm.daily !== false, 'games.json lists it under card games, with a daily deal');
+  ok(!!gm && /accent: '([^']+)'/.test(html) && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/klondike/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (x) => [1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16) / 255);
+  const lin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const lab = (x) => {
+    const [R, G, Bl] = rgb(x).map(lin), f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    const X = (R * 0.4124 + G * 0.3576 + Bl * 0.1805) / 0.95047, Y = R * 0.2126 + G * 0.7152 + Bl * 0.0722, Z = (R * 0.0193 + G * 0.1192 + Bl * 0.9505) / 1.08883;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  };
+  const dE = (a, b) => { const P = lab(a), Q = lab(b); return Math.hypot(P[0] - Q[0], P[1] - Q[1], P[2] - Q[2]); };
+  const lum = (x) => rgb(x).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const near = games.filter((g) => g.id !== 'klondike').map((g) => [g.id, dE(g.color, gm.color)]).sort((x, y) => x[1] - y[1])[0];
+  ok(near[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + near[0] + ', ' + near[1].toFixed(1) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['kl-win', 'kl-three', 'kl-fast'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '[^\\n]*des: '").test(core) && html.indexOf("unlock('" + id + "')") > 0), 'the three Klondike awards exist in every language and are unlocked');
+  ok(Date.now() - t0 < 15000, 'the Klondike tests finish in under 15 s (' + (Date.now() - t0) + ' ms)');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9184,6 +9299,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testKlondike();
 testBowlingBanner();
 testCueSink();
 testBattleshipFx();

@@ -840,6 +840,30 @@
       "soft": "#F7DDE8",
       "added": "2026-10-19",
       "files": []
+    },
+    {
+      "id": "klondike",
+      "cat": "cards",
+      "name": {
+        "fa": "سالیتر",
+        "en": "Klondike",
+        "zh": "克朗代克",
+        "de": "Klondike",
+        "es": "Solitario"
+      },
+      "summary": {
+        "fa": "سالیتر کلاسیک: هر خال را از آس تا شاه روی پایه بچین؛ یک‌کارتی یا سه‌کارتی.",
+        "en": "Classic solitaire: build each suit from ace to king; draw one or three.",
+        "zh": "经典接龙：把每种花色从A排到K；每次翻一张或三张。",
+        "de": "Klassische Patience: jede Farbe vom Ass bis zum König; eine oder drei ziehen.",
+        "es": "Solitario clásico: sube cada palo del as al rey; roba una o tres."
+      },
+      "path": "games/klondike/index.html",
+      "icon": "games/klondike/icon.svg",
+      "color": "#408040",
+      "soft": "#E0EFDC",
+      "added": "2026-10-22",
+      "files": []
     }
   ]
 }
