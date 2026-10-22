@@ -516,7 +516,44 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MorrisEngi
   var S = null, aiTimer = null;
   var sel = -1;          // مهره‌ی انتخاب‌شده در مرحله‌ی جابه‌جایی
   var pend = null;       // { from, to, rm } وقتی سه‌تایی بسته شده و برداشت مانده
-  var cur = 7, kbOn = false, pulseRaf = 0;
+  var cur = 7, kbOn = false, pulseRaf = 0, lastPulse = 1;
+
+  // #407: pieces appeared and vanished in one frame, and a new mill only
+  // showed as the steady highlight. Now a placed piece drops in, a moved one
+  // slides, a new mill flashes, and a taken piece shrinks out where it stood.
+  // Each effect has its own clock, so a removal can start while the mill that
+  // allowed it is still flashing. The board is final first; nothing waits.
+  var MOVE_MS = 200, FLASH_MS = 600, GONE_MS = 260;
+  var fx = {}, fxRaf = 0;
+  function fxPhase(e, ms, now) { return e ? Math.max(0, Math.min(1, (now - e.t0) / ms)) : 1; }
+  function fxView(now) {
+    var o = {};
+    var k = fxPhase(fx.move, MOVE_MS, now); if (k < 1) o.move = { from: fx.move.from, to: fx.move.to, k: k };
+    k = fxPhase(fx.flash, FLASH_MS, now); if (k < 1) o.flash = { mills: fx.flash.mills, k: k };
+    k = fxPhase(fx.gone, GONE_MS, now); if (k < 1) o.gone = { q: fx.gone.q, who: fx.gone.who, k: k };
+    return o.move || o.flash || o.gone ? o : null;
+  }
+  // the mills through q that its owner holds on board b
+  function millsAt(b, q) {
+    var out = [];
+    for (var i = 0; i < E.MILLS.length; i++) {
+      var L = E.MILLS[i];
+      if (L.indexOf(q) >= 0 && b[q] && b[L[0]] === b[q] && b[L[1]] === b[q] && b[L[2]] === b[q]) out.push(L);
+    }
+    return out;
+  }
+  function fxStart(kind, e) {
+    if (C.ui.reduceMotion()) return;
+    e.t0 = performance.now();
+    fx[kind] = e;
+    if (!fxRaf) fxRaf = requestAnimationFrame(fxTick);
+  }
+  function fxTick(now) {
+    fxRaf = 0;
+    var v = fxView(now);
+    if (!pulseRaf) draw();
+    if (v) fxRaf = requestAnimationFrame(fxTick);
+  }
 
   var canvas = el('canvas', { class: 'mr-canvas' });
   var boardBox = el('div', { class: 'mr-boardbox' }, [canvas]);
@@ -541,7 +578,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MorrisEngi
     S.done = false;
     S.startedAt = Date.now();
     S.last = null;
-    sel = -1; pend = null;
+    sel = -1; pend = null; fx = {};
     render();
     save();
     maybeAi();
@@ -618,16 +655,40 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MorrisEngi
         g.beginPath(); g.arc(X(v.targets[t]), Y(v.targets[t]), step * 0.26, 0, Math.PI * 2); g.fill();
       }
     }
+    // a new mill flashes over its steady highlight (#407)
+    var F = v.fx || {};
+    if (F.flash) {
+      for (var fm = 0; fm < F.flash.mills.length; fm++) {
+        var FL = F.flash.mills[fm];
+        // the owner's colour, wider than the steady highlight: white vanished on the light board
+        g.strokeStyle = C.alpha(pcol(col, b[FL[0]] || 1), 0.9 * Math.sin(Math.PI * F.flash.k));
+        g.lineWidth = step * 0.34;
+        g.beginPath(); g.moveTo(X(FL[0]), Y(FL[0])); g.lineTo(X(FL[2]), Y(FL[2])); g.stroke();
+      }
+    }
     // مهره‌ها
     var r = step * 0.33;
+    if (F.gone && !b[F.gone.q]) {
+      var ge = 1 - Math.pow(1 - F.gone.k, 2);
+      g.globalAlpha = 1 - ge;
+      g.fillStyle = pcol(col, F.gone.who);
+      g.beginPath(); g.arc(X(F.gone.q), Y(F.gone.q), r * (1 - 0.6 * ge), 0, Math.PI * 2); g.fill();
+      g.globalAlpha = 1;
+    }
     for (var p = 0; p < E.N; p++) {
       if (!b[p]) continue;
-      var x = X(p), y = Y(p), c = pcol(col, b[p]);
+      var x = X(p), y = Y(p), c = pcol(col, b[p]), pr = r;
+      if (F.move && F.move.to === p) {
+        var me = 1 - Math.pow(1 - F.move.k, 3);
+        if (F.move.from >= 0) { x = X(F.move.from) + (x - X(F.move.from)) * me; y = Y(F.move.from) + (y - Y(F.move.from)) * me; }
+        else { pr = r * (1 + 0.4 * (1 - me)); g.globalAlpha = 0.3 + 0.7 * me; }
+      }
       g.fillStyle = c;
-      g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(x, y, pr, 0, Math.PI * 2); g.fill();
       g.strokeStyle = C.alpha('#FFFFFF', 0.45);
       g.lineWidth = Math.max(1.5, step * 0.045);
-      g.beginPath(); g.arc(x, y, r * 0.62, 0, Math.PI * 2); g.stroke();
+      g.beginPath(); g.arc(x, y, pr * 0.62, 0, Math.PI * 2); g.stroke();
+      g.globalAlpha = 1;
       if (v.last && v.last.to === p) {
         g.fillStyle = C.alpha('#FFFFFF', 0.7);
         g.beginPath(); g.arc(x, y, r * 0.2, 0, Math.PI * 2); g.fill();
@@ -693,8 +754,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MorrisEngi
     g.clearRect(0, 0, size, size);
     drawBoard(g, size, {
       col: colors(), board: viewBoard(), sel: sel, targets: targetsOf(sel),
-      rm: pend ? pend.rm : null, pulse: pulse, last: pend ? null : S.last, lastBy: lastBy(),
-      cursor: kbOn && !S.done ? cur : -1
+      rm: pend ? pend.rm : null, pulse: pulse === undefined && pend ? lastPulse : pulse, last: pend ? null : S.last, lastBy: lastBy(),
+      cursor: kbOn && !S.done ? cur : -1, fx: fxView(performance.now())
     });
   }
 
@@ -703,7 +764,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MorrisEngi
     var t0 = performance.now();
     var tick = function (now) {
       if (!pend) { pulseRaf = 0; draw(); return; }
-      draw(0.5 + 0.5 * Math.sin((now - t0) / 180));
+      lastPulse = 0.5 + 0.5 * Math.sin((now - t0) / 180);
+      draw(lastPulse);
       pulseRaf = requestAnimationFrame(tick);
     };
     pulseRaf = requestAnimationFrame(tick);
@@ -897,6 +959,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MorrisEngi
       if (rm.length) {
         pend = { from: from, to: to, rm: rm };
         sel = -1;
+        fxStart('move', { from: from, to: to });
+        fxStart('flash', { mills: millsAt(b, to) });
         C.audio.sfx('chain');
         C.haptic('success');
         setStatus();
@@ -913,8 +977,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MorrisEngi
   }
 
   function doMove(m, byHuman) {
+    var shown = !!pend, who = m.remove >= 0 ? S.board[m.remove] : 0;
     pend = null; sel = -1;
     var res = E.apply(S, m);
+    // a human mill was already shown moving and flashing while the removal was picked
+    if (!shown) {
+      fxStart('move', { from: m.from, to: m.to });
+      var ms = millsAt(S.board, m.to);
+      if (ms.length) fxStart('flash', { mills: ms });
+    }
+    if (m.remove >= 0) fxStart('gone', { q: m.remove, who: who });
     S.last = m;
     if (m.remove >= 0) { C.audio.sfx('pop'); C.haptic(byHuman ? 'success' : 'error'); }
     else { C.audio.sfx('place'); if (byHuman) C.haptic('tap'); }
@@ -951,7 +1023,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MorrisEngi
     if (!S.history.length) { bad(); return; }
     stopAi();
     E.takeBack(S);
-    S.last = null; sel = -1;
+    S.last = null; sel = -1; fx = {};
     C.feedback('tap');
     draw();
     drawPlayers();
