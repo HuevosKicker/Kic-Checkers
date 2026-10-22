@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4436;
+const MIN_CHECKS = 4441;
 
 function ok(cond, msg) {
   checks++;
@@ -8766,6 +8766,22 @@ function testBridgesWave() {
   ok(/if \(C\.ui\.reduceMotion\(\)\) paint\(true\);/.test(src), 'reduced motion shows the result at once');
 }
 
+function testMastermindReveal() {
+  head('Mastermind: the code turns over peg by peg (#407)');
+  // The code was simply shown at the end, under the result window.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/mastermind/index.html'), 'utf8');
+  const a0 = src.indexOf('  var REVEAL_AT'), b0 = src.indexOf('\n', src.indexOf('  function revealWait(', a0)) + 1;
+  ok(a0 > 0 && b0 > a0, 'revealDelays found in Mastermind');
+  if (!(a0 > 0 && b0 > a0)) return;
+  const sb = {};
+  vm.runInNewContext(src.slice(a0, b0) + ';this.revealDelays = revealDelays; this.revealWait = revealWait;', sb);
+  const d = sb.revealDelays(5);
+  ok(d.length === 5 && d[0] >= 180 && d.every((x, i) => i === 0 || x > d[i - 1]), 'each peg turns after the one before, once the last pins have popped');
+  ok(sb.revealWait(5) === d[4] + 300 && sb.revealWait(5) <= 1100, 'the result waits until the last peg has turned (' + sb.revealWait(5) + ' ms)');
+  ok(/reveal = S\.done && !C\.ui\.reduceMotion\(\);\n    render\(\);/.test(src), 'only the move that ends the game reveals, and not with reduced motion');
+  ok(/if \(C\.ui\.reduceMotion\(\)\) ctx\.finish\(result\);\n    else setTimeout\(function \(\) \{ ctx\.finish\(result\); \}, revealWait\(Lv\.pegs\)\);/.test(src), 'the result waits for the reveal');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9002,6 +9018,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testMastermindReveal();
 testBridgesWave();
 testNonogramMotion();
 testLudoMotion();
