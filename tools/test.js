@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4330;
+const MIN_CHECKS = 4337;
 
 function ok(cond, msg) {
   checks++;
@@ -8396,6 +8396,39 @@ function testHokmMotion() {
     'step() does not repaint on its own, so cards still flying in are not replaced');
 }
 
+function testSudokuAutoNotes() {
+  head('Sudoku: auto notes is a switch that follows the board (#409)');
+  // It was a one-off "apply" button in the help sheet: tapped, it filled every
+  // cell's notes and there was nothing to turn off.
+  const page = fs.readFileSync(path.join(ROOT, 'www/games/sudoku/index.html'), 'utf8');
+  const fn = (page.match(/^  function notesOf\(c\) \{[\s\S]*?^  \}$/m) || [''])[0];
+  ok(fn.length > 0, 'notesOf found in Sudoku');
+  // a row with 1..8 placed leaves only 9 for cell 8; cell 9 (next row) has all but 1
+  const grid = new Array(81).fill(0);
+  for (let i = 0; i < 8; i++) grid[i] = i + 1;
+  const cand = (g, i) => { let m = 0; for (let v = 1; v <= 9; v++) { const r = Math.floor(i / 9); let used = false; for (let k = 0; k < 9; k++) if (g[r * 9 + k] === v) used = true; if (!used) m |= 1 << v; } return m; };
+  const run = (auto) => {
+    const sb = { prefs: { autoNotes: auto }, S: { grid, notes: { 8: [2, 3], 3: [] } }, E: { candidates: cand } };
+    try { vm.runInNewContext(fn + ';this.notesOf = notesOf;', sb); } catch (e) { return () => 'threw'; }
+    return (c) => JSON.stringify(sb.notesOf(c));
+  };
+  const on = run(true), off = run(false);
+  ok(on(8) === '[9]' && off(8) === '[2,3]', 'on, an empty cell shows its candidates; off, your own notes come back');
+  ok(on(3) === '[]', 'a filled cell shows no notes either way');
+  const before = on(17);
+  grid[9] = 9;
+  ok(before === '[1,2,3,4,5,6,7,8,9]' && on(17) === '[1,2,3,4,5,6,7,8]', 'the auto notes follow a digit placed, with no button to press');
+  grid[9] = 0;
+  ok(/settingRow\('autoNotes', 'autoNotes'\)/.test(page) && !/onclick: function \(\) \{ fillNotes\(\); \}/.test(page) && !/function fillNotes/.test(page),
+    'the help sheet shows a switch, not an apply button');
+  ok(/\} else if \(notesOf\(c\)\.length\) \{/.test(page), 'the board draws notes through notesOf');
+  const help = page.slice(page.indexOf('  function showHelp() {'), page.indexOf('  function showSettings() {'));
+  const sets = page.slice(page.indexOf('  function showSettings() {'), page.indexOf('  function kbRow('));
+  ok(/topRow\.appendChild\(el\('button', \{ class: 'ch-iconbtn', type: 'button', 'aria-label': C\.t\('settings'\), title: C\.t\('settings'\), onclick: showSettings \}, \[C\.icon\('gear', 20\)\]\)\);/.test(page) && !/icon: 'gear'/.test(page) && help.length > 0 && !/settingRow|hlSeg/.test(help) &&
+    ['showErrors', 'autoNotes'].every((k) => sets.indexOf("settingRow('" + k + "', '" + k + "')") > 0) && /hlSeg\(\)/.test(sets),
+    'the options have their own gear button beside the difficulty, out of the help sheet and the crowded game bar');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8627,6 +8660,7 @@ testSnakes();
 testDarts();
 testDartsVisit();
 testHokmMotion();
+testSudokuAutoNotes();
 testBowling();
 testSliding();
 testJigsaw();

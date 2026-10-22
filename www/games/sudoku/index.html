@@ -542,6 +542,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       }));
       topRow.appendChild(el('span', { class: 'ch-badge', text: C.num(S.puzzle.filter(function (x) { return x; }).length) + ' ' + C.t('clues') }));
     }
+    // The options had lived inside the help sheet, where the owner could not find
+    // them (#409). A fourth button in the game bar cut the title to one letter on a
+    // phone, so the gear sits in this row.
+    topRow.appendChild(el('button', { class: 'ch-iconbtn', type: 'button', 'aria-label': C.t('settings'), title: C.t('settings'), onclick: showSettings }, [C.icon('gear', 20)]));
     paint();
   }
 
@@ -591,10 +595,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       b.innerHTML = '';
       if (v) {
         b.appendChild(document.createTextNode(C.num(v)));
-      } else if (S.notes[c] && S.notes[c].length) {
-        var g = el('div', { class: 'sd-notes' });
+      } else if (notesOf(c).length) {
+        var g = el('div', { class: 'sd-notes' }), ns = notesOf(c);
         for (var n = 1; n <= 9; n++) {
-          g.appendChild(el('span', { text: S.notes[c].indexOf(n) >= 0 ? C.num(n) : '' }));
+          g.appendChild(el('span', { text: ns.indexOf(n) >= 0 ? C.num(n) : '' }));
         }
         b.appendChild(g);
       }
@@ -825,18 +829,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       title: C.t('help'),
       body: [
         el('p', { class: 'ch-dim', text: C.t('tutText1') }),
-        el('div', { class: 'ch-list' }, [
-          settingRow('showErrors', 'showErrors'),
-          el('div', { class: 'ch-item' }, [
-            el('div', { class: 'ch-item__label', text: C.t('highlight') }),
-            hlSeg()
-          ]),
-          el('div', { class: 'ch-item' }, [
-            el('div', { class: 'ch-item__label', text: C.t('autoNotes') }),
-            el('button', { class: 'ch-btn ch-btn--soft ch-btn--sm', type: 'button', text: C.t('apply'),
-              onclick: function () { fillNotes(); } })
-          ])
-        ]),
         el('h3', { style: { 'margin-top': 'var(--s-4)' }, text: C.t('keyboard') }),
         el('div', { class: 'ch-list' }, [
           kbRow('۱ تا ۹ / 1-9', C.t('play')),
@@ -851,6 +843,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
         { label: C.t('tutorial'), keepOpen: false, onClick: function () { ctx.showTutorial(TUT); } },
         { label: C.t('done'), kind: 'primary' }
       ]
+    });
+  }
+  function showSettings() {
+    C.ui.modal({
+      title: C.t('settings'),
+      body: [el('div', { class: 'ch-list' }, [
+        settingRow('showErrors', 'showErrors'),
+        el('div', { class: 'ch-item' }, [
+          el('div', { class: 'ch-item__label', text: C.t('highlight') }),
+          hlSeg()
+        ]),
+        settingRow('autoNotes', 'autoNotes')
+      ])],
+      actions: [{ label: C.t('done'), kind: 'primary' }]
     });
   }
   function kbRow(k, what) {
@@ -874,19 +880,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
     ]);
   }
 
-  function fillNotes() {
-    if (!S || S.done) return;
-    pushUndo();
-    for (var i = 0; i < 81; i++) {
-      if (S.grid[i]) { S.notes[i] = []; continue; }
-      var m = E.candidates(S.grid, i);
-      var arr = [];
-      for (var v = 1; v <= 9; v++) if (m & (1 << v)) arr.push(v);
-      S.notes[i] = arr;
-    }
-    C.feedback('select');
-    paint();
-    save();
+  // Auto notes is a switch (#409): while it is on, every empty cell shows its
+  // candidates, worked out afresh at each paint so they follow every digit placed
+  // or erased; your own notes are kept underneath and come back when it is off.
+  // It used to be a one-off "apply" that filled the notes and could not be undone
+  // from where it was switched on.
+  function notesOf(c) {
+    if (!prefs.autoNotes || S.grid[c]) return S.notes[c] || [];
+    var m = E.candidates(S.grid, c), arr = [];
+    for (var v = 1; v <= 9; v++) if (m & (1 << v)) arr.push(v);
+    return arr;
   }
 
   var TUT = [
