@@ -21,8 +21,8 @@
   .bj-hand > * { --pw: var(--cw); margin-inline: -6px; }
   .bj-hand > :first-child { margin-inline-start: 0; }
   .bj-hand .ch-pcard { cursor: default; }
-  .bj-in { animation: bj-in var(--t-mid) var(--ease-back) backwards; }
-  @keyframes bj-in { from { opacity: 0; transform: translateY(-14px) scale(.9); } }
+  /* the shoe the cards are dealt from (#398): a short stack of backs */
+  .bj-shoe { width: calc(var(--cw) * .42); border-width: 1.5px; box-shadow: 2px 2px 0 -1px #FBF5E6, 3px 3px 0 -1px var(--c-line), 4px 4px 0 -1px #FBF5E6, 5px 5px 0 -1px var(--c-line); }
   .bj-msg { min-height: 1.6em; font-weight: 800; font-size: var(--fs-md); text-align: center; }
   .bj-msg--win { color: var(--c-good); }
   .bj-msg--lose { color: var(--c-bad); }
@@ -202,9 +202,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BlackjackE
 
   var params = new URLSearchParams(location.search);
   var dailyDate = params.get('daily');
-  var DEAL_MS = 380;
+  var DEAL_MS = 380, STEP = 190;
 
-  var S = null, shown = 0, busy = false, tip = '';
+  // shown: dealer cards face up on the table; seenP: player cards already dealt
+  var S = null, shown = 0, seenP = 0, busy = false, tip = '', timer = 0;
   var top = el('div', { class: 'bj-top' });
   var dealerTotal = el('span', { class: 'bj-total' }), youTotal = el('span', { class: 'bj-total' });
   var dealerHand = el('div', { class: 'bj-hand' }), youHand = el('div', { class: 'bj-hand' });
@@ -235,7 +236,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BlackjackE
     S.n++;
     var rnd = S.daily ? C.daily('blackjack', S.daily + '|' + S.n).rng : Math.random;
     S.H = E.deal(rnd);
-    shown = 0; tip = '';
+    shown = 0; seenP = 0; tip = '';
     if (S.H.done) count();
     render(true);
     save();
@@ -313,52 +314,81 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BlackjackE
     node.className = 'bj-total' + (t.value > 21 ? ' bj-total--bust' : (E.isBlackjack(hand) ? ' bj-total--bj' : ''));
   }
 
-  // Cards appear one at a time: new ones slide in, and once a hand is over the
-  // dealer's hidden card turns and the cards the dealer drew follow a beat apart.
+  // Cards are dealt from the shoe (#398): the opening four one by one, yours and
+  // the dealer's in turn, with the dealer's second card face down; each later
+  // card flies in and turns over. When a hand is over the hole card turns where
+  // it lies and the cards the dealer drew follow a beat apart. The state is
+  // already final; only the picture catches up, so a new tap is never held.
   function render(animate) {
-    var H = S.H, hidden = !H.done;
+    var H = S.H, hidden = !H.done, moving = animate && !C.ui.reduceMotion();
+    clearTimeout(timer);
+    busy = false;
     top.innerHTML = '';
+    var shoe = C.cards.back('bj-shoe');
+    top.appendChild(shoe);
     if (S.daily) top.appendChild(el('span', { class: 'ch-badge ch-badge--accent' }, [C.icon('calendar', 14), el('span', { text: C.t('dailyBj') + ' — ' + C.num(S.daily) })]));
     top.appendChild(el('span', { class: 'ch-badge', text: C.t('handN', { n: C.num(S.n), m: C.num(E.HANDS) }) }));
     top.appendChild(C.cards.backPicker());
 
+    var opening = moving && seenP === 0;
     youHand.innerHTML = '';
     H.player.forEach(function (c, i) {
-      var b = C.cards.el(c, i >= 2 && animate && i === H.player.length - 1 && !H.done ? 'bj-in' : '');
+      var b = C.cards.el(c);
       b.disabled = true;
       youHand.appendChild(b);
+      if (moving && i >= seenP) C.ui.fly(b, shoe, { flip: true, delay: opening ? i * 2 * STEP : 0 });
     });
+    seenP = H.player.length;
     totalBadge(youTotal, H.player, false);
 
-    var dealerShown = hidden ? 1 : H.dealer.length;
-    dealerHand.innerHTML = '';
     var drawDealer = function (k) {
+      var nodes = [];
       dealerHand.innerHTML = '';
       H.dealer.forEach(function (c, i) {
-        if (i >= k) { if (hidden && i === 1) dealerHand.appendChild(C.cards.back()); return; }
-        var b = C.cards.el(c, i >= 1 && i === k - 1 && animate ? 'bj-in' : '');
-        b.disabled = true;
+        var b;
+        if (i < k) { b = C.cards.el(c); b.disabled = true; }
+        else if (hidden && i === 1) b = C.cards.back();
+        else return;
         dealerHand.appendChild(b);
+        nodes.push(b);
       });
       totalBadge(dealerTotal, H.dealer.slice(0, Math.max(1, k)), hidden);
+      return nodes;
     };
-    if (hidden || !animate || C.ui.reduceMotion()) {
-      drawDealer(dealerShown);
-      shown = dealerShown;
-      paintEnd(animate);
-    } else {
-      // reveal from the up card on: hole card, then each drawn card
+    var target = hidden ? 1 : H.dealer.length;
+    var settle = function (ms) {
       busy = true;
-      var k = Math.max(1, shown);
-      drawDealer(k);
-      var step = function () {
-        k++;
-        drawDealer(k);
-        if (k < H.dealer.length) setTimeout(step, DEAL_MS);
-        else { shown = k; busy = false; paintEnd(true); }
-      };
-      if (k < H.dealer.length) setTimeout(step, DEAL_MS / 2); else { busy = false; paintEnd(true); }
+      timer = setTimeout(function () { busy = false; paintEnd(true); }, ms);
+    };
+    if (!moving) {
+      drawDealer(target);
+      shown = target;
+      paintEnd(animate);
+      return;
     }
+    if (opening) {
+      var last = 0;
+      drawDealer(target).forEach(function (b, i) {
+        last = (i < 2 ? i * 2 + 1 : i + 2) * STEP;
+        C.ui.fly(b, shoe, { flip: i < target, delay: last });
+      });
+      shown = target;
+      if (H.done) settle(last + DEAL_MS); else paintEnd(true);
+      return;
+    }
+    var k = Math.max(1, shown);
+    drawDealer(k);
+    if (k >= target) { shown = target; paintEnd(true); return; }
+    busy = true;
+    var step = function () {
+      k++;
+      var nodes = drawDealer(k), b = nodes[k - 1];
+      // the hole card turns in place; the rest come from the shoe
+      C.ui.fly(b, k === 2 ? b : shoe, { flip: true });
+      if (k < target) timer = setTimeout(step, DEAL_MS);
+      else { shown = target; settle(DEAL_MS * 0.8); }
+    };
+    timer = setTimeout(step, DEAL_MS / 2);
   }
 
   // sound only when a hand has just ended, not when a saved hand is drawn again
@@ -449,6 +479,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BlackjackE
     var v = saved.s;
     S = { daily: v.daily || null, n: v.n, H: v.H, wins: v.wins || 0, losses: v.losses || 0, pushes: v.pushes || 0, bjs: v.bjs || 0, startedAt: Date.now() - (v.elapsed || 0) };
     shown = S.H.done ? S.H.dealer.length : 1;
+    seenP = S.H.player.length;
     render(false);
   } else {
     newMatch(dailyDate || null);

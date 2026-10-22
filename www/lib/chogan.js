@@ -2382,6 +2382,105 @@
     setTimeout(function () { node.classList.remove('ch-shake'); }, 520);
   };
 
+  // Moves a node that is already in its final place so that it seems to arrive
+  // from `from` (a node or a rect): a card dealt from the shoe, a piece slid
+  // across a board (#398). The game's state changes at once; only the picture
+  // catches up, so input is never held. `flip` turns a card face up on the way,
+  // under a copy of the player's chosen back. Returns the Animation, or null.
+  ui.fly = function (node, from, opts) {
+    if (!node || !from || !node.animate || ui.reduceMotion()) return null;
+    opts = opts || {};
+    var a = from.getBoundingClientRect ? from.getBoundingClientRect() : from;
+    var b = node.getBoundingClientRect();
+    if (!b.width || !b.height) return null;
+    var dx = (a.left + a.width / 2) - (b.left + b.width / 2);
+    var dy = (a.top + a.height / 2) - (b.top + b.height / 2);
+    var k = a.width ? a.width / b.width : 1;
+    var ms = opts.ms || 300, delay = opts.delay || 0;
+    var start = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k.toFixed(3) + ')';
+    var frames = opts.flip
+      ? [{ transform: start, offset: 0 }, { transform: 'scale(1.06) scaleX(.02)', offset: 0.62 }, { transform: 'none', offset: 1 }]
+      : [{ transform: start }, { transform: 'none' }];
+    var cover = null;
+    if (opts.flip) {
+      cover = el('span', { class: 'ch-pback ch-turnback', 'aria-hidden': 'true' });
+      // the cover hides the face while the card narrows, then drops away at the
+      // turn's middle; its own clock starts with the card's, after the delay
+      cover.style.setProperty('--turn-ms', Math.round(ms * 1.24) + 'ms');
+      cover.style.animationDelay = delay + 'ms';
+      node.appendChild(cover);
+    }
+    var anim = node.animate(frames, { duration: ms, delay: delay, easing: opts.easing || 'cubic-bezier(.2,.7,.3,1)', fill: 'backwards' });
+    var tidy = function () { if (cover && cover.parentNode) cover.parentNode.removeChild(cover); if (opts.onDone) opts.onDone(); };
+    anim.onfinish = tidy;
+    anim.oncancel = tidy;
+    return anim;
+  };
+
+  // Short particle bursts on one shared layer above the board (#398): a mine
+  // going off, a capture, a match. `at` is a node (its centre) or {x, y} in
+  // viewport pixels. The layer never takes input and leaves the page when the
+  // last spark is gone.
+  var fx = null;
+  ui.burst = function (at, opts) {
+    if (!at || ui.reduceMotion()) return false;
+    opts = opts || {};
+    var x = at.x, y = at.y;
+    if (at.getBoundingClientRect) { var r = at.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top + r.height / 2; }
+    if (!isFinite(x) || !isFinite(y)) return false;
+    if (!fx) {
+      var cv = el('canvas', { class: 'ch-fx', 'aria-hidden': 'true' });
+      document.body.appendChild(cv);
+      fx = { cv: cv, ctx: cv.getContext('2d'), parts: [], rings: [], last: 0 };
+      var dpr = Math.min(global.devicePixelRatio || 1, 2);
+      fx.dpr = dpr;
+      cv.width = Math.floor(innerWidth * dpr); cv.height = Math.floor(innerHeight * dpr);
+      cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px';
+      fx.last = performance.now();
+      requestAnimationFrame(fxFrame);
+    }
+    var now = performance.now();
+    var colors = opts.colors || ['#F2B84B', '#E07A5F', '#FFF1C9'];
+    var n = opts.count == null ? 18 : opts.count, sp = opts.speed || 240, life = opts.life || 650, size = opts.size || 3.5;
+    for (var i = 0; i < n; i++) {
+      var ang = Math.random() * Math.PI * 2, v = sp * (0.35 + Math.random() * 0.65);
+      fx.parts.push({ x: x, y: y, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v, r: size * (0.6 + Math.random() * 0.8),
+        c: colors[i % colors.length], t0: now, life: life * (0.6 + Math.random() * 0.4), g: opts.gravity == null ? 520 : opts.gravity });
+    }
+    if (opts.ring) fx.rings.push({ x: x, y: y, r: opts.ring, c: opts.ringColor || colors[0], t0: now, life: 380 });
+    return true;
+  };
+  function fxFrame(t) {
+    var f = fx;
+    if (!f) return;
+    var c = f.ctx, d = f.dpr, dt = Math.max(0, Math.min(0.05, (t - f.last) / 1000));
+    f.last = t;
+    c.clearRect(0, 0, f.cv.width, f.cv.height);
+    f.parts = f.parts.filter(function (p) {
+      var k = Math.max(0, (t - p.t0) / p.life);
+      if (k >= 1) return false;
+      p.vy += p.g * dt; p.vx *= 0.98; p.vy *= 0.98;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      c.globalAlpha = 1 - k * k;
+      c.fillStyle = p.c;
+      c.beginPath(); c.arc(p.x * d, p.y * d, p.r * d * (1 - k * 0.5), 0, Math.PI * 2); c.fill();
+      return true;
+    });
+    f.rings = f.rings.filter(function (g) {
+      var k = Math.max(0, (t - g.t0) / g.life);
+      if (k >= 1) return false;
+      c.globalAlpha = 1 - k;
+      c.strokeStyle = g.c;
+      c.lineWidth = 3 * d * (1 - k) + 0.5;
+      c.beginPath(); c.arc(g.x * d, g.y * d, g.r * d * (0.3 + 0.9 * k), 0, Math.PI * 2); c.stroke();
+      return true;
+    });
+    c.globalAlpha = 1;
+    if (f.parts.length || f.rings.length) { requestAnimationFrame(fxFrame); return; }
+    if (f.cv.parentNode) f.cv.parentNode.removeChild(f.cv);
+    fx = null;
+  }
+
   ui.countUp = function (node, to, opts) {
     opts = opts || {};
     var from = opts.from === undefined ? 0 : opts.from;
