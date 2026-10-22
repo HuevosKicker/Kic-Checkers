@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4424;
+const MIN_CHECKS = 4430;
 
 function ok(cond, msg) {
   checks++;
@@ -8731,6 +8731,23 @@ function testLudoMotion() {
   ok(/if \(r\.home\) \{\n[^\n]*\n        C\.ui\.burst\(/.test(src), 'reaching home bursts (the core skips it with reduced motion)');
 }
 
+function testNonogramMotion() {
+  head('Nonogram: a fill pops in, a line that comes right flashes (#407)');
+  // A filled cell appeared at full size, and a finished line only greyed its clue.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/nonogram/index.html'), 'utf8');
+  const a0 = src.indexOf('  var POP_MS'), b0 = src.indexOf('\n  }\n', src.indexOf('  function newlyDone(', a0)) + 4;
+  ok(a0 > 0 && b0 > a0, 'popScale and newlyDone found in Nonogram');
+  if (!(a0 > 0 && b0 > a0)) return;
+  const sb = { Math, requestAnimationFrame: () => 0 };
+  vm.runInNewContext(src.slice(a0, b0) + ';this.popScale = popScale; this.newlyDone = newlyDone;', sb);
+  ok(sb.popScale(0) === 0.6 && Math.abs(sb.popScale(0.6) - 1.04) < 1e-9 && Math.abs(sb.popScale(1) - 1) < 1e-9, 'a fill grows from 60 %, overshoots a little and settles');
+  const nd = sb.newlyDone({ rows: [true, false, false], cols: [false, false, true] }, { rows: [true, true, false], cols: [false, false, true] });
+  ok(nd.length === 1 && nd[0].kind === 'r' && nd[0].i === 1, 'only the row that just came right flashes');
+  ok(sb.newlyDone({ rows: [true], cols: [true] }, { rows: [false], cols: [true] }).length === 0, 'a line that stops being right does not flash');
+  ok(/E\.applyStroke\(S, base, \[i\], drag\.from, drag\.to\);\n    notePops\(base\);/.test(src) && /function afterChange\(\) \{\n    noteLines\(\);/.test(src), 'every stroke notes its fills and every change its lines');
+  ok(/function notePops\(before\) \{\n    if \(C\.ui\.reduceMotion\(\)\) return;/.test(src) && /if \(nfx\.seen && !C\.ui\.reduceMotion\(\)\)/.test(src), 'reduced motion starts neither');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8967,6 +8984,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testNonogramMotion();
 testLudoMotion();
 testBackgammonMotion();
 testDotsChain();

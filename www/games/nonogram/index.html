@@ -401,6 +401,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = NonogramEn
     if (!p) { newGame(prefs.size, null); return; }
     var n = p.rows.length, cl = E.cluesOf(picGrid(p), n);
     S = E.newState({ n: n, rows: cl.rows, cols: cl.cols });
+    nfx = { pops: {}, flash: [], seen: null, raf: nfx.raf };
     S.daily = null; S.pic = p.id;
     S.elapsed = 0;
     S.done = false;
@@ -457,6 +458,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = NonogramEn
     var rnd = daily ? C.daily('nonogram', daily).rng : Math.random;
     var pz = E.generate(rnd, n);
     S = E.newState(pz);
+    nfx = { pops: {}, flash: [], seen: null, raf: nfx.raf };
     S.daily = daily || null;
     S.pic = null;
     S.elapsed = 0;
@@ -510,8 +512,49 @@ if (typeof module !== 'undefined' && module.exports) module.exports = NonogramEn
     draw();
   }
 
+  // #407, kept subtle as a puzzle: a filled cell appeared at full size, and a
+  // finished row or column only greyed its clue. Now a new fill pops in
+  // (140 ms) and a line that just came right flashes once (420 ms).
+  var POP_MS = 140, FLASH_MS = 420;
+  var nfx = { pops: {}, flash: [], seen: null, raf: 0 };
+  function popScale(k) { return k < 0.6 ? 0.6 + 0.44 * (k / 0.6) : 1.04 - 0.04 * ((k - 0.6) / 0.4); }
+  // rows and columns that are right now and were not before
+  function newlyDone(prev, cur) {
+    var out = [];
+    cur.rows.forEach(function (d, r) { if (d && !prev.rows[r]) out.push({ kind: 'r', i: r }); });
+    cur.cols.forEach(function (d, c) { if (d && !prev.cols[c]) out.push({ kind: 'c', i: c }); });
+    return out;
+  }
+  function notePops(before) {
+    if (C.ui.reduceMotion()) return;
+    var now = performance.now();
+    for (var i = 0; i < S.cells.length; i++) if (S.cells[i] === E.FILL && before[i] !== E.FILL && !nfx.pops[i]) nfx.pops[i] = now;
+    nfxKick();
+  }
+  function noteLines() {
+    var cur = E.linesDone(S);
+    if (nfx.seen && !C.ui.reduceMotion()) {
+      var now = performance.now();
+      newlyDone(nfx.seen, cur).forEach(function (l) { l.t0 = now; nfx.flash.push(l); });
+      nfxKick();
+    }
+    nfx.seen = cur;
+  }
+  function nfxKick() {
+    if (nfx.raf) return;
+    nfx.raf = requestAnimationFrame(function tick(now) {
+      nfx.raf = 0;
+      draw();
+      var on = nfx.flash.some(function (l) { return now - l.t0 < FLASH_MS; });
+      for (var i in nfx.pops) { if (now - nfx.pops[i] < POP_MS) on = true; else delete nfx.pops[i]; }
+      nfx.flash = nfx.flash.filter(function (l) { return now - l.t0 < FLASH_MS; });
+      if (on) nfx.raf = requestAnimationFrame(tick);
+    });
+  }
+
   function draw() {
     if (!S || !G) return;
+    var tnow = performance.now();
     var g = canvas.getContext('2d');
     var n = S.n, s = G.s, gx = G.gx, gy = G.gy;
     var col = {
@@ -522,6 +565,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = NonogramEn
     g.setTransform(G.dpr, 0, 0, G.dpr, 0, 0);
     g.clearRect(0, 0, G.W, G.H);
     var done = E.linesDone(S);
+    if (!nfx.seen) nfx.seen = done;
     var focusR = (cursor.show && !S.done) ? cursor.r : -1;
     var focusC = (cursor.show && !S.done) ? cursor.c : -1;
 
@@ -579,7 +623,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = NonogramEn
       var rx = gx + (i % n) * s, ry = gy + ((i / n) | 0) * s;
       if (v === E.FILL) {
         g.fillStyle = pal ? solvedColour(snapNow, i, pal) : col.game;
-        C.rrect(g, rx + pad, ry + pad, s - pad * 2, s - pad * 2, Math.max(1, s * 0.12));
+        var pk = nfx.pops[i] ? (tnow - nfx.pops[i]) / POP_MS : 1;
+        var ins = pk < 1 ? (s - pad * 2) * (1 - popScale(pk)) / 2 : 0;
+        C.rrect(g, rx + pad + ins, ry + pad + ins, s - pad * 2 - ins * 2, s - pad * 2 - ins * 2, Math.max(1, s * 0.12));
         g.fill();
       } else if (v === E.MARK && !S.done) {
         g.strokeStyle = col.faint;
@@ -591,6 +637,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = NonogramEn
         g.moveTo(rx + s - m, ry + m); g.lineTo(rx + m, ry + s - m);
         g.stroke();
       }
+    }
+
+    // a line that just came right flashes once, in the game's colour
+    for (var fl = 0; fl < nfx.flash.length; fl++) {
+      var L0 = nfx.flash[fl], lk = (tnow - L0.t0) / FLASH_MS;
+      if (lk >= 1) continue;
+      g.globalAlpha = 0.3 * Math.sin(Math.PI * Math.max(0, lk));
+      g.fillStyle = col.game;
+      if (L0.kind === 'r') g.fillRect(gx, gy + L0.i * s, n * s, s);
+      else g.fillRect(gx + L0.i * s, gy, s, n * s);
+      g.globalAlpha = 1;
     }
 
     // خطوط جدول؛ هر پنج خانه پررنگ‌تر تا شمردن آسان شود
@@ -665,6 +722,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = NonogramEn
     var from = base[i];
     drag = { start: i, last: i, base: base, from: from, to: E.targetFor(from, how), how: how, moved: false };
     E.applyStroke(S, base, [i], drag.from, drag.to);
+    notePops(base);
     cursor.r = (i / S.n) | 0; cursor.c = i % S.n;
     draw();
   }
@@ -684,6 +742,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = NonogramEn
   }
 
   function afterChange() {
+    noteLines();
     draw();
     if (E.isSolved(S)) { finish(); return; }
     save();
@@ -717,7 +776,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = NonogramEn
     if (i === drag.last) return;
     drag.last = i;
     if (i !== drag.start) { drag.moved = true; clearTimeout(pressTimer); }
+    var prev = S.cells.slice();
     E.applyStroke(S, drag.base, E.strokeCells(S.n, drag.start, i), drag.from, drag.to);
+    notePops(prev);
     draw();
   });
   canvas.addEventListener('pointerup', function (e) {
@@ -733,6 +794,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = NonogramEn
   function undoMove() {
     if (!S || S.done) return;
     if (!E.undo(S)) { C.feedback('bad'); return; }
+    nfx.seen = E.linesDone(S);
     draw();
     save();
   }
