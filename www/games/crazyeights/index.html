@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#FBF6EF">
+<title>هفت خبیث — چوگان</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../lib/chogan.css">
+<style>
+  :root { --ch-pface: var(--c-surface); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ch-pface: var(--c-surface-3); } }
+  :root[data-theme="dark"] { --ch-pface: var(--c-surface-3); }
+  /* cards grow with the game area (#359) */
+  .ce-wrap { --cw: clamp(44px, min(14cqw, (100cqh - 330px) / 2.6), 104px); margin-block: auto; width: 100%; max-width: max(560px, calc(var(--cw) * 8)); display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
+  .ce-top { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; align-items: center; }
+  .ce-bots { width: 100%; display: flex; gap: var(--s-2); justify-content: center; }
+  .ce-bot { flex: 1; max-width: 200px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 8px;
+    background: var(--c-surface); border-radius: var(--r-md); box-shadow: var(--sh-1); border: 2px solid transparent; font-size: var(--fs-sm); font-weight: 700; color: var(--c-text-dim); }
+  .ce-bot--on { border-color: var(--game); }
+  .ce-bot b { color: var(--c-text); font-variant-numeric: tabular-nums; }
+  .ce-fan { direction: ltr; display: flex; height: 26px; align-items: center; }
+  .ce-fan .ch-pback { width: 16px; border-width: 1px; border-radius: 3px; margin-inline-start: -10px; box-shadow: none; }
+  .ce-fan .ch-pback:first-child { margin-inline-start: 0; }
+  .ce-count { font-size: var(--fs-xs, 12px); }
+  /* the table is a physical thing: stock on the left, the discard on the right */
+  .ce-table { direction: ltr; display: flex; align-items: center; justify-content: center; gap: var(--s-4); margin-bottom: 14px; }
+  .ce-stock { position: relative; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 8px; }
+  .ce-stock .ch-pback { width: var(--cw); box-shadow: 2px 2px 0 -1px #FBF5E6, 3px 3px 0 -1px var(--c-line), 4px 4px 0 -1px #FBF5E6; }
+  .ce-stock:disabled { cursor: default; }
+  .ce-stock--hint .ch-pback { outline: 3px solid var(--game); outline-offset: 3px; }
+  .ce-left { position: absolute; bottom: -20px; left: 0; right: 0; text-align: center; font-size: var(--fs-xs, 12px); font-weight: 700; color: var(--c-text-dim); }
+  .ce-pile { position: relative; width: var(--cw); aspect-ratio: 5 / 7; }
+  .ce-pile .ch-pcard { --pw: var(--cw); position: absolute; inset: 0; cursor: default; }
+  .ce-suit { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 52px; font-size: var(--fs-xs, 12px); font-weight: 700; color: var(--c-text-dim); }
+  .ce-suit b { font-size: calc(var(--cw) * .5); line-height: 1; color: var(--c-text); }
+  .ce-suit--red b { color: var(--c-bad); }
+  .ce-suit--new b { animation: ce-pop 360ms var(--ease-back); }
+  @keyframes ce-pop { from { transform: scale(.4); opacity: 0; } }
+  .ce-status { min-height: 1.5em; font-weight: 700; font-size: var(--fs-sm); color: var(--c-text-dim); text-align: center; }
+  .ce-hand { direction: ltr; width: 100%; display: flex; justify-content: center; min-height: calc(var(--cw) * 1.4 + 12px); padding-top: 12px; }
+  .ce-hand .ch-pcard { --pw: var(--cw); flex: 0 0 auto; transition: transform var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease); }
+  .ce-hand .ce-ok { transform: translateY(-10px); box-shadow: var(--sh-2), 0 0 0 2px var(--game); }
+  .ce-hand .ce-no { opacity: .55; cursor: default; }
+  .ce-actions { display: flex; gap: var(--s-2); justify-content: center; min-height: 44px; }
+  .ce-suits { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-2); direction: ltr; }
+  .ce-suits button { font-size: 34px; line-height: 1; padding: 14px 0; border-radius: var(--r-md); border: 1px solid var(--c-line); background: var(--ch-pface); color: var(--c-text); cursor: pointer; }
+  .ce-suits button.ce-red { color: var(--c-bad); }
+</style>
+</head>
+<body>
+<script src="../../version.js"></script>
+<script src="../../lib/chogan.js"></script>
+<script>
+/* ==== ENGINE START ==== */
+function CrazyEightsEngineFactory() {
+  'use strict';
+
+  // A card is rank * 4 + suit, as in Chogan.cards: ranks A..K are 0..12, so the eight is rank 7
+  var EIGHT = 7, TARGET = 100;
+  function rank(c) { return c >> 2; }
+  function suit(c) { return c & 3; }
+
+  function shuffled(rnd) {
+    var d = [];
+    for (var i = 0; i < 52; i++) d.push(i);
+    for (var j = 51; j > 0; j--) { var k = Math.floor(rnd() * (j + 1)), t = d[j]; d[j] = d[k]; d[k] = t; }
+    return d;
+  }
+
+  // The common rules: seven cards each for two players, five for three or four. The
+  // starter is turned up from the stock; an eight there goes back into the middle of the
+  // stock and the next card is turned. Player 0 is the human and always starts.
+  function newRound(rnd, n, first) {
+    var d = shuffled(rnd), per = n === 2 ? 7 : 5, R = { n: n, hands: [], stock: [], discard: [], suit: 0, turn: first || 0, drawn: -1, passes: 0, winner: -1, blocked: false };
+    for (var p = 0; p < n; p++) R.hands.push(d.splice(0, per));
+    while (rank(d[d.length - 1]) === EIGHT) d.splice(Math.floor(d.length / 2), 0, d.pop());
+    R.discard.push(d.pop());
+    R.suit = suit(R.discard[0]);
+    R.stock = d;
+    return R;
+  }
+
+  function top(R) { return R.discard[R.discard.length - 1]; }
+  // an eight goes on anything; otherwise match the suit in play or the top card's rank
+  function canPlay(R, c) { return rank(c) === EIGHT || suit(c) === R.suit || rank(c) === rank(top(R)); }
+  function legal(R, p) {
+    var out = [], h = R.hands[p];
+    for (var i = 0; i < h.length; i++) if (canPlay(R, h[i])) out.push(h[i]);
+    // after drawing, only the drawn card may be played
+    if (R.drawn >= 0) out = out.indexOf(R.drawn) >= 0 ? [R.drawn] : [];
+    return out;
+  }
+
+  function next(R) { R.turn = (R.turn + 1) % R.n; R.drawn = -1; }
+
+  // play card c (and, for an eight, the suit it names). Returns false if not allowed.
+  function play(R, c, chosen) {
+    if (R.winner >= 0) return false;
+    var h = R.hands[R.turn], i = h.indexOf(c);
+    if (i < 0 || legal(R, R.turn).indexOf(c) < 0) return false;
+    h.splice(i, 1);
+    R.discard.push(c);
+    R.suit = rank(c) === EIGHT ? (chosen >= 0 && chosen < 4 ? chosen : suit(c)) : suit(c);
+    R.passes = 0;
+    if (!h.length) { R.winner = R.turn; return true; }
+    next(R);
+    return true;
+  }
+
+  // One draw a turn. An empty stock is made again from the discards under the top card.
+  // Returns the card drawn, or -1 when there is nothing to draw.
+  function draw(R, rnd) {
+    if (R.winner >= 0 || R.drawn >= 0 || legal(R, R.turn).length) return -1;
+    if (!R.stock.length && R.discard.length > 1) {
+      var keep = R.discard.pop();
+      R.stock = R.discard;
+      for (var j = R.stock.length - 1; j > 0; j--) { var k = Math.floor((rnd || Math.random)() * (j + 1)), t = R.stock[j]; R.stock[j] = R.stock[k]; R.stock[k] = t; }
+      R.discard = [keep];
+    }
+    if (!R.stock.length) return -1;
+    var c = R.stock.pop();
+    R.hands[R.turn].push(c);
+    R.drawn = c;
+    return c;
+  }
+
+  // Passing is allowed after a draw that can't be played, or with nothing to draw and
+  // nothing to play. When everyone passes in a row the round is blocked, and the
+  // lowest hand wins it.
+  function canPass(R) {
+    if (R.winner >= 0) return false;
+    if (R.drawn >= 0) return true;
+    return !legal(R, R.turn).length && !R.stock.length && R.discard.length <= 1;
+  }
+  function pass(R) {
+    if (!canPass(R)) return false;
+    // only a pass with nothing left to draw counts toward a blocked round; a pass after
+    // a draw means cards still moved (a first version counted both, and 45 % of rounds blocked)
+    if (R.drawn >= 0) R.passes = 0; else R.passes++;
+    if (R.passes >= R.n) {
+      R.blocked = true;
+      var best = 0;
+      for (var p = 1; p < R.n; p++) if (handPoints(R.hands[p]) < handPoints(R.hands[best])) best = p;
+      R.winner = best;
+      return true;
+    }
+    next(R);
+    return true;
+  }
+
+  // Points left in a hand: an eight 50, a court card 10, an ace 1, others their number
+  function cardPoints(c) { var r = rank(c); return r === EIGHT ? 50 : r >= 10 ? 10 : r + 1; }
+  function handPoints(h) { var s = 0; for (var i = 0; i < h.length; i++) s += cardPoints(h[i]); return s; }
+  // The round's winner scores everyone else's cards
+  function roundPoints(R) {
+    var s = 0;
+    for (var p = 0; p < R.n; p++) if (p !== R.winner) s += handPoints(R.hands[p]);
+    return s;
+  }
+
+  // The suit to name with an eight: the one held most, counted without eights
+  function bestSuit(h) {
+    var n = [0, 0, 0, 0];
+    for (var i = 0; i < h.length; i++) if (rank(h[i]) !== EIGHT) n[suit(h[i])]++;
+    var b = 0;
+    for (var s = 1; s < 4; s++) if (n[s] > n[b]) b = s;
+    return b;
+  }
+
+  // Bots. Easy plays any legal card at random, eights included, and names a random
+  // suit. Medium keeps its eights for when nothing else goes, and of the rest plays the
+  // card worth most, preferring a suit it holds more of. Hard does the same, and when
+  // the next player is down to one or two cards it changes the suit away from the one
+  // that player last could not follow.
+  function botMove(R, level, rnd) {
+    rnd = rnd || Math.random;
+    var p = R.turn, h = R.hands[p], L = legal(R, p);
+    if (!L.length) return R.drawn >= 0 || canPass(R) ? { pass: true } : { draw: true };
+    if (level === 'easy') {
+      var c0 = L[Math.floor(rnd() * L.length)];
+      return { play: c0, suit: rank(c0) === EIGHT ? Math.floor(rnd() * 4) : -1 };
+    }
+    var plain = L.filter(function (c) { return rank(c) !== EIGHT; });
+    var cnt = [0, 0, 0, 0];
+    h.forEach(function (c) { if (rank(c) !== EIGHT) cnt[suit(c)]++; });
+    var nx = (p + 1) % R.n, danger = level === 'hard' && R.hands[nx].length <= 2;
+    if (plain.length) {
+      var score = function (c) {
+        var v = cardPoints(c) + cnt[suit(c)] * 3;
+        if (danger && R.short && R.short[nx] === suit(c)) v += 40;
+        return v;
+      };
+      plain.sort(function (a, b) { return score(b) - score(a) || a - b; });
+      return { play: plain[0], suit: -1 };
+    }
+    var e = L[0], s = bestSuit(h.filter(function (c) { return c !== e; }));
+    if (danger && R.short && R.short[nx] >= 0) {
+      // name the next player's missing suit if we hold any of it, else our own best
+      var miss = R.short[nx];
+      if (cnt[miss] > 0) s = miss;
+    }
+    return { play: e, suit: s };
+  }
+
+  // What a draw tells the table: the player could not follow the suit in play
+  function noteShort(R, p, s) { if (!R.short) R.short = []; R.short[p] = s; }
+
+  function validRound(v) {
+    if (!v || !(v.n >= 2 && v.n <= 4) || !Array.isArray(v.hands) || v.hands.length !== v.n || !Array.isArray(v.stock) || !Array.isArray(v.discard) || !v.discard.length) return false;
+    var seen = {}, n = 0, ok = true;
+    var add = function (c) { if (typeof c !== 'number' || c < 0 || c > 51 || seen[c]) ok = false; seen[c] = 1; n++; };
+    v.hands.forEach(function (h) { if (!Array.isArray(h)) ok = false; else h.forEach(add); });
+    v.stock.forEach(add); v.discard.forEach(add);
+    return ok && n === 52 && v.turn >= 0 && v.turn < v.n && v.suit >= 0 && v.suit < 4;
+  }
+
+  return {
+    EIGHT: EIGHT, TARGET: TARGET, rank: rank, suit: suit, newRound: newRound, top: top, canPlay: canPlay, legal: legal,
+    play: play, draw: draw, canPass: canPass, pass: pass, cardPoints: cardPoints, handPoints: handPoints,
+    roundPoints: roundPoints, bestSuit: bestSuit, botMove: botMove, noteShort: noteShort, validRound: validRound
+  };
+}
+if (typeof module !== 'undefined' && module.exports) module.exports = CrazyEightsEngineFactory;
+/* ==== ENGINE END ==== */
+</script>
+<script>
+(function () {
+  'use strict';
+  var C = window.Chogan, el = C.el;
+  var E = CrazyEightsEngineFactory();
+  var LEVELS = ['easy', 'medium', 'hard'];
+
+  C.boot({});
+  var ctx = C.game({
+    id: 'crazyeights',
+    name: { fa: 'هفت خبیث', en: 'Crazy Eights', zh: '疯狂八', de: 'Verrückte Acht', es: 'Ocho loco' },
+    accent: '#A06420',
+    mood: 'menu',
+    scroll: true,
+    strings: {
+      fa: {
+        you: 'تو', rivalN: 'حریف {n}', cardsN: '{n} کارت', roundN: 'دست {n}', toN: 'تا {n} امتیاز', dailyCe: 'هفت خبیث روزانه',
+        yourTurn: 'نوبت تو: هم‌خال یا هم‌عدد بازی کن، یا هشت', mustDraw: 'کارتی نداری؛ از دسته بردار', playDrawn: 'کارت تازه می‌نشیند؛ بازی‌اش کن یا رد کن',
+        canPlayFirst: 'کارتی داری که می‌نشیند', nameSuit: 'خال بعدی را انتخاب کن', suitNow: 'خال', passTurn: 'رد کردن', thinking: '{n} فکر می‌کند…',
+        drewN: '{n} یک کارت برداشت', passedN: '{n} رد کرد', changedN: '{n} خال را {s} کرد', roundWon: '{n} این دست را برد', youWonRound: 'این دست را بردی!',
+        plusPts: '+{n} امتیاز', blocked: 'دسته تمام شد و کسی نتوانست بازی کند؛ کمترین دست برد', nextRound: 'دست بعد', matchWon: 'مسابقه را بردی!', matchLost: '{n} مسابقه را برد',
+        newMatch: 'مسابقه‌ی تازه', rivals: 'حریف‌ها', level: 'سطح', optNote: 'از مسابقه‌ی بعد اعمال می‌شود.', points: 'امتیاز', rounds: 'دست‌ها',
+        kbCards: 'رفتن بین کارت‌ها', kbPlay: 'بازی کردن کارت', kbDraw: 'برداشتن از دسته', kbPass: 'رد کردن',
+        rules: 'کارتی بازی کن که خال یا عددش با کارت روی زمین یکی باشد. هشت روی هر کارتی می‌نشیند و خال بعدی را تو انتخاب می‌کنی. اگر کارتی نداشتی یک کارت از دسته بردار؛ اگر نشست بازی‌اش کن، وگرنه نوبت رد می‌شود. هر کس زودتر دستش خالی شود دست را می‌برد و امتیاز کارت‌های بقیه را می‌گیرد: هشت ۵۰، شاه و بی‌بی و سرباز ۱۰، آس ۱ و بقیه همان عددشان. اولین کسی که به ۱۰۰ برسد مسابقه را می‌برد. این قانون بین‌المللی «هشت دیوانه» است؛ هفت خبیث ایرانی کارت‌های ویژه‌ی خودش را دارد.',
+        tutTitle1: 'جور کن', tutText1: 'کارتی بازی کن که خال یا عددش با کارت روی زمین یکی باشد.',
+        tutTitle2: 'هشت', tutText2: 'هشت روی هر کارتی می‌نشیند و خال بعدی را تو انتخاب می‌کنی.',
+        tutTitle3: 'دست خالی', tutText3: 'اگر کارتی نداشتی از دسته بردار. هر کس زودتر دستش خالی شود امتیاز کارت‌های بقیه را می‌گیرد.'
+      },
+      en: {
+        you: 'You', rivalN: 'Rival {n}', cardsN: '{n} cards', roundN: 'Round {n}', toN: 'To {n} points', dailyCe: 'Daily Crazy Eights',
+        yourTurn: 'Your turn: match the suit or rank, or play an eight', mustDraw: 'Nothing fits; draw from the stock', playDrawn: 'The new card fits; play it or pass',
+        canPlayFirst: 'You have a card that fits', nameSuit: 'Name the next suit', suitNow: 'Suit', passTurn: 'Pass', thinking: '{n} is thinking…',
+        drewN: '{n} drew a card', passedN: '{n} passed', changedN: '{n} changed the suit to {s}', roundWon: '{n} won the round', youWonRound: 'You won the round!',
+        plusPts: '+{n} points', blocked: 'The stock ran out and nobody could play; the lowest hand won', nextRound: 'Next round', matchWon: 'You won the match!', matchLost: '{n} won the match',
+        newMatch: 'New match', rivals: 'Rivals', level: 'Level', optNote: 'Applies from the next match.', points: 'Points', rounds: 'Rounds',
+        kbCards: 'Move between cards', kbPlay: 'Play the card', kbDraw: 'Draw from the stock', kbPass: 'Pass',
+        rules: 'Play a card that matches the top card by suit or by rank. An eight goes on anything, and you name the next suit. If nothing fits, draw one card from the stock; play it if it fits, otherwise your turn passes. The first to empty their hand wins the round and scores the cards left in the others\' hands: eights 50, kings, queens and jacks 10, aces 1, the rest their number. The first to 100 wins the match. These are the international Crazy Eights rules; the Persian Haft Khabis has special cards of its own.',
+        tutTitle1: 'Match', tutText1: 'Play a card that matches the top card by suit or by rank.',
+        tutTitle2: 'Eights', tutText2: 'An eight goes on anything, and you name the next suit.',
+        tutTitle3: 'Empty your hand', tutText3: 'If nothing fits, draw from the stock. The first to empty their hand scores the cards the others still hold.'
+      },
+      zh: {
+        you: '你', rivalN: '对手 {n}', cardsN: '{n} 张', roundN: '第 {n} 局', toN: '先到 {n} 分', dailyCe: '每日疯狂八',
+        yourTurn: '轮到你：跟花色或点数，或者出8', mustDraw: '没有能出的牌，从牌堆摸一张', playDrawn: '新摸的牌能出；出掉或者跳过',
+        canPlayFirst: '你有能出的牌', nameSuit: '选择下一个花色', suitNow: '花色', passTurn: '跳过', thinking: '{n} 正在思考…',
+        drewN: '{n} 摸了一张牌', passedN: '{n} 跳过', changedN: '{n} 把花色改成 {s}', roundWon: '{n} 赢了这一局', youWonRound: '你赢了这一局！',
+        plusPts: '+{n} 分', blocked: '牌堆用完且无人能出，手牌分最少者获胜', nextRound: '下一局', matchWon: '你赢了比赛！', matchLost: '{n} 赢了比赛',
+        newMatch: '新比赛', rivals: '对手', level: '难度', optNote: '从下一场比赛开始生效。', points: '分数', rounds: '局数',
+        kbCards: '在手牌间移动', kbPlay: '出这张牌', kbDraw: '从牌堆摸牌', kbPass: '跳过',
+        rules: '出一张与桌面牌花色或点数相同的牌。8可以压任何牌，并由你指定下一个花色。没有能出的牌就从牌堆摸一张；能出就出，不能出就跳过。先出完手牌的人赢下这一局，并得到其他人手中剩余牌的分数：8算50，K、Q、J算10，A算1，其余按点数。先到100分的人赢得比赛。这是国际通行的疯狂八规则；伊朗的“七恶”有自己的特殊牌。',
+        tutTitle1: '配对', tutText1: '出一张与桌面牌花色或点数相同的牌。',
+        tutTitle2: '8', tutText2: '8可以压任何牌，并由你指定下一个花色。',
+        tutTitle3: '出完手牌', tutText3: '没有能出的牌就从牌堆摸。先出完的人得到其他人手中牌的分数。'
+      },
+      de: {
+        you: 'Du', rivalN: 'Gegner {n}', cardsN: '{n} Karten', roundN: 'Runde {n}', toN: 'Bis {n} Punkte', dailyCe: 'Tägliche Verrückte Acht',
+        yourTurn: 'Du bist dran: gleiche Farbe oder gleicher Wert, oder eine Acht', mustDraw: 'Nichts passt; zieh vom Stapel', playDrawn: 'Die neue Karte passt; spiel sie oder pass',
+        canPlayFirst: 'Du hast eine passende Karte', nameSuit: 'Nenne die nächste Farbe', suitNow: 'Farbe', passTurn: 'Passen', thinking: 'Am Zug: {n}…',
+        drewN: 'Karte gezogen: {n}', passedN: 'Gepasst: {n}', changedN: 'Neue Farbe {s} von {n}', roundWon: 'Rundensieg: {n}', youWonRound: 'Du gewinnst die Runde!',
+        plusPts: '+{n} Punkte', blocked: 'Der Stapel ist leer und keiner kann spielen; die kleinste Hand gewinnt', nextRound: 'Nächste Runde', matchWon: 'Du gewinnst das Match!', matchLost: 'Matchsieg: {n}',
+        newMatch: 'Neues Match', rivals: 'Gegner', level: 'Stufe', optNote: 'Gilt ab dem nächsten Match.', points: 'Punkte', rounds: 'Runden',
+        kbCards: 'Zwischen Karten wechseln', kbPlay: 'Karte spielen', kbDraw: 'Vom Stapel ziehen', kbPass: 'Passen',
+        rules: 'Spiel eine Karte, die zur obersten Karte in Farbe oder Wert passt. Eine Acht geht auf alles, und du nennst die nächste Farbe. Passt nichts, ziehst du eine Karte vom Stapel; passt sie, spielst du sie, sonst ist dein Zug vorbei. Wer zuerst keine Karten mehr hat, gewinnt die Runde und bekommt die Punkte der Karten in den anderen Händen: Achten 50, Könige, Damen und Buben 10, Asse 1, die übrigen ihren Wert. Wer zuerst 100 hat, gewinnt das Match. Das sind die internationalen Regeln der Verrückten Acht; das persische Haft Khabis hat eigene Sonderkarten.',
+        tutTitle1: 'Bedienen', tutText1: 'Spiel eine Karte mit gleicher Farbe oder gleichem Wert wie die oberste.',
+        tutTitle2: 'Achten', tutText2: 'Eine Acht geht auf alles, und du nennst die nächste Farbe.',
+        tutTitle3: 'Hand leer', tutText3: 'Passt nichts, zieh vom Stapel. Wer zuerst fertig ist, bekommt die Punkte der Karten der anderen.'
+      },
+      es: {
+        you: 'Tú', rivalN: 'Rival {n}', cardsN: '{n} cartas', roundN: 'Ronda {n}', toN: 'A {n} puntos', dailyCe: 'Ocho loco diario',
+        yourTurn: 'Tu turno: mismo palo o mismo número, o un ocho', mustDraw: 'No tienes jugada; roba del mazo', playDrawn: 'La carta nueva sirve; juégala o pasa',
+        canPlayFirst: 'Tienes una carta que sirve', nameSuit: 'Elige el siguiente palo', suitNow: 'Palo', passTurn: 'Pasar', thinking: '{n} está pensando…',
+        drewN: '{n} robó una carta', passedN: '{n} pasó', changedN: '{n} cambió el palo a {s}', roundWon: '{n} ganó la ronda', youWonRound: '¡Ganaste la ronda!',
+        plusPts: '+{n} puntos', blocked: 'Se acabó el mazo y nadie podía jugar; ganó la mano más baja', nextRound: 'Siguiente ronda', matchWon: '¡Ganaste la partida!', matchLost: '{n} ganó la partida',
+        newMatch: 'Nueva partida', rivals: 'Rivales', level: 'Nivel', optNote: 'Se aplica desde la próxima partida.', points: 'Puntos', rounds: 'Rondas',
+        kbCards: 'Moverse entre cartas', kbPlay: 'Jugar la carta', kbDraw: 'Robar del mazo', kbPass: 'Pasar',
+        rules: 'Juega una carta del mismo palo o del mismo número que la de arriba. Un ocho va sobre cualquier carta y eliges el siguiente palo. Si no tienes jugada, roba una carta del mazo; si sirve, juégala, si no, pasa tu turno. Quien se queda primero sin cartas gana la ronda y suma las cartas que les quedan a los demás: ochos 50, reyes, damas y jotas 10, ases 1, el resto su número. Quien llega primero a 100 gana la partida. Son las reglas internacionales del ocho loco; el Haft Khabis persa tiene cartas especiales propias.',
+        tutTitle1: 'Empareja', tutText1: 'Juega una carta del mismo palo o del mismo número que la de arriba.',
+        tutTitle2: 'Los ochos', tutText2: 'Un ocho va sobre cualquier carta y eliges el siguiente palo.',
+        tutTitle3: 'Vacía tu mano', tutText3: 'Si no tienes jugada, roba del mazo. Quien termina primero suma las cartas de los demás.'
+      }
+    }
+  });
+
+  var params = new URLSearchParams(location.search);
+  var dailyDate = params.get('daily');
+  var prefs = ctx.store.get('prefs', { rivals: 2, level: 'medium' });
+  if (!(prefs.rivals >= 1 && prefs.rivals <= 3)) prefs.rivals = 2;
+  if (LEVELS.indexOf(prefs.level) < 0) prefs.level = 'medium';
+
+  var BOT_MS = 750, DEAL_MS = 45;
+  var M = null, botTimer = null, kf = -1, msg = '', lastPlayed = -1, suitFresh = false, pausedAt = 0, botRnd = Math.random;
+
+  var top = el('div', { class: 'ce-top' });
+  var bots = el('div', { class: 'ce-bots' });
+  var stockBtn = el('button', { class: 'ce-stock', type: 'button', 'aria-label': C.t('kbDraw') });
+  var pile = el('div', { class: 'ce-pile' });
+  var suitBox = el('div', { class: 'ce-suit' });
+  var table = el('div', { class: 'ce-table' }, [stockBtn, pile, suitBox]);
+  var status = el('div', { class: 'ce-status', role: 'status', 'aria-live': 'polite' });
+  var hand = el('div', { class: 'ce-hand' });
+  var actions = el('div', { class: 'ce-actions' });
+  var wrap = el('div', { class: 'ce-wrap' }, [top, bots, table, status, hand, actions]);
+  stockBtn.addEventListener('click', function () { humanDraw(); });
+
+  ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
+  ctx.button({ icon: 'refresh', label: C.t('newMatch'), onClick: askNew });
+  ctx.main.appendChild(wrap);
+  ctx.mount();
+
+  function pname(p) { return p === 0 ? C.t('you') : C.t('rivalN', { n: C.num(p) }); }
+  function suitName(s) { return C.cards.GLYPH[s]; }
+  function human() { return M && M.R && M.R.turn === 0 && M.R.winner < 0; }
+
+  /* ------------------------------------------------------------ start */
+
+  function newMatch(daily) {
+    stopBot();
+    var n = daily ? 3 : prefs.rivals + 1;
+    M = { n: n, level: daily ? 'medium' : prefs.level, scores: [], round: 0, daily: daily || null, startedAt: Date.now(), roundsWon: 0, eightOut: false };
+    for (var p = 0; p < n; p++) M.scores.push(0);
+    newRound();
+  }
+  function newRound() {
+    stopBot();
+    M.round++;
+    var rnd = M.daily ? C.daily('crazyeights', M.daily).rng : Math.random;
+    botRnd = M.daily ? C.daily('crazyeights', M.daily + '|bots').rng : Math.random;
+    // the first player moves round by round, so nobody always leads
+    M.R = E.newRound(rnd, M.n, M.daily ? 0 : (M.round - 1) % M.n);
+    msg = ''; lastPlayed = -1; kf = -1;
+    render();
+    dealIn();
+    save();
+    maybeBot();
+  }
+  function resume(v) {
+    M = v;
+    // closed on the round's result: the match goes on with the next round
+    if (M.R.winner >= 0) { M.startedAt = Date.now() - (v.elapsed || 0); newRound(); return; }
+    msg = ''; lastPlayed = -1;
+    botRnd = M.daily ? C.daily('crazyeights', M.daily + '|bots|' + M.R.stock.length).rng : Math.random;
+    M.startedAt = Date.now() - (v.elapsed || 0);
+    render();
+    maybeBot();
+  }
+
+  /* ------------------------------------------------------------- draw */
+
+  function renderTop() {
+    top.innerHTML = '';
+    if (M.daily) top.appendChild(el('span', { class: 'ch-badge ch-badge--accent' }, [C.icon('calendar', 14), el('span', { text: C.t('dailyCe') + ' — ' + C.num(M.daily) })]));
+    else {
+      top.appendChild(el('span', { class: 'ch-badge', text: C.t('roundN', { n: C.num(M.round) }) }));
+      top.appendChild(el('span', { class: 'ch-badge', text: C.t('toN', { n: C.num(E.TARGET) }) }));
+    }
+    top.appendChild(C.cards.backPicker());
+    // options behind a gear in the top row, never in «?» (#409)
+    var gear = el('button', { class: 'ch-iconbtn', type: 'button', 'aria-label': C.t('settings'), title: C.t('settings') }, [C.icon('gear', 20)]);
+    gear.addEventListener('click', showSettings);
+    top.appendChild(gear);
+  }
+
+  function renderBots() {
+    bots.innerHTML = '';
+    for (var p = 1; p < M.n; p++) {
+      var fan = el('div', { class: 'ce-fan', 'aria-hidden': 'true' });
+      var k = M.R.hands[p].length;
+      for (var i = 0; i < Math.min(k, 9); i++) fan.appendChild(C.cards.back());
+      var box = el('div', { class: 'ce-bot' + (M.R.turn === p && M.R.winner < 0 ? ' ce-bot--on' : ''), 'data-p': p }, [
+        el('span', { text: pname(p) }), fan,
+        el('span', { class: 'ce-count', text: C.t('cardsN', { n: C.num(k) }) + (M.daily ? '' : ' · ' + C.num(M.scores[p])) })
+      ]);
+      bots.appendChild(box);
+    }
+  }
+
+  function render() {
+    var R = M.R;
+    renderTop();
+    renderBots();
+    stockBtn.innerHTML = '';
+    stockBtn.appendChild(C.cards.back());
+    stockBtn.appendChild(el('span', { class: 'ce-left', text: C.num(R.stock.length) }));
+    var mustDraw = human() && !E.legal(R, 0).length && R.drawn < 0 && (R.stock.length || R.discard.length > 1);
+    stockBtn.classList.toggle('ce-stock--hint', !!mustDraw);
+    stockBtn.disabled = !human();
+    pile.innerHTML = '';
+    var t = E.top(R), tc = C.cards.el(t);
+    tc.disabled = true;
+    pile.appendChild(tc);
+    suitBox.className = 'ce-suit' + (R.suit === 1 || R.suit === 2 ? ' ce-suit--red' : '') + (suitFresh ? ' ce-suit--new' : '');
+    suitFresh = false;
+    suitBox.innerHTML = '';
+    suitBox.appendChild(el('b', { text: suitName(R.suit) }));
+    suitBox.appendChild(el('span', { text: C.t('suitNow') }));
+    renderHand();
+    actions.innerHTML = '';
+    if (human() && E.canPass(R)) {
+      var pb = el('button', { class: 'ch-btn ch-btn--soft', type: 'button', text: C.t('passTurn') });
+      pb.addEventListener('click', humanPass);
+      actions.appendChild(pb);
+    }
+    var st = msg;
+    if (!st && R.winner < 0) {
+      if (R.turn !== 0) st = C.t('thinking', { n: pname(R.turn) });
+      else if (R.drawn >= 0) st = C.t('playDrawn');
+      else st = E.legal(R, 0).length ? C.t('yourTurn') : C.t('mustDraw');
+    }
+    status.textContent = st;
+  }
+
+  function renderHand() {
+    var R = M.R, h = R.hands[0].slice().sort(function (a, b) { return E.suit(a) - E.suit(b) || E.rank(a) - E.rank(b); });
+    var ok = human() ? E.legal(R, 0) : [];
+    hand.innerHTML = '';
+    // overlap the cards so the whole hand stays on one row
+    var cw = parseFloat(getComputedStyle(wrap).getPropertyValue('--cw')) || 56;
+    var room = hand.clientWidth || 360, over = h.length > 1 ? Math.min(-4, (room - cw * h.length) / (h.length - 1)) : 0;
+    over = Math.max(over, -cw * 0.72);
+    h.forEach(function (c, i) {
+      var b = C.cards.el(c, ok.indexOf(c) >= 0 ? 'ce-ok' : (human() ? 'ce-no' : ''));
+      b._c = c;
+      if (i) b.style.marginInlineStart = over + 'px';
+      if (kf === i) b.style.outline = '3px solid var(--game)';
+      b.addEventListener('click', function () { humanPlay(c, b); });
+      hand.appendChild(b);
+    });
+  }
+  function handNode(c) { var k = hand.children; for (var i = 0; i < k.length; i++) if (k[i]._c === c) return k[i]; return null; }
+  function botBox(p) { return bots.querySelector('[data-p="' + p + '"]'); }
+
+  // a new round: the hand flies in from the stock one card at a time, turning over (#398)
+  function dealIn() {
+    if (C.ui.reduceMotion()) return;
+    var from = stockBtn.getBoundingClientRect();
+    for (var i = 0; i < hand.children.length; i++) C.ui.fly(hand.children[i], from, { ms: 220, delay: i * DEAL_MS, flip: true });
+  }
+  // the card just played arrives on the pile from the hand that played it
+  function flyToPile(fromRect, flip) {
+    if (!fromRect || !pile.firstChild) return;
+    C.ui.fly(pile.firstChild, fromRect, { ms: 240, flip: !!flip });
+  }
+
+  /* ------------------------------------------------------------ moves */
+
+  function humanPlay(c, node) {
+    if (!human() || document.querySelector('.ch-scrim')) return;
+    if (E.legal(M.R, 0).indexOf(c) < 0) { C.feedback('bad'); C.ui.shake(node); return; }
+    var from = node.getBoundingClientRect();
+    if (E.rank(c) === E.EIGHT) { askSuit(function (s) { commitHuman(c, s, from); }); return; }
+    commitHuman(c, -1, from);
+  }
+  function commitHuman(c, s, from) {
+    if (!E.play(M.R, c, s)) { C.feedback('bad'); return; }
+    if (E.rank(c) === E.EIGHT) suitFresh = true;
+    C.audio.sfx('place'); C.haptic('tap');
+    msg = ''; kf = -1;
+    if (!M.R.hands[0].length && E.rank(c) === E.EIGHT) M.eightOut = true;
+    after(from, false);
+  }
+  function humanDraw() {
+    if (!human() || document.querySelector('.ch-scrim')) return;
+    var R = M.R;
+    if (E.legal(R, 0).length) { C.feedback('bad'); msg = C.t('canPlayFirst'); render(); msg = ''; return; }
+    var s = R.suit, c = E.draw(R, botRnd);
+    if (c < 0) { C.feedback('bad'); render(); return; }
+    E.noteShort(R, 0, s);
+    C.audio.sfx('flip');
+    var from = stockBtn.getBoundingClientRect();
+    render();
+    var n = handNode(c);
+    if (n) C.ui.fly(n, from, { ms: 220, flip: true });
+    save();
+    // a drawn card that does not fit passes the turn at once
+    if (!E.legal(R, 0).length) setTimeout(function () { if (human() && R.drawn === c) { E.pass(R); after(null, false); } }, 450);
+  }
+  function humanPass() {
+    if (!human() || !E.pass(M.R)) return;
+    C.feedback('tap');
+    after(null, false);
+  }
+
+  function after(from, flip) {
+    render();
+    flyToPile(from, flip);
+    save();
+    if (M.R.winner >= 0) { endRound(); return; }
+    maybeBot();
+  }
+
+  function maybeBot() {
+    stopBot();
+    var R = M.R;
+    if (R.winner >= 0 || R.turn === 0) return;
+    botTimer = setTimeout(function () {
+      botTimer = null;
+      if (!M || M.R !== R || R.winner >= 0 || R.turn === 0) return;
+      var p = R.turn, m = E.botMove(R, M.level, botRnd);
+      if (m.play !== undefined) {
+        var from = botBox(p) ? botBox(p).getBoundingClientRect() : null;
+        E.play(R, m.play, m.suit);
+        if (E.rank(m.play) === E.EIGHT) { suitFresh = true; msg = C.t('changedN', { n: pname(p), s: suitName(R.suit) }); }
+        else msg = '';
+        C.audio.sfx('place');
+        after(from, true);
+        return;
+      }
+      if (m.draw) {
+        var s = R.suit;
+        if (E.draw(R, botRnd) >= 0) { E.noteShort(R, p, s); msg = C.t('drewN', { n: pname(p) }); C.audio.sfx('flip'); render(); save(); maybeBot(); return; }
+      }
+      E.pass(R);
+      msg = C.t('passedN', { n: pname(p) });
+      after(null, false);
+    }, C.ui.reduceMotion() ? 300 : BOT_MS);
+  }
+  function stopBot() { if (botTimer) { clearTimeout(botTimer); botTimer = null; } }
+
+  /* ------------------------------------------------------------ rounds */
+
+  function endRound() {
+    stopBot();
+    var R = M.R, w = R.winner, pts = E.roundPoints(R);
+    M.scores[w] += pts;
+    if (w === 0) M.roundsWon++;
+    msg = w === 0 ? C.t('youWonRound') : C.t('roundWon', { n: pname(w) });
+    render();
+    if (w === 0 && pile.firstChild) C.ui.burst(pile.firstChild, { count: 22, speed: 240, ring: 30, colors: ['#F2B84B', '#A06420', '#FFF1C9'] });
+    var over = M.daily || M.scores[w] >= E.TARGET;
+    save();
+    if (over) { setTimeout(finish, 900); return; }
+    var lines = [];
+    for (var p = 0; p < M.n; p++) lines.push(el('div', { class: 'ch-item' }, [el('div', { class: 'ch-item__label', text: pname(p) }), el('b', { class: 'ch-num', text: C.num(M.scores[p]) })]));
+    setTimeout(function () {
+      C.ui.modal({
+        title: msg,
+        body: [el('p', { class: 'ch-dim', text: (R.blocked ? C.t('blocked') + ' · ' : '') + C.t('plusPts', { n: C.num(pts) }) }), el('div', { class: 'ch-list' }, lines)],
+        actions: [{ label: C.t('nextRound'), kind: 'primary', onClick: function () { newRound(); } }],
+        onClose: function () { if (M && M.R === R) newRound(); }
+      });
+    }, 700);
+  }
+
+  function finish() {
+    var R = M.R, ms = Date.now() - M.startedAt, won;
+    var best = 0;
+    for (var p = 1; p < M.n; p++) if (M.scores[p] > M.scores[best]) best = p;
+    won = M.daily ? R.winner === 0 : best === 0;
+    var base = { easy: 6, medium: 12, hard: 20 }[M.level] || 12;
+    var coins = won ? base + (M.daily ? 8 : 0) : Math.max(2, Math.round(base * 0.3));
+    var points = won ? base * 4 + (M.daily ? 25 : 0) : Math.round(base * 1.2);
+    if (won) {
+      C.achievements.unlock('ce-win');
+      if (M.level === 'hard' && !M.daily) C.achievements.unlock('ce-hard');
+    }
+    if (R.winner === 0 && M.eightOut) C.achievements.unlock('ce-eight');
+    if (M.daily) {
+      var first = C.stats.daily('crazyeights', M.daily, { label: won ? C.t('youWonRound') : C.t('roundWon', { n: pname(R.winner) }), win: won });
+      if (!first) { coins = Math.round(coins * 0.2); points = Math.round(points * 0.2); }
+    }
+    ctx.clearSave();
+    var lines = [];
+    for (var q = 0; q < M.n; q++) lines.push({ label: pname(q), value: C.num(M.scores[q]) });
+    if (!M.daily) lines.push({ label: C.t('rounds'), value: C.num(M.round) });
+    var scores = M.scores.slice();
+    ctx.finish({
+      won: won,
+      title: won ? C.t('matchWon') : C.t('matchLost', { n: pname(M.daily ? R.winner : best) }),
+      timeMs: ms, coins: coins, points: points,
+      lines: lines,
+      shareText: 'چوگان · هفت خبیث' + (M.daily ? ('\nروزانه ' + M.daily) : '') + '\n' + scores.map(function (s) { return C.num(s); }).join(' - '),
+      onAgain: M.daily ? null : function () { newMatch(null); }
+    });
+  }
+
+  /* ----------------------------------------------------------- dialogs */
+
+  function askSuit(done) {
+    var m = null;
+    var row = el('div', { class: 'ce-suits' });
+    [0, 1, 2, 3].forEach(function (s) {
+      var b = el('button', { type: 'button', class: s === 1 || s === 2 ? 'ce-red' : '', text: suitName(s), 'aria-label': suitName(s) });
+      b.addEventListener('click', function () { if (m) m.close(); done(s); });
+      row.appendChild(b);
+    });
+    m = C.ui.modal({ title: C.t('nameSuit'), body: [row], actions: [{ label: C.t('cancel') }] });
+  }
+
+  function showSettings() {
+    var seg1 = C.ui.segmented([1, 2, 3].map(function (n) { return { value: n, label: C.num(n) }; }), prefs.rivals, function (v) { prefs.rivals = v; ctx.store.set('prefs', prefs); });
+    var seg2 = C.ui.segmented(LEVELS.map(function (l) { return { value: l, label: C.t(l) }; }), prefs.level, function (v) { prefs.level = v; ctx.store.set('prefs', prefs); });
+    C.ui.modal({
+      title: C.t('settings'),
+      body: [el('div', { class: 'ch-list' }, [
+        el('div', { class: 'ch-item' }, [el('div', { class: 'ch-item__label', text: C.t('rivals') }), seg1]),
+        el('div', { class: 'ch-item' }, [el('div', { class: 'ch-item__label', text: C.t('level') }), seg2])
+      ]), el('p', { class: 'ch-dim', text: C.t('optNote') })],
+      actions: [{ label: C.t('done'), kind: 'primary' }]
+    });
+  }
+
+  function askNew() {
+    if (document.querySelector('.ch-scrim')) return;
+    var dd = M ? M.daily : null;
+    var started = M && (M.round > 1 || M.R.stock.length !== 52 - M.n * (M.n === 2 ? 7 : 5) - 1 || M.R.discard.length > 1);
+    if (!started) { newMatch(dd); return; }
+    C.ui.confirm({ title: C.t('newMatch'), body: C.t('resetWarn'), onOk: function () { newMatch(dd); } });
+  }
+
+  function showHelp() {
+    C.ui.modal({
+      title: C.t('help'),
+      body: [
+        el('p', { class: 'ch-dim', text: C.t('rules') }),
+        el('h3', { style: { 'margin-top': 'var(--s-4)' }, text: C.t('keyboard') }),
+        el('div', { class: 'ch-list' }, [kb('← →', C.t('kbCards')), kb('Enter', C.t('kbPlay')), kb('D', C.t('kbDraw')), kb('P', C.t('kbPass'))])
+      ],
+      actions: [{ label: C.t('tutorial'), onClick: function () { ctx.showTutorial(TUT); } }, { label: C.t('done'), kind: 'primary' }]
+    });
+  }
+  function kb(k, what) { return el('div', { class: 'ch-item' }, [el('div', { class: 'ch-item__label', text: what }), el('span', { class: 'ch-badge', text: k })]); }
+
+  window.addEventListener('keydown', function (e) {
+    if (!human() || document.querySelector('.ch-scrim')) return;
+    var tg = e.target, tag = tg && tg.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter'))) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var n = M.R.hands[0].length;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      kf = kf < 0 ? 0 : (kf + (e.key === 'ArrowRight' ? 1 : n - 1)) % n;
+      renderHand(); e.preventDefault(); return;
+    }
+    if (e.key === 'Enter' && kf >= 0 && hand.children[kf]) { var b = hand.children[kf]; humanPlay(b._c, b); e.preventDefault(); return; }
+    if (C.keyIs(e, 'd')) { humanDraw(); e.preventDefault(); return; }
+    if (C.keyIs(e, 'p')) { humanPass(); e.preventDefault(); }
+  });
+
+  function svgCard(x, y, label, red) {
+    return '<rect x="' + x + '" y="' + y + '" width="34" height="48" rx="5" fill="var(--c-surface)" stroke="var(--c-line)"/>' +
+      '<text x="' + (x + 4) + '" y="' + (y + 15) + '" font-size="13" font-weight="800" fill="' + (red ? 'var(--c-bad)' : 'var(--c-text)') + '">' + label + '</text>';
+  }
+  var TUT = [
+    { title: C.t('tutTitle1'), text: C.t('tutText1'), art: '<svg viewBox="0 0 200 110" width="100%" direction="ltr">' + svgCard(50, 30, '9♥︎', true) + svgCard(116, 30, '9♠︎', false) + '</svg>' },
+    { title: C.t('tutTitle2'), text: C.t('tutText2'), art: '<svg viewBox="0 0 200 110" width="100%" direction="ltr">' + svgCard(40, 30, 'K♣︎', false) + svgCard(84, 22, '8♦︎', true) +
+      '<text x="150" y="66" font-size="30" text-anchor="middle" fill="var(--game)">♠︎</text></svg>' },
+    { title: C.t('tutTitle3'), text: C.t('tutText3'), art: '<svg viewBox="0 0 200 110" width="100%" direction="ltr"><rect x="40" y="30" width="34" height="48" rx="5" fill="#1F3A93" stroke="#FBF5E6" stroke-width="2"/>' +
+      '<path d="M84 54 H 120" stroke="var(--game)" stroke-width="4" stroke-linecap="round"/><path d="M112 46 l 9 8 -9 8" stroke="var(--game)" stroke-width="4" fill="none" stroke-linecap="round"/>' + svgCard(130, 30, '5♣︎', false) + '</svg>' }
+  ];
+
+  /* ------------------------------------------------------------ save */
+
+  ctx.autosave(function () {
+    if (!M || !M.R || M.R.winner >= 0 && (M.daily || M.scores[M.R.winner] >= E.TARGET)) return { inProgress: false };
+    var v = JSON.parse(JSON.stringify(M));
+    v.elapsed = (pausedAt || Date.now()) - M.startedAt;
+    return { m: v };
+  });
+  function save() { ctx.save(); }
+  C.onPause(function () { stopBot(); if (!pausedAt) pausedAt = Date.now(); });
+  C.onResume(function () { if (pausedAt && M) M.startedAt += Date.now() - pausedAt; pausedAt = 0; if (M) maybeBot(); });
+  window.addEventListener('resize', function () { if (M) renderHand(); });
+
+  /* ------------------------------------------------------------ start */
+
+  var saved = ctx.loadSave();
+  var sv = saved && saved.m && saved.m.R && E.validRound(saved.m.R) ? saved.m : null;
+  if (dailyDate) {
+    if (sv && sv.daily === dailyDate) resume(sv);
+    else newMatch(dailyDate);
+    if (C.stats.dailyDone('crazyeights', dailyDate)) {
+      var rec = C.stats.dailyOf(dailyDate).crazyeights;
+      C.ui.toast({ icon: 'check', title: C.t('dailyDone'), sub: rec && rec.label });
+    }
+  } else if (sv && !sv.daily) resume(sv);
+  else newMatch(null);
+  ctx.tutorialIfNew(TUT);
+})();
+</script>
+</body>
+</html>
