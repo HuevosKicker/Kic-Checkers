@@ -2400,10 +2400,14 @@
     var dy = (a.top + a.height / 2) - (b.top + b.height / 2);
     var k = a.width ? a.width / b.width : 1;
     var ms = opts.ms || 300, delay = opts.delay || 0;
-    var start = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k.toFixed(3) + ')';
+    // a node placed with its own transform (Hokm's centred trick cards) keeps it
+    // at both ends; the move and the scale wrap around it
+    var own = global.getComputedStyle ? global.getComputedStyle(node).transform : 'none';
+    var end = own && own !== 'none' ? own : '';
+    var start = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) ' + (end ? end + ' ' : '') + 'scale(' + k.toFixed(3) + ')';
     var frames = opts.flip
-      ? [{ transform: start, offset: 0 }, { transform: 'scale(1.06) scaleX(.02)', offset: 0.62 }, { transform: 'none', offset: 1 }]
-      : [{ transform: start }, { transform: 'none' }];
+      ? [{ transform: start, offset: 0 }, { transform: (end ? end + ' ' : '') + 'scale(1.06) scaleX(.02)', offset: 0.62 }, { transform: end || 'none', offset: 1 }]
+      : [{ transform: start }, { transform: end || 'none' }];
     var cover = null;
     if (opts.flip) {
       cover = el('span', { class: 'ch-pback ch-turnback', 'aria-hidden': 'true' });
@@ -2418,6 +2422,22 @@
     anim.onfinish = tidy;
     anim.oncancel = tidy;
     return anim;
+  };
+
+  // The way out: a node leaves for `to` (a node or a rect), shrinking and fading,
+  // and stays there until the caller redraws (a trick swept to its winner, #407).
+  // Returns the Animation, or null when there is nothing to watch.
+  ui.sendTo = function (node, to, opts) {
+    if (!node || !to || !node.animate || ui.reduceMotion()) return null;
+    opts = opts || {};
+    var a = node.getBoundingClientRect(), b = to.getBoundingClientRect ? to.getBoundingClientRect() : to;
+    if (!a.width) return null;
+    var own = global.getComputedStyle ? global.getComputedStyle(node).transform : 'none';
+    var end = own && own !== 'none' ? own + ' ' : '';
+    var dx = (b.left + b.width / 2) - (a.left + a.width / 2), dy = (b.top + b.height / 2) - (a.top + a.height / 2);
+    return node.animate([{ transform: end ? own : 'none', opacity: 1 },
+      { transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) ' + end + 'scale(' + (opts.scale || 0.4) + ')', opacity: opts.fade === false ? 1 : 0.2 }],
+      { duration: opts.ms || 320, delay: opts.delay || 0, easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' });
   };
 
   // Short particle bursts on one shared layer above the board (#398): a mine

@@ -372,6 +372,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
   if ([3, 7].indexOf(prefs.target) < 0) prefs.target = 3;
 
   var S = null, aiTimer = null, cur = -1, holdTrick = null;
+  // #407: cards already in your hand on screen, so only newly dealt ones fly in
+  var handSeen = [];
 
   var top = el('div', { class: 'hk-top' });
   var board = el('div', { class: 'hk-score' });
@@ -424,8 +426,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
       return;
     }
     if (S.phase === 'handover') { showHandOver(); return; }
+    // every caller has just painted; painting again here replaced the cards
+    // that were still flying in (#407)
     if (S.phase === 'play' && S.turn !== 0) {
-      paint();
       aiTimer = setTimeout(function () {
         var p = S.turn;
         var c = E.aiPlay(S, p, S.level, rngFor(S.handNo + '|' + S.played.length));
@@ -435,7 +438,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
   }
   function stopAi() { if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; } }
 
+  // where a played card comes from: its place in your hand, or the player's seat
+  function seatOf(p) { return [handRow, seatRight, seatTop, seatLeft][p]; }
   function doPlay(p, c) {
+    var src = p === 0 ? handRow.children[S.hands[0].indexOf(c)] : seatOf(p);
+    var from = src && src.getBoundingClientRect ? src.getBoundingClientRect() : null;
     var r = E.play(S, p, c);
     if (!r) return;
     C.audio.sfx('place');
@@ -448,14 +455,29 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
     } else holdTrick = null;
     save();
     paint();
+    // the card slides to the table; the others' cards turn face up on the way (#407)
+    C.ui.fly(trickBox.querySelector('[data-p="' + p + '"]'), from, { flip: p !== 0, ms: 260 });
     if (r.trickDone) {
-      aiTimer = setTimeout(function () { holdTrick = null; if (S.done) { finish(); return; } paint(); step(); }, 950);
+      aiTimer = setTimeout(function () { sweep(function () { holdTrick = null; if (S.done) { finish(); return; } paint(); step(); }); }, 950);
       return;
     }
     step();
   }
 
-  function askTrump() { paint(); }
+  // After the hold, the trick slides to the player who took it (#407)
+  function sweep(then) {
+    var mine = S, w = holdTrick ? holdTrick.winner : -1, last = null;
+    var cards = trickBox.querySelectorAll('.hk-tcard');
+    for (var i = 0; i < cards.length && w >= 0; i++) last = C.ui.sendTo(cards[i], seatOf(w), { delay: i * 30 }) || last;
+    if (!last) { then(); return; }
+    var go = function () { if (S === mine) then(); };
+    last.onfinish = go;
+    last.oncancel = go;
+  }
+
+  // The picker is part of the table and every caller of step() has just painted
+  // it (#186); painting again cut the deal's flying cards short (#407).
+  function askTrump() { }
   function paintPick() {
     pickBox.innerHTML = '';
     var on = S.phase === 'trump' && S.hakem === 0;
@@ -588,6 +610,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
     shown.forEach(function (t) {
       var b = C.cards.el(t.c, 'hk-tcard hk-tcard--' + POS[t.p] + (holdTrick && holdTrick.winner === t.p ? ' hk-tcard--win' : ''));
       b.disabled = true;
+      b.setAttribute('data-p', t.p);
       trickBox.appendChild(b);
     });
 
@@ -605,6 +628,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
       b.addEventListener('click', function () { if (ok) doPlay(0, c); });
       handRow.appendChild(b);
     });
+    // a deal: the new cards come from the middle of the table one by one, turning over
+    var fresh = mine.filter(function (c) { return handSeen.indexOf(c) < 0; });
+    if (fresh.length > 1) {
+      fresh.forEach(function (c, k) { C.ui.fly(handRow.children[mine.indexOf(c)], trickBox, { flip: true, ms: 280, delay: k * 45 }); });
+    }
+    handSeen = mine.slice();
 
     var msg = '';
     if (S.phase === 'trump') msg = S.hakem === 0 ? C.t('chooseTrump') : C.t('thinking', { n: pname(S.hakem) });
@@ -680,6 +709,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
   function restore(v) {
     S = v; S.startedAt = Date.now() - (v.elapsed || 0);
     cur = -1; holdTrick = null;
+    handSeen = S.hands[0].slice();
     render(); step();
   }
   var saved = ctx.loadSave();
