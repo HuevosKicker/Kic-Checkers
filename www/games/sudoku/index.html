@@ -80,7 +80,7 @@
   .sd-num:active { transform: scale(.9); }
   .sd-num small { font-size: 10px; color: var(--c-text-faint); font-weight: 600; line-height: 1; }
   .sd-num[disabled] { opacity: .3; }
-  .sd-tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .sd-tools { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
   .sd-tool {
     border: 0; background: var(--c-surface); border-radius: var(--r-sm); box-shadow: var(--sh-1);
     font: inherit; font-size: 11px; font-weight: 700; color: var(--c-text-dim); cursor: pointer;
@@ -506,6 +506,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
   tool('undo', 'undo', function () { undo(); });
   var hintBtn = tool('bulb', 'hint', function () { hint(); },
     el('b', { text: C.num(HINT_COST) }));
+  // The options had lived inside the help sheet, where the owner could not find
+  // them (#409); a fourth game-bar button cut the title on a phone, and a gear
+  // beside the difficulty wrapped to a line of its own (#413). It is a tool.
+  tool('gear', 'settings', function () { showSettings(); });
 
   ctx.stat('time', C.t('time'));
   ctx.stat('mistakes', C.t('mistakes'));
@@ -544,10 +548,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       }));
       topRow.appendChild(el('span', { class: 'ch-badge', text: C.num(S.puzzle.filter(function (x) { return x; }).length) + ' ' + C.t('clues') }));
     }
-    // The options had lived inside the help sheet, where the owner could not find
-    // them (#409). A fourth button in the game bar cut the title to one letter on a
-    // phone, so the gear sits in this row.
-    topRow.appendChild(el('button', { class: 'ch-iconbtn', type: 'button', 'aria-label': C.t('settings'), title: C.t('settings'), onclick: showSettings }, [C.icon('gear', 20)]));
     paint();
   }
 
