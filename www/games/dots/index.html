@@ -28,9 +28,17 @@
   .dt-line { stroke-linecap: round; }
   .dt-line--new { animation: dt-draw 260ms var(--ease) backwards; }
   @keyframes dt-draw { from { stroke-dasharray: 0 200; } }
-  .dt-box { animation: dt-fill 300ms var(--ease-back) backwards; }
+  /* fill-box: without it the scale ran from the board's top-left corner, so a
+     new box flew in from there instead of growing in place (#407) */
+  .dt-box, .dt-boxlabel--new { transform-box: fill-box; transform-origin: center; }
+  .dt-box { animation: dt-fill 300ms var(--ease-back) backwards; animation-delay: var(--d, 0ms); }
   @keyframes dt-fill { from { opacity: 0; transform: scale(.4); } }
+  /* the second box onward of one turn's run flashes as it fills, so a chain reads as one */
+  .dt-box--chain { animation-name: dt-chain; animation-duration: 380ms; }
+  @keyframes dt-chain { 0% { opacity: 0; transform: scale(.4); } 45% { opacity: .62; transform: scale(1.06); } }
   .dt-boxlabel { font-weight: 800; font-family: inherit; }
+  .dt-boxlabel--new { animation: dt-label 220ms var(--ease-back) backwards; animation-delay: calc(var(--d, 0ms) + 140ms); }
+  @keyframes dt-label { from { opacity: 0; transform: scale(.3); } }
   .dt-thinking { animation: dt-blink 900ms infinite; }
   @keyframes dt-blink { 50% { opacity: .45; } }
 </style>
@@ -616,8 +624,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DotsEngine
     };
   }
 
+  // #407: the boxes a move closes, in order, with their delay and whether they
+  // continue a run the same player started earlier this turn. A box used to
+  // fill on its own, so a long chain looked like unrelated pops.
+  var STAGGER_MS = 90;
+  function newBoxFx(newBoxes, turnBoxes, still) {
+    var start = turnBoxes - newBoxes.length;
+    return newBoxes.map(function (b, i) { return { b: b, d: still ? 0 : i * STAGGER_MS, chain: start + i >= 1 }; });
+  }
+
   function repaint(full) {
     var n = S.size;
+    var fx = full ? [] : newBoxFx(S.newBoxes || [], S.turnBoxes || S.newBoxes.length, C.ui.reduceMotion());
+    var fxOf = function (b) { for (var i = 0; i < fx.length; i++) if (fx[i].b === b) return fx[i]; return null; };
     S.g.boxes.innerHTML = '';
     for (var b = 0; b < bd.boxes; b++) {
       if (!S.owner[b]) continue;
@@ -630,7 +649,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DotsEngine
       rect.setAttribute('rx', '10');
       rect.setAttribute('fill', P[S.owner[b]].c);
       rect.setAttribute('opacity', '.24');
-      if (!full && S.newBoxes.indexOf(b) >= 0) rect.setAttribute('class', 'dt-box');
+      var f = fxOf(b);
+      if (f) {
+        rect.setAttribute('class', 'dt-box' + (f.chain ? ' dt-box--chain' : ''));
+        rect.style.setProperty('--d', f.d + 'ms');
+      }
       S.g.boxes.appendChild(rect);
       var t = document.createElementNS(NS, 'text');
       t.setAttribute('x', PAD + c * GAP + GAP / 2);
@@ -638,7 +661,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = DotsEngine
       t.setAttribute('text-anchor', 'middle');
       t.setAttribute('font-size', '38');
       t.setAttribute('fill', P[S.owner[b]].c);
-      t.setAttribute('class', 'dt-boxlabel');
+      t.setAttribute('class', 'dt-boxlabel' + (f ? ' dt-boxlabel--new' : ''));
+      if (f) t.style.setProperty('--d', f.d + 'ms');
       t.textContent = C.num(S.owner[b]);
       S.g.boxes.appendChild(t);
     }

@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4402;
+const MIN_CHECKS = 4408;
 
 function ok(cond, msg) {
   checks++;
@@ -8660,6 +8660,26 @@ function testMorrisMotion() {
   ok(/if \(!shown\) \{\n      fxStart\('move'/.test(src), 'a mill picked by hand is not shown twice');
 }
 
+function testDotsChain() {
+  head('Dots and boxes: a chain fills box by box, in place (#407)');
+  // A box filled on its own, scaled from the board's top-left corner rather
+  // than in place, and a long chain looked like unrelated pops.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/dots/index.html'), 'utf8');
+  const a0 = src.indexOf('  var STAGGER_MS'), b0 = src.indexOf('\n  }\n', src.indexOf('  function newBoxFx(', a0)) + 4;
+  ok(a0 > 0 && b0 > a0, 'newBoxFx found in Dots and boxes');
+  if (!(a0 > 0 && b0 > a0)) return;
+  const sb = {};
+  vm.runInNewContext(src.slice(a0, b0) + ';this.newBoxFx = newBoxFx;', sb);
+  let f = sb.newBoxFx([4], 1, false);
+  ok(f.length === 1 && f[0].d === 0 && !f[0].chain, 'the first box of a turn fills plainly');
+  f = sb.newBoxFx([7], 3, false);
+  ok(f[0].chain, 'the third box of a run flashes as part of the chain');
+  f = sb.newBoxFx([2, 3], 2, false);
+  ok(f[0].d === 0 && f[1].d > 0 && !f[0].chain && f[1].chain, 'two boxes closed by one line fill one after the other');
+  ok(sb.newBoxFx([2, 3], 2, true)[1].d === 0, 'reduced motion adds no delay, so no box waits hidden');
+  ok(/\.dt-box, \.dt-boxlabel--new \{ transform-box: fill-box; transform-origin: center; \}/.test(src), 'boxes grow in place');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8896,6 +8916,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testDotsChain();
 testMorrisMotion();
 testPegMotion();
 testCheckersMotion();
