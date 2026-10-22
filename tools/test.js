@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4466;
+const MIN_CHECKS = 4472;
 
 function ok(cond, msg) {
   checks++;
@@ -8893,6 +8893,23 @@ function testTowerDefenceKills() {
   ok(/if \(f\.kind === 'kill'\) \{ if \(!C\.ui\.reduceMotion\(\) && deaths\.length < 60\)/.test(src) && !/kind === 'kill'[^\n]*shotsLive\.push/.test(src), 'kills are never drawn as shots, and not at all with reduced motion');
 }
 
+function testBattleshipFx() {
+  head('Battleship: a miss splashes, a hit bursts, a sinking shakes (#407)');
+  // A shot only left its mark.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/battleship/index.html'), 'utf8');
+  const a0 = src.indexOf('  var SPLASH_MS'), b0 = src.indexOf('\n  }\n', src.indexOf('  function splashRings(', a0)) + 4;
+  ok(a0 > 0 && b0 > a0, 'cellOnPage and splashRings found in Battleship');
+  if (!(a0 > 0 && b0 > a0)) return;
+  const sb = { Math, N: 10 };
+  vm.runInNewContext(src.slice(a0, b0) + ';this.cellOnPage = cellOnPage; this.splashRings = splashRings;', sb);
+  const at = sb.cellOnPage({ left: 10, top: 200, width: 300 }, 23);
+  ok(at.x === 10 + 3.5 * 30 && at.y === 200 + 2.5 * 30, 'a hit bursts at the centre of its cell on the page');
+  ok(sb.splashRings(0.1).length === 1 && sb.splashRings(0.5).length === 2 && sb.splashRings(0.5)[0].r > sb.splashRings(0.5)[1].r, 'a miss sends out a ring, then a second behind it');
+  ok(sb.splashRings(0.99).every((r) => r.a < 0.05), 'the rings have faded by the end');
+  ok(/after\(\);\n    shotFx\(cvFoe, idx, res\.result\);/.test(src) && /after\(\);\n      shotFx\(cvMe, res\.i, res\.result\);/.test(src), 'both your shots and the rival\'s show their effect, after the state is saved');
+  ok(/if \(result === 'miss'\) \{\n      if \(C\.ui\.reduceMotion\(\)\) return;/.test(src) && /if \(sunk\) C\.ui\.shake\(cv\.parentNode\);/.test(src), 'no splash with reduced motion; a sinking shakes that sea through the core (which also checks it)');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9129,6 +9146,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testBattleshipFx();
 testTowerDefenceKills();
 testBlockdropMotion();
 testBreakoutMotion();
