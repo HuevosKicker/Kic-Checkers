@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4316;
+const MIN_CHECKS = 4330;
 
 function ok(cond, msg) {
   checks++;
@@ -8360,6 +8360,42 @@ function testDartsVisit() {
     /paintBoard\(g, B\.w, \{ marks: marks, scores: true,/.test(page), 'each dart on the board carries a tag with its score, the bull\'s 50 too');
 }
 
+function testHokmMotion() {
+  head('Hokm: dealt, played and swept cards move; core keeps a node\'s own transform (#407)');
+  // Hokm's cards appeared and vanished in place; and a trick card centred with
+  // translate(-50%) would jump at the end of a fly that ended on 'none'.
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const fly = (core.match(/^  ui\.fly = function \(node, from, opts\) \{[\s\S]*?^  \};$/m) || [''])[0];
+  const send = (core.match(/^  ui\.sendTo = function \(node, to, opts\) \{[\s\S]*?^  \};$/m) || [''])[0];
+  ok(fly.length > 0 && send.length > 0, 'ui.fly and ui.sendTo found in the core');
+  if (fly && send) {
+    const anims = [];
+    const ui = { reduceMotion: () => false };
+    const centred = 'matrix(1, 0, 0, 1, -25, 0)';
+    vm.runInNewContext(fly + '\n' + send, { ui, el: () => ({ style: { setProperty() {} } }), global: { getComputedStyle: () => ({ transform: centred }) } });
+    const node = { getBoundingClientRect: () => ({ left: 100, top: 100, width: 50, height: 70 }), animate: (f, o) => { const a = { f, o }; anims.push(a); return a; }, appendChild() {} };
+    const a = ui.fly(node, { left: 100, top: 0, width: 50, height: 70 });
+    ok(a && a.f[0].transform === 'translate(0.0px,-100.0px) ' + centred + ' scale(1.000)' && a.f[1].transform === centred, 'a centred card flies in and ends on its own centring, not on none');
+    const b = ui.sendTo(node, { left: 300, top: 100, width: 20, height: 20 });
+    ok(b && b.f[0].transform === centred && b.f[1].transform === 'translate(185.0px,-25.0px) ' + centred + ' scale(0.4)' && b.o.fill === 'forwards' && b.f[1].opacity < 1,
+      'sendTo moves a node to the target\'s centre, shrinking and fading, and holds it there');
+    ui.reduceMotion = () => true;
+    ok(ui.sendTo(node, { left: 0, top: 0, width: 1, height: 1 }) === null, 'with reduced motion nothing is sent');
+  }
+  const hk = fs.readFileSync(path.join(ROOT, 'www/games/hokm/index.html'), 'utf8');
+  ok(/var src = p === 0 \? handRow\.children\[S\.hands\[0\]\.indexOf\(c\)\] : seatOf\(p\);\n\s+var from = [^\n]+\n\s+var r = E\.play\(S, p, c\);/.test(hk),
+    'a played card\'s start is read before the hand is redrawn');
+  ok(/C\.ui\.fly\(trickBox\.querySelector\('\[data-p="' \+ p \+ '"\]'\), from, \{ flip: p !== 0, ms: 260 \}\);/.test(hk) && /b\.setAttribute\('data-p', t\.p\);/.test(hk),
+    'it slides to the table, and the others\' cards turn face up on the way');
+  ok(/aiTimer = setTimeout\(function \(\) \{ sweep\(function \(\) \{ holdTrick = null;/.test(hk) && /var go = function \(\) \{ if \(S === mine\) then\(\); \};/.test(hk) && /if \(!last\) \{ then\(\); return; \}/.test(hk),
+    'after the hold the trick goes to its winner, and a new match started meanwhile is left alone');
+  ok(/if \(fresh\.length > 1\) \{\n\s+fresh\.forEach\(function \(c, k\) \{ C\.ui\.fly\(handRow\.children\[mine\.indexOf\(c\)\], trickBox, \{ flip: true, ms: 280, delay: k \* 45 \}\); \}\);/.test(hk) &&
+    /handSeen = S\.hands\[0\]\.slice\(\);/.test(hk), 'a deal brings only the new cards in, one by one; a restored hand is drawn still');
+  const stepBody = hk.slice(hk.indexOf('  function step() {'), hk.indexOf('  function stopAi()'));
+  ok(stepBody.length > 0 && !/paint\(\)/.test(stepBody) && /function askTrump\(\) \{ \}/.test(hk),
+    'step() does not repaint on its own, so cards still flying in are not replaced');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8590,6 +8626,7 @@ testLudo();
 testSnakes();
 testDarts();
 testDartsVisit();
+testHokmMotion();
 testBowling();
 testSliding();
 testJigsaw();
