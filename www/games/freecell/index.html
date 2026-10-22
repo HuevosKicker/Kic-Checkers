@@ -403,6 +403,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
     S.done = false;
     S.startedAt = Date.now();
     resetUi();
+    dealAnim();
   }
 
   function resetUi() {
@@ -546,10 +547,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
     try { g.direction = 'ltr'; } catch (e) { /* وب‌ویو قدیمی */ }
     var T = tokens();
     var now = performance.now();
-    var moving = {}, prog = 1;
+    var moving = {}, elapsed = 0;
     if (anim) {
-      prog = Math.min(1, (now - anim.t0) / anim.ms);
-      if (prog >= 1) anim = null;
+      // a deal staggers its cards: the whole move lasts ms plus the last card's delay
+      elapsed = now - anim.t0;
+      if (elapsed >= anim.ms + (anim.span || 0)) anim = null;
       else for (var q = 0; q < anim.cards.length; q++) moving[anim.cards[q]] = 1;
     }
     var dragging = {};
@@ -590,9 +592,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
     }
     // کارت‌های در حال جابه‌جایی
     if (anim) {
-      var e = 1 - Math.pow(1 - prog, 3);
       for (var m = 0; m < anim.cards.length; m++) {
         var mc = anim.cards[m], a = anim.from[mc], z = anim.to[mc];
+        var pr = Math.max(0, Math.min(1, (elapsed - (anim.delay ? anim.delay[mc] : 0)) / anim.ms));
+        var e = 1 - Math.pow(1 - pr, 3);
         drawCard(g, T, mc, a.x + (z.x - a.x) * e, a.y + (z.y - a.y) * e, false);
       }
       requestAnimationFrame(draw);
@@ -607,6 +610,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
   // هر کارتی که جایش عوض شده از جای قبلی سر می‌خورد. کارت‌های کشیده‌شده از
   // جایی شروع می‌کنند که انگشت رهایشان کرد، نه از ستون اولشان.
   function startAnim(before) {
+    // with reduced motion the cards are simply in their new places (#407)
+    if (C.ui.reduceMotion()) { anim = null; draw(); return; }
     var after = positions(), cards = [], from = {}, to = {};
     for (var key in after) {
       var a = before[key], b = after[key];
@@ -617,6 +622,61 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
     cards.sort(function (x, y) { return to[x].y - to[y].y; });
     anim = { t0: performance.now(), ms: 170, cards: cards, from: from, to: to };
     draw();
+  }
+
+  // A new deal: the cards leave a pile above the middle of the board row by row,
+  // left to right, as a dealer lays them out (#407). The game is playable at once.
+  function dealAnim() {
+    if (C.ui.reduceMotion() || !L || !board.clientWidth) return;
+    var to = positions(), from = {}, delay = {}, cards = [], n = 0;
+    var deck = { x: Math.round((L.W - L.cw) / 2), y: L.ty };
+    for (var k = 0; k < 7; k++) {
+      for (var col = 0; col < 8; col++) {
+        var c = S.cols[col][k];
+        if (c === undefined) continue;
+        from[c] = deck; delay[c] = n++ * 16; cards.push(c);
+      }
+    }
+    if (!cards.length) return;
+    cards.sort(function (x, y) { return to[x].y - to[y].y || delay[x] - delay[y]; });
+    anim = { t0: performance.now(), ms: 240, cards: cards, from: from, to: to, delay: delay, span: (n - 1) * 16 };
+    draw();
+  }
+
+  // Windows Solitaire's win: the cards leave the foundations, kings first, and
+  // bounce down the board leaving a trail (#407). A tap ends it; it never runs
+  // more than five seconds before the result.
+  function cascade(done) {
+    if (C.ui.reduceMotion() || !L || !board.clientWidth) { done(); return; }
+    var g = cv.getContext('2d'), T = tokens(), queue = [], flying = [], over = false, frames = 0, t0 = performance.now();
+    for (var r = 12; r >= 0; r--) for (var i = 0; i < 4; i++) queue.push({ c: r * 4 + i, x: colX(4 + i), y: L.ty });
+    var stop = function () {
+      if (over) return;
+      over = true;
+      cv.removeEventListener('pointerdown', stop);
+      draw();
+      done();
+    };
+    cv.addEventListener('pointerdown', stop);
+    (function frame(t) {
+      if (over) return;
+      if (frames++ % 7 === 0 && queue.length) {
+        var f = queue.shift();
+        f.vx = (Math.random() < 0.5 ? -1 : 1) * (2 + Math.random() * 4);
+        f.vy = -Math.random() * 6;
+        flying.push(f);
+      }
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      var floor = L.H - L.ch;
+      flying = flying.filter(function (f) {
+        f.vy += 0.6; f.x += f.vx; f.y += f.vy;
+        if (f.y > floor) { f.y = floor; f.vy *= -0.72; }
+        drawCard(g, T, f.c, f.x, f.y, false);
+        return f.x > -L.cw && f.x < L.W;
+      });
+      if ((!queue.length && !flying.length) || t - t0 > 5000) { stop(); return; }
+      requestAnimationFrame(frame);
+    })(t0);
   }
 
   /* ------------------------------------------------------- پیدا کردن */
@@ -687,7 +747,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
     if (autos.length) setTimeout(function () { C.audio.sfx('pop'); }, 120);
     setMoves();
     startAnim(before);
-    if (E.won(S)) { setTimeout(finish, 260); S.done = true; return true; }
+    if (E.won(S)) { setTimeout(function () { cascade(finish); }, 260); S.done = true; return true; }
     save();
     if (!E.hasMoves(S)) {
       if (!stuckShown) C.ui.toast({ icon: 'info', title: C.t('noMoves'), sub: C.t('noMovesSub'), ms: 4200 });
