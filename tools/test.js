@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4274;
+const MIN_CHECKS = 4298;
 
 function ok(cond, msg) {
   checks++;
@@ -8176,6 +8176,112 @@ function testDarkAccentText() {
     'every menu element that carries a game colour carries its dark text too');
 }
 
+function testAnimations() {
+  head('Shared motion helpers, Blackjack dealing and Minesweeper effects (#398)');
+  // Blackjack's opening cards just appeared and a lost Minesweeper board showed
+  // every mine in one frame; a friend of the owner found the games flat.
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
+  const fly = (core.match(/^  ui\.fly = function \(node, from, opts\) \{[\s\S]*?^  \};$/m) || [''])[0];
+  const burstAt = core.indexOf('  var fx = null;\n  ui.burst = function');
+  const burstEnd = core.indexOf('\n  }\n', core.indexOf('  function fxFrame(t) {')) + 4;
+  ok(fly.length > 0 && burstAt > 0 && burstEnd > burstAt, 'ui.fly and ui.burst found in the core');
+  if (fly.length > 0 && burstAt > 0) coreMotion(core, css, fly, burstAt, burstEnd);
+  gameMotion();
+}
+
+function coreMotion(core, css, fly, burstAt, burstEnd) {
+  const make = (reduced) => {
+    const env = { appended: [], frames: [], now: 1000, anims: [] };
+    const mkEl = (tag, attrs) => ({ tag, attrs: attrs || {}, style: { setProperty(k, v) { this[k] = v; } }, kids: [], parentNode: null,
+      appendChild(k) { this.kids.push(k); k.parentNode = this; env.appended.push(k); return k; },
+      removeChild(k) { this.kids.splice(this.kids.indexOf(k), 1); k.parentNode = null; return k; },
+      getContext: () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } }) });
+    const body = mkEl('body');
+    const ui = { reduceMotion: () => reduced };
+    vm.runInNewContext(fly + '\n' + core.slice(burstAt, burstEnd), { ui, el: mkEl, global: { devicePixelRatio: 1 }, innerWidth: 400, innerHeight: 800,
+      isFinite, Math, document: { body }, performance: { now: () => env.now }, requestAnimationFrame: (f) => env.frames.push(f) });
+    Object.assign(env, { ui, body, el: mkEl });
+    env.run = (ms) => { for (let t = 0; t <= ms && env.frames.length; t += 16) { env.now += 16; env.frames.splice(0).forEach((cb) => cb(env.now)); } };
+    return env;
+  };
+  const cardAt = (env, left, top, w, h) => {
+    const n = env.el('button');
+    n.getBoundingClientRect = () => ({ left, top, width: w, height: h });
+    n.animate = (frames, o) => { const a = { frames, o }; env.anims.push(a); return a; };
+    return n;
+  };
+  let e = make(false);
+  const card = cardAt(e, 100, 100, 50, 70);
+  const shoe = { getBoundingClientRect: () => ({ left: 300, top: 20, width: 25, height: 35 }) };
+  const a = e.ui.fly(card, shoe, { delay: 190 });
+  ok(a && e.anims.length === 1 && a.frames[0].transform === 'translate(187.5px,-97.5px) scale(0.500)' && a.frames[1].transform === 'none',
+    'fly starts the card at the shoe, half its size, and ends it in its own place (' + (a ? a.frames[0].transform : 'none') + ')');
+  ok(a && a.o.delay === 190 && a.o.fill === 'backwards' && a.o.duration > 0, 'a delayed card waits at the shoe, not in its place');
+  const f = e.ui.fly(card, card, { flip: true });
+  const cover = card.kids.find((k) => /ch-turnback/.test(k.attrs.class || ''));
+  ok(f && f.frames.length === 3 && /scaleX\(\.02\)/.test(f.frames[1].transform) && cover && /ch-pback/.test(cover.attrs.class),
+    'a flip narrows the card to an edge halfway, under a copy of the chosen back');
+  if (f) f.onfinish();
+  ok(cover && !cover.parentNode, 'the back is taken off when the turn ends');
+  ok(e.ui.burst({ x: 50, y: 60 }, { ring: 20 }) === true && e.ui.burst({ x: 10, y: 10 }) === true, 'two bursts at once are accepted');
+  const layers = e.appended.filter((n) => n.tag === 'canvas');
+  ok(layers.length === 1 && /ch-fx/.test(layers[0].attrs.class) && layers[0].parentNode === e.body, 'bursts share one layer on the page');
+  e.run(2000);
+  ok(layers.length === 1 && layers[0].parentNode === null && e.frames.length === 0, 'the layer leaves the page and its frame loop stops when the sparks are gone');
+  ok(e.ui.burst({ x: 1, y: 1 }) === true && e.appended.filter((n) => n.tag === 'canvas').length === 2, 'a later burst builds the layer again');
+  ok(e.ui.burst({ x: NaN, y: 1 }) === false, 'a burst with no place draws nothing');
+  e = make(true);
+  const still = cardAt(e, 0, 0, 50, 70);
+  ok(e.ui.fly(still, shoe, { flip: true }) === null && e.anims.length === 0 && !still.kids.length && e.ui.burst({ x: 5, y: 5 }) === false && !e.appended.length,
+    'with reduced motion nothing flies, turns or bursts');
+  ok(/\.ch-fx \{ position: fixed; inset: 0; z-index: 50; pointer-events: none; \}/.test(css) && /\.ch-scrim \{[^}]*z-index: 60;/.test(css),
+    'the spark layer never takes a tap and stays under dialogs');
+}
+
+function gameMotion() {
+  // Blackjack: dealt from the shoe, opening cards in turn, hole card turned in place
+  const bj = fs.readFileSync(path.join(ROOT, 'www/games/blackjack/index.html'), 'utf8');
+  ok(!/bj-in/.test(bj) && /var shoe = C\.cards\.back\('bj-shoe'\);/.test(bj), 'Blackjack deals from a shoe instead of popping cards in');
+  ok(/C\.ui\.fly\(b, shoe, \{ flip: true, delay: opening \? i \* 2 \* STEP : 0 \}\);/.test(bj) && /last = \(i < 2 \? i \* 2 \+ 1 : i \+ 2\) \* STEP;\n\s+C\.ui\.fly\(b, shoe, \{ flip: i < target, delay: last \}\);/.test(bj),
+    'the opening deal alternates you and the dealer, and the hole card arrives face down');
+  ok(/C\.ui\.fly\(b, k === 2 \? b : shoe, \{ flip: true \}\);/.test(bj), 'at the end the hole card turns where it lies and drawn cards come from the shoe');
+  ok(/seenP = S\.H\.player\.length;\n\s+render\(false\);/.test(bj) && /shown = 0; seenP = 0;/.test(bj), 'a restored hand is drawn still; a new hand is dealt again');
+
+  // Minesweeper: run blowUp and sweep on a small board
+  const ms = fs.readFileSync(path.join(ROOT, 'www/games/minesweeper/index.html'), 'utf8');
+  const fnOf = (name) => (ms.match(new RegExp('^  function ' + name + '\\(\\w*\\) \\{[\\s\\S]*?^  \\}$', 'm')) || [''])[0];
+  ok(fnOf('blowUp').length > 0 && fnOf('sweep').length > 0, 'blowUp and sweep found in Minesweeper');
+  if (!fnOf('blowUp') || !fnOf('sweep')) return;
+  const board = (reduced, lastAt) => {
+    // 4 x 4, mines at 0, 3, 5 and 15
+    const cells = Array.from({ length: 16 }, () => ({ classList: { list: [], add(c) { this.list.push(c); } }, style: {} }));
+    const bursts = [];
+    const sb = { S: { spec: { cols: 4 }, mine: [1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], done: true }, cells, lastAt, Math,
+      C: { ui: { reduceMotion: () => reduced, burst: (at) => { bursts.push(at); } } }, setTimeout: () => {} };
+    vm.runInNewContext(fnOf('blowUp') + fnOf('sweep') + ';this.blowUp = blowUp; this.sweep = sweep;', sb);
+    return { sb, cells, bursts };
+  };
+  let b = board(false, 10);
+  const spent = b.sb.blowUp(5);
+  const delay = (i) => parseInt(b.cells[i].style.animationDelay, 10);
+  ok(b.bursts[0] === b.cells[5] && !b.cells[5].classList.list.length, 'the mine that was hit bursts first and is not shown again');
+  ok([0, 3, 15].every((i) => b.cells[i].classList.list.indexOf('ms-blow') >= 0) && delay(0) < delay(3) && delay(3) < delay(15),
+    'the other mines go off nearest first (' + [0, 3, 15].map(delay).join(', ') + ' ms)');
+  ok(spent >= delay(15) && spent < 1200, 'the result waits for the last mine, and never long (' + spent + ' ms)');
+  b = board(false, 10);
+  const wave = b.sb.sweep();
+  const w = (i) => parseInt(b.cells[i].style.animationDelay, 10);
+  ok(w(10) === 0 && w(5) === 40 && w(0) === 80 && b.cells[0].classList.list[0] === 'ms-flagin' && b.cells[10].classList.list[0] === 'ms-wave',
+    'a win sends a wave out from the last cell opened, mines turning to flags as it passes');
+  ok(wave === 80 + 420, 'the result waits for the wave (' + wave + ' ms)');
+  b = board(true, 10);
+  ok(b.sb.blowUp(5) === 0 && b.sb.sweep() === 0 && b.cells.every((c) => !c.classList.list.length), 'with reduced motion the board just shows its end');
+  ok(/if \(S\.flagged\[idx\] && cells\[idx\]\) cells\[idx\]\.classList\.add\('ms-flagin'\);/.test(ms) && /var spent = blowUp\(idx\);/.test(ms) &&
+    /\}, 620 \+ Math\.max\(0, spent - 300\)\);/.test(ms) && /if \(wave\) setTimeout\(function \(\) \{ ctx\.finish\(result\); \}, wave\); else ctx\.finish\(result\);/.test(ms),
+    'placing a flag drops it in, a loss runs the chain and a win the wave before the result');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8479,6 +8585,7 @@ testFullscreenCarry();
 testBuildShown();
 testDarkInk();
 testDarkAccentText();
+testAnimations();
 testMenuSelect();
 testModalFocus();
 testTelegramPost();

@@ -48,6 +48,15 @@
   .ms-cell--open { background: var(--c-surface-2); box-shadow: none; }
   .ms-cell--open.ms-pop { animation: ms-open var(--t-mid) var(--ease) backwards; }
   @keyframes ms-open { from { transform: scale(.6); opacity: .2; } }
+  /* #398: a flag drops in; after a loss the other mines go off one by one, and
+     until its turn a mine still looks closed; a win sweeps a wave over the board */
+  .ms-cell--flag.ms-flagin svg { animation: ch-dropin 340ms var(--ease) backwards; animation-delay: inherit; }
+  .ms-cell--mine.ms-blow { animation: ms-blow 280ms var(--ease-back) backwards; }
+  .ms-cell--mine.ms-blow svg { animation: ms-blow-icon 280ms var(--ease-back) backwards; animation-delay: inherit; }
+  @keyframes ms-blow { from { background-color: var(--c-surface-3); transform: scale(.7); } }
+  @keyframes ms-blow-icon { from { transform: scale(0); } }
+  .ms-cell.ms-wave { animation: ms-wave 420ms var(--ease); }
+  @keyframes ms-wave { 40% { transform: scale(1.12); filter: brightness(1.12); } }
   .ms-cell--flag { color: var(--c-bad); }
   .ms-cell--mine { background: var(--c-bad); color: #fff; }
   .ms-cell--wrong { background: var(--c-bad-soft); color: var(--c-bad); }
@@ -392,7 +401,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
   var dailyDate = params.get('daily');
   var prefs = ctx.store.get('prefs', { size: 'small', custom: { rows: 12, cols: 12, mines: 24 } });
 
-  var S = null, cells = [], timerId = null, flagMode = false, cursor = 0, pressTimer = null, longFired = false;
+  var S = null, cells = [], timerId = null, flagMode = false, cursor = 0, lastAt = -1, pressTimer = null, longFired = false;
   // how long a press must last to flag, on the screen and on Space or Enter alike (#346)
   var LONG_MS = 420, keyHold = null;
 
@@ -445,7 +454,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
       revealed: [], flagged: [],
     };
     S.nbRows = sp.rows; S.nbCols = sp.cols;
-    cursor = 0;
+    cursor = 0; lastAt = -1;
     S.revealed = new Array(sp.rows * sp.cols).fill(0);
     S.flagged = new Array(sp.rows * sp.cols).fill(0);
     S.pendingRng = seedRng || null;
@@ -645,6 +654,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
     if (!S.started) { firstClick(idx); }
     if (S.revealed[idx]) { chord(idx); return; }
     if (S.mine[idx]) { lose(idx); return; }
+    lastAt = idx;
     var order = openFrom(idx);
     animate(order);
     C.feedback('tap');
@@ -692,6 +702,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
       order = order.concat(openFrom(n));
     });
     if (hitMine >= 0) { lose(hitMine); return; }
+    lastAt = idx;
     animate(order);
     C.feedback('tap');
     checkWin();
@@ -705,6 +716,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
     C.audio.sfx('flag');
     C.haptic('select');
     paint();
+    if (S.flagged[idx] && cells[idx]) cells[idx].classList.add('ms-flagin');
     save();
   }
 
@@ -720,6 +732,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
     if (i < 0) return;
     C.coins.spend(HINT_COST);
     S.hints++;
+    lastAt = i;
     var order = openFrom(i);
     animate(order);
     if (cells[i]) {
@@ -745,6 +758,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
     var snap = { elapsed: S.elapsed, sizeKey: S.sizeKey, daily: S.daily };
     for (var i = 0; i < S.mine.length; i++) if (S.mine[i]) S.revealed[i] = 1;
     paint();
+    var spent = blowUp(idx);
     snap.board = boardSnap();
     C.ui.shake(frame);
     C.audio.sfx('boom');
@@ -763,7 +777,44 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
           '\nروی مین رفتم · زمان ' + C.time(snap.elapsed),
         onAgain: snap.daily ? null : function () { newGame(snap.sizeKey); }
       });
-    }, 620);
+    }, 620 + Math.max(0, spent - 300));
+  }
+
+  // The mine that was hit goes off, then the others, nearest first (#398).
+  // Returns how long the chain runs, so the result waits for it.
+  function blowUp(idx) {
+    C.ui.burst(cells[idx], { count: 28, speed: 320, ring: 28, colors: ['#F2B84B', '#E07A5F', '#6B5A4E', '#FFF1C9'] });
+    if (C.ui.reduceMotion()) return 0;
+    var cols = S.spec.cols, r0 = Math.floor(idx / cols), c0 = idx % cols, list = [];
+    for (var i = 0; i < S.mine.length; i++) if (S.mine[i] && i !== idx) list.push(i);
+    var dist = function (i) { var dr = Math.floor(i / cols) - r0, dc = i % cols - c0; return dr * dr + dc * dc; };
+    list.sort(function (a, b) { return dist(a) - dist(b); });
+    var gap = list.length ? Math.min(70, 900 / list.length) : 0;
+    list.forEach(function (i, k) {
+      var b = cells[i];
+      if (!b) return;
+      var at = Math.round(160 + k * gap);
+      b.classList.add('ms-blow');
+      b.style.animationDelay = at + 'ms';
+      if (k < 10) setTimeout(function () { if (cells[i] === b && S.done) C.ui.burst(b, { count: 8, speed: 170, size: 2.5 }); }, at);
+    });
+    return Math.round(160 + list.length * gap);
+  }
+
+  // A cleared board answers with a wave from the last cell opened, the mines
+  // turning into flags as it passes (#398). Returns how long it runs.
+  function sweep() {
+    if (C.ui.reduceMotion()) return 0;
+    var cols = S.spec.cols, at = lastAt >= 0 ? lastAt : 0, r0 = Math.floor(at / cols), c0 = at % cols, far = 0;
+    for (var i = 0; i < cells.length; i++) {
+      var b = cells[i];
+      if (!b) continue;
+      var d = Math.min(16, Math.max(Math.abs(Math.floor(i / cols) - r0), Math.abs(i % cols - c0)));
+      far = Math.max(far, d);
+      b.classList.add(S.mine[i] ? 'ms-flagin' : 'ms-wave');
+      b.style.animationDelay = d * 40 + 'ms';
+    }
+    return far * 40 + 420;
   }
 
   function checkWin() {
@@ -773,6 +824,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
     stopTimer();
     for (var j = 0; j < total; j++) if (S.mine[j] && !S.flagged[j]) { S.flagged[j] = 1; S.flags++; }
     paint();
+    var wave = sweep();
 
     var secs = Math.round(S.elapsed / 1000);
     var base = { small: 8, medium: 16, large: 28, custom: 12 }[S.sizeKey] || 10;
@@ -790,7 +842,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
     }
     ctx.clearSave();
 
-    ctx.finish({
+    var sizeKey = S.sizeKey, daily = S.daily;
+    var result = {
       won: true, timeMs: S.elapsed, coins: coins, points: points,
       note: isBest ? C.t('best') + '!' : null,
       lines: [
@@ -801,8 +854,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = MinesEngin
       shareText: 'چوگان · مین‌روب ' + C.t(S.sizeKey) + (S.daily ? ('\nروزانه ' + S.daily) : '') +
         '\nزمان ' + C.time(S.elapsed) + ' · راهنمایی ' + C.num(S.hints),
       paint: cardPaint(boardSnap()),
-      onAgain: S.daily ? null : function () { newGame(S.sizeKey); }
-    });
+      onAgain: daily ? null : function () { newGame(sizeKey); }
+    };
+    // the result waits for the wave; everything it shows is fixed already
+    if (wave) setTimeout(function () { ctx.finish(result); }, wave); else ctx.finish(result);
   }
 
 
