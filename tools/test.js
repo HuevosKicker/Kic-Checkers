@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4358;
+const MIN_CHECKS = 4367;
 
 function ok(cond, msg) {
   checks++;
@@ -8508,6 +8508,42 @@ function testChessMotion() {
   ok(/\.cs-sq--check::before \{[^}]*animation: cs-check/.test(cs) && /if \(gone && !C\.ui\.reduceMotion\(\)\)/.test(cs), 'check pulses, and the taken piece fades unless motion is reduced');
 }
 
+function testStonesMotion() {
+  head('Gomoku and Go: stones drop in, the five draw, captures fade (#407)');
+  // Stones appeared at once, the winning line was there at once, and captured
+  // Go stones vanished in the same frame as the move.
+  const page = (g) => fs.readFileSync(path.join(ROOT, 'www/games', g, 'index.html'), 'utf8');
+  const fnOf = (src) => { const a = src.indexOf('  var fx = {'), b = src.indexOf('\n  }\n', src.indexOf('  function motion(', a)) + 4; return a > 0 && b > a ? src.slice(a, b) : ''; };
+  const gm = page('gomoku'), go = page('go');
+  ok(fnOf(gm).length > 0 && fnOf(go).length > 0, 'motion found in Gomoku and Go');
+  if (!fnOf(gm) || !fnOf(go)) return;
+  let now = 1000;
+  const sbFor = (src, S, reduced) => { const sb = { S, Math, C: { ui: { reduceMotion: () => reduced } }, performance: { now: () => now } }; vm.runInNewContext(fnOf(src) + ';this.motion = motion;', sb); return sb; };
+  // Gomoku
+  let S = { history: [] }, sb = sbFor(gm, S, false);
+  let m = sb.motion(0, false);
+  ok(m.drop === 1 && m.line === 1, 'Gomoku: the first draw is still');
+  now = 2000; m = sb.motion(1, false);
+  ok(m.drop === 0, 'Gomoku: a new stone starts its drop');
+  now = 2090; m = sb.motion(1, false);
+  ok(m.drop === 0.5, 'Gomoku: halfway through after 90 ms, and a repaint does not restart it');
+  now = 3000; m = sb.motion(0, false);
+  ok(m.drop === 1, 'Gomoku: an undo is drawn still');
+  now = 4000; sb.motion(1, false); m = sb.motion(1, true);
+  ok(m.line === 0, 'Gomoku: the winning line starts drawing when it appears');
+  sb = sbFor(gm, { history: [] }, true); sb.motion(0, false); now = 5000; m = sb.motion(1, true);
+  ok(m.drop === 1, 'Gomoku: nothing drops with reduced motion');
+  // Go: a capture
+  const before = new Array(81).fill(0), after = new Array(81).fill(0);
+  before[1] = 2; before[0] = 0; after[0] = 1; after[10] = 1; after[2] = 1;
+  S = { history: [], g: { board: before } }; now = 6000; sb = sbFor(go, S, false); sb.motion();
+  S.history.push({ g: { board: before.slice() }, last: -1 }); S.g.board = after.slice(); S.g.board[1] = 0; now = 6100;
+  m = sb.motion();
+  ok(m.drop === 0 && m.gone.length === 1 && m.gone[0].i === 1 && m.gone[0].who === 2 && m.gone[0].k === 0, 'Go: the captured stone is found and starts to fade');
+  now = 6500; m = sb.motion();
+  ok(m.gone.length === 0 && m.drop === 1, 'Go: after the fade nothing is left over');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8743,6 +8779,7 @@ testSudokuAutoNotes();
 testPasurMotion();
 testFreecellMotion();
 testChessMotion();
+testStonesMotion();
 testBowling();
 testSliding();
 testJigsaw();
