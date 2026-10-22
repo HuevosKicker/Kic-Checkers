@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4450;
+const MIN_CHECKS = 4455;
 
 function ok(cond, msg) {
   checks++;
@@ -8824,6 +8824,24 @@ function testJigsawGlide() {
   ok(/var at = d\.node\.getBoundingClientRect\(\);\n    d\.node\.remove\(\);/.test(src) && /landed\(d\.piece, at\)/.test(src), 'the drop point is read before the floating piece is removed');
 }
 
+function testBreakoutMotion() {
+  head('Breakout: brick shards, paddle squash, reduced motion (#407)');
+  // A broken brick only faded, the fade ran even with reduced motion, and the
+  // ball met the paddle with no give.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/breakout/index.html'), 'utf8');
+  const a0 = src.indexOf('  var SQUASH_MS'), b0 = src.indexOf('\n  }\n', src.indexOf('  function brickOnPage(', a0)) + 4;
+  ok(a0 > 0 && b0 > a0, 'squash and brickOnPage found in Breakout');
+  if (!(a0 > 0 && b0 > a0)) return;
+  const sb = { Math, E: { W: 360 }, canvas: { getBoundingClientRect: () => ({ left: 20, top: 100, width: 720, height: 1000 }) } };
+  vm.runInNewContext(src.slice(a0, b0) + ';this.squash = squash; this.brickOnPage = brickOnPage;', sb);
+  const mid = sb.squash(70);
+  ok(mid[0] > 1.1 && mid[1] < 0.75 && sb.squash(-5)[0] === 1 && sb.squash(140)[1] === 1, 'the paddle is widest and flattest mid-squash, and plain outside it');
+  const at = sb.brickOnPage({ x: 30, y: 40, w: 40, h: 16 });
+  ok(at.x === 20 + 50 * 2 && at.y === 100 + 48 * 2, 'shards start at the brick\'s centre on the page, at the board\'s scale');
+  ok(/if \(!C\.ui\.reduceMotion\(\)\) \{\n            flashes\.push\([^\n]*\n            C\.ui\.burst\(brickOnPage\(e\)/.test(src), 'the fade and the shards both stop with reduced motion');
+  ok(/if \(!C\.ui\.reduceMotion\(\)\) squashAt = performance\.now\(\);/.test(src) && /var sq = withText \? squash\(now - squashAt\) : \[1, 1\]/.test(src), 'the squash stops with reduced motion and never shows on the result card');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9060,6 +9078,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testBreakoutMotion();
 testJigsawGlide();
 testSlidingShimmer();
 testMastermindReveal();
