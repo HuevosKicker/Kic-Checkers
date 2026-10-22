@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4418;
+const MIN_CHECKS = 4424;
 
 function ok(cond, msg) {
   checks++;
@@ -8712,6 +8712,25 @@ function testBackgammonMotion() {
   ok(/fxStart\('step', spec\);/.test(src) && /function afterRoll\(\) \{\n[^\n]*\n    bfx\.step = null;\n    fxStart\('roll', \{\}\);/.test(src), 'each step slides and each roll tumbles');
 }
 
+function testLudoMotion() {
+  head('Ludo: a captured token flies home, reaching home bursts (#407)');
+  // A captured token was back in its base in one frame, and reaching home was
+  // only a message.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/ludo/index.html'), 'utf8');
+  const a0 = src.indexOf('  var FLY_MS'), b0 = src.indexOf('\n  }\n', src.indexOf('  function flyAt(', a0)) + 4;
+  ok(a0 > 0 && b0 > a0, 'flyFx and flyAt found in Ludo');
+  if (!(a0 > 0 && b0 > a0)) return;
+  const sb = { Math };
+  vm.runInNewContext(src.slice(a0, b0) + ';this.flyFx = flyFx; this.flyAt = flyAt;', sb);
+  const fl = sb.flyFx([{ seat: 1, k: 0 }], (s, k) => [7.5, 2.5], (s, k) => [11.5, 2.5]);
+  ok(fl.length === 1 && fl[0].seat === 1 && fl[0].from[0] === 7.5 && fl[0].to[0] === 11.5, 'the flight runs from where the token was taken to its base');
+  const mid = sb.flyAt(fl[0], 0.5), end = sb.flyAt(fl[0], 1), start = sb.flyAt(fl[0], 0);
+  ok(start[0] === 7.5 && start[1] === 2.5 && end[0] === 11.5 && Math.abs(end[1] - 2.5) < 1e-9, 'it starts on the cell and ends on the base spot');
+  ok(mid[1] < 2.5 - 1.5 && mid[0] > 7.5 && mid[0] < 11.5, 'it arcs up on the way');
+  ok(/if \(r\.captured\.length && !C\.ui\.reduceMotion\(\)\) \{\n        lfx = /.test(src), 'no flight with reduced motion');
+  ok(/if \(r\.home\) \{\n[^\n]*\n        C\.ui\.burst\(/.test(src), 'reaching home bursts (the core skips it with reduced motion)');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8948,6 +8967,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testLudoMotion();
 testBackgammonMotion();
 testDotsChain();
 testMorrisMotion();
