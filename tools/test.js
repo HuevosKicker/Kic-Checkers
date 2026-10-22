@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4478;
+const MIN_CHECKS = 4483;
 
 function ok(cond, msg) {
   checks++;
@@ -8934,6 +8934,20 @@ function testCueSink() {
   }
 }
 
+function testBowlingBanner() {
+  head('Bowling: strike and spare pop, no replay with reduced motion (#407)');
+  // A strike was a plain line of status text, and reduced motion replayed the
+  // roll six times faster, which is still motion.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/bowling/index.html'), 'utf8');
+  ok(/\.bw-status--big \{[^}]*animation: bw-pop 420ms/.test(src) && /@keyframes bw-pop \{ 0% \{ transform: scale\(\.6\); opacity: 0; \}/.test(src), 'the strike and spare call pops in');
+  ok(/G\.big = !!\(r\.strike \|\| r\.spare\);/.test(src) && /var big = !!\(G\.big && G\.msg\);/.test(src), 'only a strike or a spare is called out big');
+  ok(/G\.phase = isBot\(G\.s\.turn\) \? 'busy' : 'aim';\n    G\.big = false;/.test(src), 'the next turn\'s messages are plain again');
+  ok(!/speed: C\.ui\.reduceMotion\(\) \? 6/.test(src) && /if \(C\.ui\.reduceMotion\(\)\) \{ settle\(\); draw\(\); return; \}/.test(src), 'reduced motion shows where the pins fell, with no replay');
+  // the settle path is the same one the animation ends with
+  const a0 = src.indexOf('  function settle() {'), b0 = src.indexOf('\n  }\n', a0) + 4;
+  ok(a0 > 0 && /anim = null;\n    var r = E\.roll\(G\.s, res\.down\);/.test(src.slice(a0, b0)), 'the instant path scores the roll exactly as the animated one does');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9170,6 +9184,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testBowlingBanner();
 testCueSink();
 testBattleshipFx();
 testTowerDefenceKills();
