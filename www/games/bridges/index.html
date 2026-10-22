@@ -22,6 +22,8 @@
   @keyframes br-draw { from { stroke-dasharray: 0 400; } }
   .br-done { animation: br-pop 320ms var(--ease-back); transform-box: fill-box; transform-origin: center; }
   @keyframes br-pop { 50% { transform: scale(1.16); } }
+  /* the win wave: each island pops in turn, outward from the last bridge (#407) */
+  .br-wave { animation-delay: var(--d, 0ms); }
   .br-status { color: var(--c-text-dim); font-size: var(--fs-sm); min-height: 1.4em; text-align: center; }
 </style>
 </head>
@@ -497,7 +499,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BridgesEng
     return [[x1 - ox, y1 - oy, x2 - ox, y2 - oy], [x1 + ox, y1 + oy, x2 + ox, y2 + oy]];
   }
 
-  function paint(full, popIsland) {
+  // #407: a solved puzzle went straight to the result window. Now a wave runs
+  // over the islands first, outward from the island of the last bridge, one
+  // step of the grid every 45 ms (capped), and the result waits for it.
+  var WAVE_STEP = 45, WAVE_MAX = 520, POP_MS = 320;
+  function waveDelays(islands, from) {
+    return islands.map(function (p) { return Math.min(WAVE_MAX, (Math.abs(p.r - from.r) + Math.abs(p.c - from.c)) * WAVE_STEP); });
+  }
+
+  function paint(full, popIsland, wave) {
     layers.bridges.innerHTML = '';
     for (var e = 0; e < g.edges.length; e++) {
       var k = S.bridges[e];
@@ -519,7 +529,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BridgesEng
       circ.setAttribute('fill', state === 'done' ? 'var(--game)' : 'var(--c-surface)');
       circ.setAttribute('stroke', state === 'over' ? 'var(--c-bad)' : (state === 'done' ? 'var(--game)' : 'var(--c-text-dim)'));
       circ.setAttribute('stroke-width', state === 'over' ? 4 : 3);
-      circ.setAttribute('class', 'br-island' + (popIsland && popIsland.indexOf(i) >= 0 && state === 'done' ? ' br-done' : ''));
+      circ.setAttribute('class', 'br-island' + (wave ? ' br-done br-wave' : popIsland && popIsland.indexOf(i) >= 0 && state === 'done' ? ' br-done' : ''));
+      if (wave) circ.style.setProperty('--d', wave[i] + 'ms');
       layers.islands.appendChild(circ);
       var t = document.createElementNS(NS, 'text');
       t.setAttribute('x', px(p.c)); t.setAttribute('y', px(p.r) + 9);
@@ -693,7 +704,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BridgesEng
     S.done = true;
     S.elapsed = elapsed();
     S.since = null;
-    paint(true);
+    var wait = 0;
+    if (C.ui.reduceMotion()) paint(true);
+    else {
+      var e0 = lastEdge >= 0 ? g.edges[lastEdge] : null, ds = waveDelays(g.islands, g.islands[e0 ? e0.a : 0]);
+      paint(true, null, ds);
+      wait = Math.max.apply(null, ds) + POP_MS;
+    }
     var secs = Math.round(S.elapsed / 1000);
     var base = { 7: 6, 9: 12, 11: 20 }[S.size] || 12;
     var speed = C.clamp(1.6 - secs / 900, 0.6, 1.6);
@@ -710,7 +727,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BridgesEng
     }
     ctx.clearSave();
 
-    ctx.finish({
+    var result = {
       won: true,
       title: C.t('won'),
       timeMs: S.elapsed, coins: coins, points: points,
@@ -724,7 +741,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BridgesEng
         '\n' + C.time(S.elapsed),
       paint: cardPaint(),
       onAgain: S.daily ? null : function () { newGame(S.size); }
-    });
+    };
+    // the result waits for the wave; everything it shows is fixed already
+    if (wait) setTimeout(function () { ctx.finish(result); }, wait); else ctx.finish(result);
   }
 
   /* --------------------------------------------------------- ذخیره */

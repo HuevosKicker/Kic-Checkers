@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4430;
+const MIN_CHECKS = 4436;
 
 function ok(cond, msg) {
   checks++;
@@ -8748,6 +8748,24 @@ function testNonogramMotion() {
   ok(/function notePops\(before\) \{\n    if \(C\.ui\.reduceMotion\(\)\) return;/.test(src) && /if \(nfx\.seen && !C\.ui\.reduceMotion\(\)\)/.test(src), 'reduced motion starts neither');
 }
 
+function testBridgesWave() {
+  head('Bridges: a wave runs over the islands on the win (#407)');
+  // A solved puzzle went straight to the result window.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/bridges/index.html'), 'utf8');
+  const a0 = src.indexOf('  var WAVE_STEP'), b0 = src.indexOf('\n  }\n', src.indexOf('  function waveDelays(', a0)) + 4;
+  ok(a0 > 0 && b0 > a0, 'waveDelays found in Bridges');
+  if (!(a0 > 0 && b0 > a0)) return;
+  const sb = { Math };
+  vm.runInNewContext(src.slice(a0, b0) + ';this.waveDelays = waveDelays;', sb);
+  const isl = [{ r: 0, c: 0 }, { r: 0, c: 2 }, { r: 2, c: 2 }, { r: 10, c: 10 }];
+  const d = sb.waveDelays(isl, isl[1]);
+  ok(d.length === 4 && d[1] === 0, 'the island of the last bridge pops first');
+  ok(d[0] === d[2] && d[0] > 0 && d[3] > d[0], 'farther islands follow in order');
+  ok(d[3] <= 520, 'the wave is capped (' + d[3] + ' ms)');
+  ok(/if \(wait\) setTimeout\(function \(\) \{ ctx\.finish\(result\); \}, wait\); else ctx\.finish\(result\);/.test(src), 'the result waits for the wave');
+  ok(/if \(C\.ui\.reduceMotion\(\)\) paint\(true\);/.test(src), 'reduced motion shows the result at once');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8984,6 +9002,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testBridgesWave();
 testNonogramMotion();
 testLudoMotion();
 testBackgammonMotion();
