@@ -616,6 +616,53 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
     g.restore();
   }
 
+  // #407: a shot only left its mark. Now a miss sends rings across the water,
+  // a hit bursts, and a sinking shakes that sea. Marks and state are final
+  // first; the core's burst and shake do nothing under reduced motion.
+  var SPLASH_MS = 520, splashes = [], splashRaf = 0;
+  // the centre of a cell on the page, for the shared burst layer
+  function cellOnPage(r, idx) {
+    var cs = r.width / N;
+    return { x: r.left + (idx % N + 0.5) * cs, y: r.top + (((idx / N) | 0) + 0.5) * cs };
+  }
+  // two rings, the second a little behind, growing and fading; q is 0..1
+  function splashRings(q) {
+    return [q, q - 0.25].filter(function (v) { return v > 0 && v < 1; })
+      .map(function (v) { return { r: 0.12 + 0.42 * v, a: 0.75 * (1 - v) * (1 - q) }; });
+  }
+  function shotFx(cv, idx, result) {
+    if (result === 'miss') {
+      if (C.ui.reduceMotion()) return;
+      splashes.push({ cv: cv, idx: idx, t0: performance.now() });
+      if (!splashRaf) splashRaf = requestAnimationFrame(function tick() {
+        splashRaf = 0;
+        draw();
+        if (splashes.length) splashRaf = requestAnimationFrame(tick);
+      });
+      return;
+    }
+    var at = cellOnPage(cv.getBoundingClientRect(), idx), sunk = result === 'sunk';
+    C.ui.burst(at, { count: sunk ? 30 : 16, speed: sunk ? 300 : 220, ring: sunk ? 30 : 0, colors: ['#E8913A', '#E07A5F', '#FFF1C9', '#6B5A4E'] });
+    if (sunk) C.ui.shake(cv.parentNode);
+  }
+  function drawSplashes(cv, g, w, P) {
+    var now = performance.now(), cs = w / N, keep = [];
+    for (var i = 0; i < splashes.length; i++) {
+      var sp = splashes[i], q = (now - sp.t0) / SPLASH_MS;
+      if (q >= 1) continue;
+      keep.push(sp);
+      if (sp.cv !== cv) continue;
+      var cx = (sp.idx % N + 0.5) * cs, cy = (((sp.idx / N) | 0) + 0.5) * cs;
+      splashRings(q).forEach(function (ring) {
+        // the palette's dim ink: white rings vanished on the light theme's pale water
+        g.globalAlpha = ring.a; g.strokeStyle = P.dim; g.lineWidth = Math.max(1.5, cs * 0.06);
+        g.beginPath(); g.arc(cx, cy, ring.r * cs, 0, Math.PI * 2); g.stroke();
+      });
+      g.globalAlpha = 1;
+    }
+    if (cv === cvMe) splashes = keep;
+  }
+
   function fitCanvas(cv) {
     var w = cv.clientWidth || 300;
     var d = window.devicePixelRatio || 1;
@@ -647,8 +694,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
       cursor: (kbUsed && !over) ? cur.foe : -1, last: S.lastMe,
       preview: (!over && hover >= 0 && E.canFire(G.foe, hover) && !busy()) ? { cells: [hover], ok: true } : null
     }, P);
+    drawSplashes(cvFoe, ff.g, ff.w, P);
     var fm = fitCanvas(cvMe);
     paintSea(fm.g, 0, 0, fm.w, { board: G.me, ships: G.me.ships, reveal: true, sel: -1, cursor: -1, last: S.lastAi }, P);
+    drawSplashes(cvMe, fm.g, fm.w, P);
   }
 
   function pips(box, board, ships) {
@@ -844,6 +893,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
     else if (res.result === 'hit') { C.audio.sfx('hit'); C.haptic('success'); }
     else { C.audio.sfx('place'); C.haptic('tap'); }
     after();
+    shotFx(cvFoe, idx, res.result);
   }
 
   function after() {
@@ -868,6 +918,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Battleship
       if (res.result !== 'miss') { C.audio.sfx(res.result === 'sunk' ? 'boom' : 'hit'); C.haptic('warn'); }
       else C.audio.sfx('tick');
       after();
+      shotFx(cvMe, res.i, res.result);
     }, 700);
   }
   function stopAi() { if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; } }
