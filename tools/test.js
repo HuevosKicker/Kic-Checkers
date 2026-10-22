@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4367;
+const MIN_CHECKS = 4373;
 
 function ok(cond, msg) {
   checks++;
@@ -8544,6 +8544,32 @@ function testStonesMotion() {
   ok(m.gone.length === 0 && m.drop === 1, 'Go: after the fade nothing is left over');
 }
 
+function testSudokuRipple() {
+  head('Sudoku: a finished row, column or box ripples (#407)');
+  // Finishing a unit had no moment of its own.
+  const sd = fs.readFileSync(path.join(ROOT, 'www/games/sudoku/index.html'), 'utf8');
+  const fn = (sd.match(/^  function ripple\(i\) \{[\s\S]*?^  \}$/m) || [''])[0];
+  ok(fn.length > 0, 'ripple found in Sudoku');
+  if (!fn) return;
+  const sol = [];
+  for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) sol.push(((r * 3 + Math.floor(r / 3) + c) % 9) + 1);
+  const grid = new Array(81).fill(0);
+  for (let c = 0; c < 9; c++) grid[c] = sol[c];          // row 0 complete
+  const cells = Array.from({ length: 81 }, () => ({ classList: { list: [], add(x) { this.list.push(x); }, remove() {} }, style: {} }));
+  const run = (reduced) => { const sb = { S: { grid, solution: sol }, cells, Math, Object, Number, setTimeout() {}, C: { ui: { reduceMotion: () => reduced } } }; vm.runInNewContext(fn + ';this.ripple = ripple;', sb); return sb.ripple; };
+  let out = run(false)(4);
+  ok(out.length === 9 && out.every((c) => c < 9) && cells[4].style.animationDelay === '0ms' && cells[0].style.animationDelay === '140ms', 'the finished row ripples out from the last digit, 35 ms a step');
+  grid[9] = sol[9]; grid[18] = sol[18];
+  for (let r = 3; r < 9; r++) grid[r * 9] = sol[r * 9];
+  out = run(false)(0);
+  ok(out.length === 17, 'a digit finishing a row and a column ripples both (' + out.length + ' cells)');
+  grid[1] = 0;
+  out = run(false)(0);
+  ok(out.length === 9 && out.every((c) => c % 9 === 0), 'an unfinished row stays still');
+  ok(run(true)(0).length === 0, 'nothing ripples with reduced motion');
+  ok(/if \(v && !noteMode && v === S\.solution\[selected\]\) ripple\(selected\);/.test(sd), 'a correct digit placed triggers the ripple; notes and mistakes do not');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8780,6 +8806,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testSudokuRipple();
 testBowling();
 testSliding();
 testJigsaw();
