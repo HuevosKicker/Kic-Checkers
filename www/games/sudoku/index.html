@@ -54,6 +54,9 @@
     border-radius: max(3px, 1.2cqi);
   }
   .sd-cell--given { color: var(--c-text); background: var(--c-surface-2); }
+  /* a finished row, column or box answers with a ripple from the last digit (#407) */
+  .sd-cell.sd-done { animation: sd-done 420ms var(--ease); }
+  @keyframes sd-done { 40% { transform: scale(1.08); background-color: var(--game-soft); } }
   .sd-cell--user { color: var(--game); }
   .sd-cell--hinted { color: var(--c-good); }
   .sd-cell--peer { background: var(--c-surface-3); }
@@ -685,8 +688,33 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SudokuEngi
       }
     }
     paint();
+    if (v && !noteMode && v === S.solution[selected]) ripple(selected);
     save();
     checkWin();
+  }
+
+  // Every row, column and box that the digit at i has just finished ripples out
+  // from it, 35 ms a step. Returns the cells it touched.
+  function ripple(i) {
+    if (C.ui.reduceMotion()) return [];
+    var r0 = (i / 9) | 0, c0 = i % 9, units = [[], [], []], hit = {};
+    for (var k = 0; k < 9; k++) {
+      units[0].push(r0 * 9 + k);
+      units[1].push(k * 9 + c0);
+      units[2].push((((r0 / 3) | 0) * 3 + ((k / 3) | 0)) * 9 + ((c0 / 3) | 0) * 3 + k % 3);
+    }
+    units.forEach(function (u) {
+      if (u.every(function (c) { return S.grid[c] === S.solution[c]; })) u.forEach(function (c) { hit[c] = 1; });
+    });
+    var out = Object.keys(hit).map(Number);
+    out.forEach(function (c) {
+      var b = cells[c];
+      if (!b) return;
+      b.classList.add('sd-done');
+      b.style.animationDelay = (Math.abs(((c / 9) | 0) - r0) + Math.abs(c % 9 - c0)) * 35 + 'ms';
+      setTimeout(function () { b.classList.remove('sd-done'); b.style.animationDelay = ''; }, 900);
+    });
+    return out;
   }
 
   function hint() {
