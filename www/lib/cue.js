@@ -269,10 +269,28 @@
     return Math.abs(d) < Math.PI * 40 / 180;
   }
 
+  // #407: a potted ball vanished at the pocket's mouth in one frame. Pool and
+  // snooker keep each pot for SINK_MS and draw the ball sliding into the
+  // pocket's centre as it shrinks and fades. sinksOf reads where each ball of
+  // this step's pots dropped; sinkAt is its place, scale and alpha at q (0..1).
+  var SINK_MS = 220;
+  function sinksOf(s, now) {
+    return s.pots.map(function (p) {
+      var b = null;
+      for (var i = 0; i < s.balls.length; i++) if (s.balls[i].id === p.id) b = s.balls[i];
+      var pk = s.T.pockets[p.pocket];
+      return { id: p.id, pocket: p.pocket, x: b ? b.x : pk.x, y: b ? b.y : pk.y, t0: now };
+    });
+  }
+  function sinkAt(T, p, q) {
+    var pk = T.pockets[p.pocket], e = q * q;
+    return { x: p.x + (pk.x - p.x) * e, y: p.y + (pk.y - p.y) * e, k: 1 - 0.85 * e, a: 1 - e };
+  }
+
   var api = {
     DT: DT, MAX_TICKS: MAX_TICKS, table: table, clone: clone, speedOf: speedOf,
     start: start, tick: tick, simulate: simulate, aim: aim, free: free, clear: clear, nearestPocket: nearestPocket,
-    pullsBack: pullsBack
+    pullsBack: pullsBack, SINK_MS: SINK_MS, sinksOf: sinksOf, sinkAt: sinkAt
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.ChoganCue = api;

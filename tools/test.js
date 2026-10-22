@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4472;
+const MIN_CHECKS = 4478;
 
 function ok(cond, msg) {
   checks++;
@@ -8910,6 +8910,30 @@ function testBattleshipFx() {
   ok(/if \(result === 'miss'\) \{\n      if \(C\.ui\.reduceMotion\(\)\) return;/.test(src) && /if \(sunk\) C\.ui\.shake\(cv\.parentNode\);/.test(src), 'no splash with reduced motion; a sinking shakes that sea through the core (which also checks it)');
 }
 
+function testCueSink() {
+  head('Pool and snooker: a potted ball sinks into the pocket (#407)');
+  // A potted ball vanished at the pocket's mouth in one frame.
+  delete require.cache[require.resolve(path.join(ROOT, 'www/lib/cue.js'))];
+  const Cue = require(path.join(ROOT, 'www/lib/cue.js'));
+  ok(typeof Cue.sinksOf === 'function' && typeof Cue.sinkAt === 'function' && Cue.SINK_MS > 0 && Cue.SINK_MS <= 300, 'the shared sink helpers exist in cue.js');
+  if (typeof Cue.sinksOf !== 'function') return;
+  const T = Cue.table({});
+  // the white rolls straight into the top-left corner pocket
+  const balls = [{ id: 0, x: T.r * 6, y: T.r * 6, vx: 0, vy: 0, inPlay: true }];
+  const run = Cue.start(T, balls, { angle: Math.PI * 1.25, power: 0.5 }, 0);
+  let sinks = [];
+  for (let i = 0; i < Cue.MAX_TICKS && run.moving && !sinks.length; i++) { Cue.tick(run); if (run.pots.length) sinks = Cue.sinksOf(run, 1000); }
+  ok(sinks.length === 1 && sinks[0].id === 0 && sinks[0].pocket === 0 && sinks[0].t0 === 1000, 'the pot is read with its ball, pocket and time');
+  if (!sinks.length) return;
+  const pk = T.pockets[0], a = Cue.sinkAt(T, sinks[0], 0), b = Cue.sinkAt(T, sinks[0], 1);
+  ok(a.x === sinks[0].x && a.y === sinks[0].y && a.k === 1 && a.a === 1, 'it starts where the ball dropped, full size');
+  ok(Math.abs(b.x - pk.x) < 1e-9 && Math.abs(b.y - pk.y) < 1e-9 && b.k < 0.2 && b.a === 0, 'it ends in the pocket\'s centre, small and gone');
+  for (const g of ['eightball', 'snooker']) {
+    const html = fs.readFileSync(path.join(ROOT, 'www/games', g, 'index.html'), 'utf8');
+    ok(/if \(!C\.ui\.reduceMotion\(\)\) sinks = sinks\.concat\(Cue\.sinksOf\(run, t\)\);/.test(html) && /inHand: still && F\.inHand && humanTurn\(\)[^\n]*\);\n    drawSinks\(g\);/.test(html), g + ': pots sink on the live table only, and not with reduced motion');
+  }
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9146,6 +9170,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testCueSink();
 testBattleshipFx();
 testTowerDefenceKills();
 testBlockdropMotion();
