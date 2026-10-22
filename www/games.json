@@ -888,6 +888,30 @@
       "soft": "#F6E7D2",
       "added": "2026-10-22",
       "files": []
+    },
+    {
+      "id": "ginrummy",
+      "cat": "cards",
+      "name": {
+        "fa": "جین رامی",
+        "en": "Gin Rummy",
+        "zh": "金拉米",
+        "de": "Gin Rommé",
+        "es": "Gin Rummy"
+      },
+      "summary": {
+        "fa": "دسته بساز، کارت‌های آزادت را کم کن و ناک یا جین کن؛ مقابل یک ربات تا ۱۰۰ امتیاز.",
+        "en": "Make melds, cut your deadwood, then knock or go gin; against a bot to 100 points.",
+        "zh": "组成组合，减少散牌，然后敲牌或达成金；对战电脑，先到100分。",
+        "de": "Kombinationen bilden, Restpunkte senken, dann klopfen oder Gin; gegen einen Bot bis 100.",
+        "es": "Forma combinaciones, baja tus sueltas y cierra o haz gin; contra un bot hasta 100."
+      },
+      "path": "games/ginrummy/index.html",
+      "icon": "games/ginrummy/icon.svg",
+      "color": "#A45C54",
+      "soft": "#F6E2DF",
+      "added": "2026-10-22",
+      "files": []
     }
   ]
 }

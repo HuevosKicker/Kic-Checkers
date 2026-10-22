@@ -1,4 +1,4 @@
-Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Siebenunddreißig Spiele sind dabei, und neue kommen als Updates derselben App dazu.
+Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Achtunddreißig Spiele sind dabei, und neue kommen als Updates derselben App dazu.
 
 Die Spiele:
 
@@ -39,6 +39,7 @@ Die Spiele:
 * Dame — 8×8 mit Schlagzwang, klassisch oder spanisch, gegen die KI oder zu zweit
 * Klondike — Patience, eine oder drei Karten ziehen, das Tagesspiel ist immer lösbar
 * Verrückte Acht — Farbe oder Wert bedienen, Achten wechseln die Farbe; gegen 1 bis 3 Bots
+* Gin Rommé — Kombinationen gegen einen Bot: klopfen, Gin, Unterbieten, bis 100
 
 Rund um die Spiele:
 
