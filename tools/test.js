@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4373;
+const MIN_CHECKS = 4380;
 
 function ok(cond, msg) {
   checks++;
@@ -8570,6 +8570,28 @@ function testSudokuRipple() {
   ok(/if \(v && !noteMode && v === S\.solution\[selected\]\) ripple\(selected\);/.test(sd), 'a correct digit placed triggers the ripple; notes and mistakes do not');
 }
 
+function testReversiMotion() {
+  head('Reversi: the disc drops in, then the flips ripple out (#407)');
+  // Every flip turned in the same 300 ms while the new disc grew, so a long
+  // capture read as one blink rather than a chain.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/reversi/index.html'), 'utf8');
+  const a0 = src.indexOf('  var DROP_MS'), b0 = src.indexOf('\n  }\n', src.indexOf('  function animEnd(', a0)) + 4;
+  ok(a0 > 0 && b0 > a0, 'animPhase found in Reversi');
+  if (!(a0 > 0 && b0 > a0)) return;
+  const sb = { Math };
+  vm.runInNewContext(src.slice(a0, b0) + ';this.animPhase = animPhase; this.animEnd = animEnd;', sb);
+  // placed on d4 (27); flips to the right on e4, f4 (28, 29) and far along the row to h4 (31)
+  const a = { i: 27, flips: [28, 29, 30], t0: 1000 };
+  ok(sb.animPhase(a, 27, 1075) === 0.5, 'the placed disc is halfway down after 75 ms');
+  ok(sb.animPhase(a, 28, 1140) === 0, 'no flip starts before the disc has landed');
+  const near = sb.animPhase(a, 28, 1300), far = sb.animPhase(a, 30, 1300);
+  ok(near > far && near > 0, 'the nearest flip is ahead of the far one (' + near.toFixed(2) + ' vs ' + far.toFixed(2) + ')');
+  ok(sb.animPhase(a, 30, 1000 + sb.animEnd(a)) === 1, 'every flip has finished at the end');
+  const long = { i: 0, flips: [9, 18, 27, 36, 45, 54, 63], t0: 0 };
+  ok(sb.animEnd(long) <= 1000, 'the longest ripple stays within a second (' + sb.animEnd(long) + ' ms)');
+  ok(/if \(C\.ui\.reduceMotion\(\)\) \{ anim = null; draw\(\); return; \}/.test(src), 'reduced motion draws the move still');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8806,6 +8828,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testReversiMotion();
 testSudokuRipple();
 testBowling();
 testSliding();
