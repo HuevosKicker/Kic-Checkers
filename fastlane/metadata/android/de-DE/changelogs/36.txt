@@ -1,0 +1,7 @@
+Die Navigationsleiste folgt dem dunklen Design der App.
+Darts: Der dritte Pfeil und die Würfe des Gegners bleiben lesbar, jeder Pfeil zeigt seine Punkte.
+Dunkles Design: Knöpfe und gewählte Optionen sind besser lesbar.
+Blackjack: Karten kommen aus dem Schlitten und drehen sich um.
+Minesweeper: Fahnen fallen ein, Minen gehen nacheinander hoch, ein geräumtes Feld schlägt eine Welle.
+Dame: Schlagen ist wählbar.
+Profil: Version und Commit verlinken auf GitHub.
