@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4339;
+const MIN_CHECKS = 4346;
 
 function ok(cond, msg) {
   checks++;
@@ -5247,7 +5247,7 @@ function testPasur() {
   ok(psPage.indexOf('function faceSvg') < 0 && psPage.indexOf('data:image/svg+xml') < 0 && /return C\.cards\.el\(c, 'ps-card'/.test(psPage) && /C\.cards\.back\(\)/.test(psPage),
     'Pasur draws its cards with the shared core, not a copy');
   ok(/prefers-reduced-motion: reduce\)'\)\.matches;\s*if \(reduce\) \{ done\(\); return; \}/.test(psPage), 'the shuffle is skipped with reduced motion');
-  ok(/function canHumanMove\(\) \{ return S && !S\.done && S\.turn === 0 && !dealing; \}/.test(psPage) && /shuffleAnim\(function \(\) \{ paint\(\); maybeAi\(\); \}\);/.test(psPage), 'nobody moves until the shuffle has finished');
+  ok(/function canHumanMove\(\) \{ return S && !S\.done && S\.turn === 0 && !dealing(?: && !sweeping)?; \}/.test(psPage) && /shuffleAnim\(function \(\) \{ paint\(\); maybeAi\(\); \}\);/.test(psPage), 'nobody moves until the shuffle has finished');
   const N = (arr) => arr.map(E.name).sort().join(' ');
   const optsOf = (table, card) => E.options(P(table), E.parse(card)).map((o) => N(o)).sort();
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -8437,6 +8437,26 @@ function testSudokuAutoNotes() {
     'the options have their own gear tool beside hint, out of the help sheet, the crowded game bar and a row of their own (#413)');
 }
 
+function testPasurMotion() {
+  head('Pasur: dealt, played and captured cards move (#407)');
+  // Pasur's cards appeared and vanished in place, apart from the shuffle and the
+  // rival's drop-in; a capture just emptied the table.
+  const ps = fs.readFileSync(path.join(ROOT, 'www/games/pasur/index.html'), 'utf8');
+  const has = (re) => re.test(ps);
+  ok(has(/var src = byHuman \? nodeOf\(handRow, card\) : nodeOf\(tableRow, card\);\n\s+var srcRect = [^\n]+\n\s+var info = E\.play\(S, card, set\);/), 'the played card\'s place is read before the state changes');
+  ok(has(/\[src\]\.concat\(info\.take\.map\(function \(c\) \{ return nodeOf\(tableRow, c\); \}\)\)\.forEach\(function \(n, i\) \{\n\s+if \(n\) last = C\.ui\.sendTo\(n, to, \{ delay: i \* 40, ms: 340 \}\) \|\| last;/) &&
+    has(/var to = info\.player === 0 \? youRow : rivalRow/), 'a capture slides the played card and the cards it takes to the taker');
+  ok(has(/if \(info\.sur\) C\.ui\.burst\(to,/), 'a sur bursts over the taker');
+  ok(has(/sweeping = true;\n\s+last\.onfinish = go;/) && has(/var go = function \(\) \{ if \(S !== mine\) return; sweeping = false;/) && has(/!dealing && !sweeping; \}/),
+    'nothing can be tapped while a capture slides, and a new game started meanwhile is left alone');
+  ok(has(/if \(c === fresh\) flights\.push\(\[b, rivalFrom, true, 0\]\);/) && has(/else if \(putFrom && putFrom\.c === c\) flights\.push\(\[b, putFrom\.r, false, 0\]\);/) && !has(/ps-card--in/),
+    'the rival\'s card comes from its fan and turns over, yours from your hand');
+  ok(has(/if \(dealt\.length > 1\) dealt\.forEach\(function \(c\) \{ flights\.push\(\[nodeOf\(handRow, c\), tableRow, true, 0\]\); \}\);/) &&
+    has(/handSeen = S\.hands\[0\]\.slice\(\); rivalSeen = S\.hands\[1\]\.length; tableSeen = S\.table\.slice\(\);\n\s+render\(\);/), 'a deal brings new cards from the deck; a restored game is drawn still');
+  const ai = ps.slice(ps.indexOf('  function maybeAi() {'), ps.indexOf('    aiTimer = setTimeout', ps.indexOf('  function maybeAi() {')));
+  ok(ai.length > 0 && !/paint\(\)/.test(ai), 'maybeAi does not repaint over cards still in flight');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8669,6 +8689,7 @@ testDarts();
 testDartsVisit();
 testHokmMotion();
 testSudokuAutoNotes();
+testPasurMotion();
 testBowling();
 testSliding();
 testJigsaw();

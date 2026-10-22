@@ -39,11 +39,6 @@
   .ps-card--sel { transform: translateY(-6px); box-shadow: 0 0 0 3px var(--game), var(--sh-2); }
   .ps-card--cur { outline: 2px dashed var(--game); outline-offset: 2px; }
   .ps-card--last { box-shadow: 0 0 0 3px var(--ps-rival); }
-  /* #194: the rival's card used to vanish with its capture before anyone saw it.
-     It now lands on the table first, so it gets a short entrance. */
-  .ps-card--in { animation: ps-in 320ms var(--ease) both; }
-  @keyframes ps-in { from { opacity: 0; transform: translateY(-28px) scale(.9); } }
-  @media (prefers-reduced-motion: reduce) { .ps-card--in { animation: none; } }
   .ps-card--dim { opacity: .45; }
   /* Shuffle before each deal: two halves riffle back together, under a second */
   .ps-wrap { position: relative; }
@@ -488,6 +483,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
   // reveal: the rival's capture shown on the table before it is taken (#194).
   // fresh: the rival card that should play its entrance on the next paint only.
   var reveal = null, fresh = -1;
+  // #407: what is already on screen, so only new cards fly in; a card the player
+  // put down without a capture, with where it came from; and a capture sliding to
+  // its taker, during which nothing can be tapped
+  var handSeen = [], rivalSeen = 0, tableSeen = [], putFrom = null, sweeping = false;
+  function nodeOf(row, c) { return row.querySelector('[data-c="' + c + '"]'); }
   var GLYPH = C.cards.GLYPH;
 
   var top = el('div', { class: 'ps-top' });
@@ -552,6 +552,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
     S = E.newDeal(rnd, first);
     S.level = level; S.daily = daily || null; S.startedAt = Date.now();
     note = C.t(first ? 'rivalStarts' : 'youStart'); pick = null; cur = -1; lastRival = null;
+    handSeen = []; rivalSeen = 0; tableSeen = []; putFrom = null; sweeping = false;
     render();
     save();
     shuffleAnim(function () { paint(); maybeAi(); });
@@ -611,8 +612,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
 
     // the cards stay hidden while the deck is being shuffled
     [rivalHand, tableRow, handRow].forEach(function (r) { r.classList.toggle('ps-hidden', dealing); });
+    // the rival plays from the end of its fan; read it before the fan is redrawn
+    var rivalFrom = rivalHand.lastChild ? rivalHand.lastChild.getBoundingClientRect() : null;
+    var flights = [];
     rivalHand.innerHTML = '';
-    for (var h = S.hands[1].length - (reveal ? 1 : 0); h > 0; h--) rivalHand.appendChild(C.cards.back());
+    var rivalN = S.hands[1].length - (reveal ? 1 : 0);
+    for (var h = rivalN; h > 0; h--) rivalHand.appendChild(C.cards.back());
+    if (!dealing && rivalN > rivalSeen + 1) {
+      for (var rk = rivalSeen; rk < rivalN; rk++) flights.push([rivalHand.children[rk], tableRow, false, 0]);
+    }
+    if (!dealing) rivalSeen = rivalN;
 
     var optCards = {};
     if (pick) pick.opts.forEach(function (o) { o.forEach(function (c) { optCards[c] = 1; }); });
@@ -624,8 +633,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
         if (cur === i) cls += ' ps-card--cur';
       } else if (reveal && (c === reveal.card || reveal.take.indexOf(c) >= 0)) cls = 'ps-card--last';
       else if (lastRival && lastRival.indexOf(c) >= 0) cls = 'ps-card--last';
-      if (c === fresh) cls += ' ps-card--in';
       var b = cardEl(c, cls);
+      b.setAttribute('data-c', c);
+      // the rival's card comes from its fan and turns over; yours from your hand;
+      // the first table cards of a deal come from the deck
+      if (c === fresh) flights.push([b, rivalFrom, true, 0]);
+      else if (putFrom && putFrom.c === c) flights.push([b, putFrom.r, false, 0]);
+      else if (!dealing && tableSeen.length === 0 && S.table.length > 1) flights.push([b, tableRow, true, 0]);
       b.disabled = !pick || !optCards[c];
       b.addEventListener('click', function () { toggleTable(c); });
       tableRow.appendChild(b);
@@ -636,9 +650,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
       var b = cardEl(c, pick && pick.card === c ? 'ps-card--sel' : '');
       b.setAttribute('aria-label', C.t('playN') + ' ' + C.num(i + 1) + ': ' + cardLabel(c));
       b.disabled = !canHumanMove();
+      b.setAttribute('data-c', c);
       b.addEventListener('click', function () { tapHand(c); });
       handRow.appendChild(b);
     });
+    // a new deal: four cards each, coming from the deck one by one and turning over
+    if (!dealing) {
+      var dealt = S.hands[0].filter(function (c) { return handSeen.indexOf(c) < 0; });
+      if (dealt.length > 1) dealt.forEach(function (c) { flights.push([nodeOf(handRow, c), tableRow, true, 0]); });
+      handSeen = S.hands[0].slice();
+      tableSeen = S.table.slice();
+    }
+    var k = 0;
+    flights.forEach(function (f) { if (f[0] && f[1]) C.ui.fly(f[0], f[1], { flip: f[2], ms: 280, delay: (k++) * 50 }); });
+    putFrom = null;
 
     pickBar.innerHTML = '';
     if (pick) {
@@ -675,7 +700,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
 
   /* ---------------------------------------------------------- حرکت */
 
-  function canHumanMove() { return S && !S.done && S.turn === 0 && !dealing; }
+  function canHumanMove() { return S && !S.done && S.turn === 0 && !dealing && !sweeping; }
 
   function tapHand(c) {
     if (!canHumanMove()) return;
@@ -714,6 +739,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
   function cancelPick() { pick = null; cur = -1; paint(); }
 
   function doMove(card, set, byHuman) {
+    // read where the played card is before the state and the picture change
+    var src = byHuman ? nodeOf(handRow, card) : nodeOf(tableRow, card);
+    var srcRect = src ? src.getBoundingClientRect() : null;
     var info = E.play(S, card, set);
     if (!info) { C.feedback('bad'); return; }
     if (byHuman) { C.haptic('tap'); lastRival = null; }
@@ -731,15 +759,30 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
     if (info.sweep.length) note = (note ? note + ' · ' : '') + C.t('lastSweep');
     if (info.player === 0 && S.surs[0] >= 3) C.achievements.unlock('ps-surs');
     save();
-    paint();
-    if (S.done) { finish(); return; }
-    maybeAi();
+    var mine = S;
+    var go = function () { if (S !== mine) return; sweeping = false; paint(); if (S.done) { finish(); return; } maybeAi(); };
+    if (!info.take.length) {
+      if (byHuman) putFrom = { c: card, r: srcRect };
+      go();
+      return;
+    }
+    // a capture: the played card and the cards it takes slide to the taker (#407)
+    var to = info.player === 0 ? youRow : rivalRow, last = null;
+    [src].concat(info.take.map(function (c) { return nodeOf(tableRow, c); })).forEach(function (n, i) {
+      if (n) last = C.ui.sendTo(n, to, { delay: i * 40, ms: 340 }) || last;
+    });
+    if (info.sur) C.ui.burst(to, { count: 30, speed: 280, ring: 34, colors: ['#F2B84B', '#E07A5F', '#FFF1C9', '#7BAE7F'] });
+    if (!last) { go(); return; }
+    sweeping = true;
+    last.onfinish = go;
+    last.oncancel = go;
   }
 
+  // Every caller has just painted; painting again here replaced the cards still
+  // flying in (the lesson of Hokm's step(), #407)
   function maybeAi() {
     stopAi();
     if (!busy()) return;
-    paint();
     aiTimer = setTimeout(function () {
       aiTimer = null;
       if (!busy()) return;
@@ -929,6 +972,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
   function restore(v) {
     S = v;
     S.startedAt = Date.now() - (v.elapsed || 0);
+    // a restored game is drawn still
+    handSeen = S.hands[0].slice(); rivalSeen = S.hands[1].length; tableSeen = S.table.slice();
     render();
     maybeAi();
   }
