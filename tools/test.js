@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4389;
+const MIN_CHECKS = 4395;
 
 function ok(cond, msg) {
   checks++;
@@ -8613,6 +8613,26 @@ function testCheckersMotion() {
   ok(/function startAnim\(m, v, took\) \{\n    if \(C\.ui\.reduceMotion\(\)\) \{ anim = null; draw\(\); return; \}/.test(src), 'reduced motion draws the move still');
 }
 
+function testPegMotion() {
+  head('Peg solitaire: the peg arcs over, the jumped peg shrinks out (#407)');
+  // A tapped jump landed with only a small pop, and the jumped peg vanished
+  // in the same frame.
+  const src = fs.readFileSync(path.join(ROOT, 'www/games/peg/index.html'), 'utf8');
+  const a0 = src.indexOf('  function hopFx('), b0 = src.indexOf('\n  }\n', a0) + 4;
+  ok(a0 > 0 && b0 > a0, 'hopFx found in Peg solitaire');
+  if (!(a0 > 0 && b0 > a0)) return;
+  const sb = { E: { N: 7 }, CELL: 100 };
+  vm.runInNewContext('function cx(cell) { return (cell % E.N) * CELL + CELL / 2; } function cy(cell) { return ((cell / E.N) | 0) * CELL + CELL / 2; }' + src.slice(a0, b0) + ';this.hopFx = hopFx;', sb);
+  const f = sb.hopFx([10, 17, 24], false);
+  ok(f.over === 17 && f.to === 24 && f.dx === 0 && f.dy === -200 && f.arc, 'a tapped jump down from d6 arcs from two holes up, over d5');
+  const g = sb.hopFx([26, 25, 24], true);
+  ok(g.dx === 200 && g.dy === 0 && !g.arc && g.over === 25, 'a dragged jump only pops, and the jumped peg still shrinks');
+  ok(/@keyframes pg-hop \{\s*from \{ transform: translate\(var\(--dx\), var\(--dy\)\); \}/.test(src) && /@keyframes pg-gone \{ to \{ transform: scale\(0\); opacity: 0; \} \}/.test(src), 'the hop starts at the old hole and the jumped peg ends at nothing');
+  const p0 = src.indexOf("class: 'pg-peg pg-gone'"), p1 = src.indexOf('above.forEach(function (n) { svg.appendChild(n); });');
+  ok(p0 > 0 && p1 > p0, 'the hopping peg is drawn above the one it jumps');
+  ok(/hop = C\.ui\.reduceMotion\(\) \? null : hopFx\(/.test(src) && /prefers-reduced-motion: reduce\) \{[^}]*\.pg-hop \{ animation: none/.test(src), 'reduced motion draws the jump still');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -8849,6 +8869,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testPegMotion();
 testCheckersMotion();
 testReversiMotion();
 testSudokuRipple();
