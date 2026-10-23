@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4790;
+const MIN_CHECKS = 4794;
 
 function ok(cond, msg) {
   checks++;
@@ -9559,6 +9559,41 @@ function testHokmFit() {
   ok(/\.sh-wrap \{ --cw: clamp\(40px, min\(12\.8cqw, \(100cqh - 360px\) \/ 6\), 104px\);/.test(sh), 'Shelem, on the same table, reserves the same');
 }
 
+function testMahjongStacked() {
+  head('Mahjong: a shuffle frees two last tiles stacked on each other (#452)');
+  // With the last pair stacked, only the top tile was free; the shuffle re-dealt the faces
+  // over the same two places, found no solvable deal and did nothing, so the game could
+  // not be finished.
+  const E = loadEngine('mahjong', 'MahjongEngineFactory');
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+  let cases = 0, freed = 0, finished = 0, undone = 0;
+  for (const layout of ['small', 'medium', 'turtle']) {
+    const pos = E.LAYOUTS[layout];
+    // every place on the first floor with a ground place right under it
+    const stacks = [];
+    pos.forEach((p, j) => { if (p[2] !== 1) return; const i = pos.findIndex((q) => q[2] === 0 && q[0] === p[0] && q[1] === p[1]); if (i >= 0) stacks.push([i, j]); });
+    for (const [i, j] of stacks.slice(0, 6)) {
+      const S = E.deal(layout, rng(7 + i));
+      S.gone = pos.map((_, k) => k !== i && k !== j);
+      S.faces[i] = 5; S.faces[j] = 5;
+      cases++;
+      if (E.freePairs(S).length) continue;
+      const before = JSON.stringify({ g: S.gone, f: S.faces });
+      const order = E.reshuffle(S, rng(99 + j));
+      if (!order) continue;
+      if (E.freePairs(S).length && E.left(S) === 2) freed++;
+      const U = JSON.parse(JSON.stringify(S)); E.undo(U);
+      if (JSON.stringify({ g: U.gone, f: U.faces }) === before && U.shuffles === 0) undone++;
+      for (const [a, b] of order) E.remove(S, a, b);
+      if (S.done) finished++;
+    }
+  }
+  ok(cases >= 10, 'stacked last pairs were set up in all three layouts (' + cases + ')');
+  ok(freed === cases, 'the shuffle leaves a free pair every time (' + freed + ' of ' + cases + ')');
+  ok(finished === cases, 'and the game can then be finished (' + finished + ' of ' + cases + ')');
+  ok(undone === cases, 'undo puts the tiles back where they were (' + undone + ' of ' + cases + ')');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9804,6 +9839,7 @@ testCrazyEightsIran();
 testGinRummy();
 testShelem();
 testHokmFit();
+testMahjongStacked();
 testBowlingBanner();
 testCueSink();
 testBattleshipFx();
