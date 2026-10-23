@@ -293,6 +293,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
     name: { fa: 'حکم', en: 'Hokm', zh: '霍克姆', de: 'Hokm', es: 'Hokm' },
     accent: '#9C3D54',
     mood: 'menu',
+    cardSpeed: true,
     // The trump picker makes the page taller; centred with overflow hidden, a 800px-high
     // desktop window cut off the level buttons at the top (#186)
     scroll: true,
@@ -422,7 +423,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
         E.chooseTrump(S, s);
         C.ui.toast({ title: C.t('trumpBy', { s: G[s], n: pname(S.hakem) }) });
         render(); save(); step();
-      }, 700);
+      }, C.cards.pace(700));
       return;
     }
     if (S.phase === 'handover') { showHandOver(); return; }
@@ -433,7 +434,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
         var p = S.turn;
         var c = E.aiPlay(S, p, S.level, rngFor(S.handNo + '|' + S.played.length));
         doPlay(p, c);
-      }, holdTrick ? 950 : 600);
+      }, C.cards.pace(holdTrick ? 950 : 600));
     }
   }
   function stopAi() { if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; } }
@@ -458,7 +459,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
     // the card slides to the table; the others' cards turn face up on the way (#407)
     C.ui.fly(trickBox.querySelector('[data-p="' + p + '"]'), from, { flip: p !== 0, ms: 260 });
     if (r.trickDone) {
-      aiTimer = setTimeout(function () { sweep(function () { holdTrick = null; if (S.done) { finish(); return; } paint(); step(); }); }, 950);
+      aiTimer = setTimeout(function () { sweep(function () { holdTrick = null; if (S.done) { finish(); return; } paint(); step(); }); }, C.cards.pace(950));
       return;
     }
     step();
@@ -574,6 +575,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = HokmEngine
       }));
     }
     top.appendChild(C.cards.backPicker());
+    top.appendChild(C.cards.speedGear());
     paint();
   }
 

@@ -395,6 +395,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
     name: { fa: 'پاسور', en: 'Pasur', zh: '帕苏尔', de: 'Pasur', es: 'Pasur' },
     accent: '#4A7C59',
     mood: 'menu',
+    cardSpeed: true,
     // The easy level's played-cards panel makes the page taller; centred with overflow
     // hidden, a 800px-high desktop window cut off the level buttons (#200)
     scroll: true,
@@ -537,7 +538,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
       if (box.parentNode) box.parentNode.removeChild(box);
       dealing = false;
       done();
-    }, 900 + 8 * 35);
+    }, C.cards.pace(900 + 8 * 35));
   }
 
   /* ---------------------------------------------------------- ساخت */
@@ -587,6 +588,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
       }));
     }
     top.appendChild(C.cards.backPicker());
+    top.appendChild(C.cards.speedGear());
     paint();
   }
 
@@ -802,8 +804,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
         aiTimer = null;
         reveal = null;
         if (busy()) doMove(m.card, m.set, false);
-      }, 1100);
-    }, 650);
+      }, C.cards.pace(1100));
+    }, C.cards.pace(650));
   }
   function stopAi() {
     if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }

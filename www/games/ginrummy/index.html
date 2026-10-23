@@ -309,6 +309,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GinRummyEn
     name: { fa: 'جین رامی', en: 'Gin Rummy', zh: '金拉米', de: 'Gin Rommé', es: 'Gin Rummy' },
     accent: '#A45C54',
     mood: 'menu',
+    cardSpeed: true,
     scroll: true,
     strings: {
       fa: {
@@ -593,7 +594,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GinRummyEn
     render();
     if (rect && pileBtn.firstChild) C.ui.fly(pileBtn.firstChild, rect, { ms: 240, flip: !!flip });
     save();
-    if (H().phase === 'over') { setTimeout(showdown, 700); return; }
+    if (H().phase === 'over') { setTimeout(showdown, C.cards.pace(700)); return; }
     maybeBot();
   }
 
@@ -617,7 +618,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GinRummyEn
       C.audio.sfx('place');
       msg = m.knock ? (h.result && h.result.gin ? C.t('botGin') : C.t('botKnock')) : '';
       after(rect, true);
-    }, C.ui.reduceMotion() ? 300 : BOT_MS);
+    }, C.cards.pace(C.ui.reduceMotion() ? 300 : BOT_MS));
   }
   function stopBot() { if (botTimer) { clearTimeout(botTimer); botTimer = null; } }
 
@@ -749,7 +750,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GinRummyEn
     var seg = C.ui.segmented(LEVELS.map(function (l) { return { value: l, label: C.t(l) }; }), prefs.level, function (v) { prefs.level = v; ctx.store.set('prefs', prefs); });
     C.ui.modal({
       title: C.t('settings'),
-      body: [el('div', { class: 'ch-list' }, [el('div', { class: 'ch-item' }, [el('div', { class: 'ch-item__label', text: C.t('level') }), seg])]), el('p', { class: 'ch-dim', text: C.t('optNote') })],
+      body: [el('div', { class: 'ch-list' }, [el('div', { class: 'ch-item' }, [el('div', { class: 'ch-item__label', text: C.t('level') }), seg]), C.cards.speedRow()]), el('p', { class: 'ch-dim', text: C.t('optNote') })],
       actions: [{ label: C.t('done'), kind: 'primary' }]
     });
   }

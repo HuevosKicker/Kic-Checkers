@@ -140,6 +140,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BlackjackE
     name: { fa: 'بیست‌ویک', en: 'Blackjack', zh: '二十一点', de: 'Blackjack', es: 'Blackjack' },
     accent: '#2E7D5B',
     mood: 'menu',
+    cardSpeed: true,
     scroll: true,
     strings: {
       fa: {
@@ -329,6 +330,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BlackjackE
     if (S.daily) top.appendChild(el('span', { class: 'ch-badge ch-badge--accent' }, [C.icon('calendar', 14), el('span', { text: C.t('dailyBj') + ' — ' + C.num(S.daily) })]));
     top.appendChild(el('span', { class: 'ch-badge', text: C.t('handN', { n: C.num(S.n), m: C.num(E.HANDS) }) }));
     top.appendChild(C.cards.backPicker());
+    top.appendChild(C.cards.speedGear());
 
     var opening = moving && seenP === 0;
     youHand.innerHTML = '';
@@ -358,7 +360,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BlackjackE
     var target = hidden ? 1 : H.dealer.length;
     var settle = function (ms) {
       busy = true;
-      timer = setTimeout(function () { busy = false; paintEnd(true); }, ms);
+      timer = setTimeout(function () { busy = false; paintEnd(true); }, C.cards.pace(ms));
     };
     if (!moving) {
       drawDealer(target);
@@ -385,10 +387,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = BlackjackE
       var nodes = drawDealer(k), b = nodes[k - 1];
       // the hole card turns in place; the rest come from the shoe
       C.ui.fly(b, k === 2 ? b : shoe, { flip: true });
-      if (k < target) timer = setTimeout(step, DEAL_MS);
+      if (k < target) timer = setTimeout(step, C.cards.pace(DEAL_MS));
       else { shown = target; settle(DEAL_MS * 0.8); }
     };
-    timer = setTimeout(step, DEAL_MS / 2);
+    timer = setTimeout(step, C.cards.pace(DEAL_MS / 2));
   }
 
   // sound only when a hand has just ended, not when a saved hand is drawn again

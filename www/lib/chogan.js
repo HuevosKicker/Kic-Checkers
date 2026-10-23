@@ -191,6 +191,7 @@
     music: true,
     haptics: true,
     cardBack: 'carpet',  // carpet | termeh, shared by every card game (#181)
+    cardSpeed: 'normal', // slow | normal | fast: the pace of every card game (#425)
     pinned: []           // game ids pinned to the top of the menu, in pin order (#193)
   };
 
@@ -280,7 +281,7 @@
       appName: 'چوگان', home: 'خانه', daily: 'روزانه', league: 'لیگ',
       achievements: 'دستاوردها', profile: 'پروفایل', settings: 'تنظیمات',
       play: 'بازی', resume: 'ادامه', newGame: 'بازی تازه', again: 'دوباره',
-      cardBack: 'پشت کارت', backCarpet: 'قالی', backTermeh: 'ترمه',
+      cardBack: 'پشت کارت', backCarpet: 'قالی', backTermeh: 'ترمه', cardSpeed: 'سرعت بازی', speedSlow: 'آرام', speedNormal: 'معمولی', speedFast: 'تند',
       menu: 'منو', back: 'بازگشت', undo: 'برگرداندن', close: 'بستن', cancel: 'انصراف', result: 'نتیجه', seeBoard: 'دیدن صفحه‌ی بازی',
       saveImage: 'ذخیره‌ی عکس', copyText: 'کپی متن',
       updateReady: 'نسخه‌ی تازه آماده است', updateNow: 'به‌روزرسانی',
@@ -321,7 +322,7 @@
       appName: 'Chogan', home: 'Home', daily: 'Daily', league: 'League',
       achievements: 'Awards', profile: 'Profile', settings: 'Settings',
       play: 'Play', resume: 'Resume', newGame: 'New game', again: 'Again',
-      cardBack: 'Card back', backCarpet: 'Carpet', backTermeh: 'Termeh',
+      cardBack: 'Card back', backCarpet: 'Carpet', backTermeh: 'Termeh', cardSpeed: 'Speed', speedSlow: 'Slow', speedNormal: 'Normal', speedFast: 'Fast',
       menu: 'Menu', back: 'Back', undo: 'Undo', close: 'Close', cancel: 'Cancel', result: 'Result', seeBoard: 'See the board',
       saveImage: 'Save image', copyText: 'Copy text',
       updateReady: 'A new version is ready', updateNow: 'Update',
@@ -362,7 +363,7 @@
       appName: 'Chogan', home: '主页', daily: '每日', league: '联赛',
       achievements: '成就', profile: '个人', settings: '设置',
       play: '开始', resume: '继续', newGame: '新游戏', again: '再来一局',
-      cardBack: '牌背', backCarpet: '波斯地毯', backTermeh: '波斯织锦',
+      cardBack: '牌背', backCarpet: '波斯地毯', backTermeh: '波斯织锦', cardSpeed: '速度', speedSlow: '慢', speedNormal: '正常', speedFast: '快',
       menu: '菜单', back: '返回', undo: '撤销', close: '关闭', cancel: '取消', result: '结果', seeBoard: '查看棋盘',
       saveImage: '保存图片', copyText: '复制文字',
       updateReady: '新版本已就绪', updateNow: '更新',
@@ -403,7 +404,7 @@
       appName: 'Chogan', home: 'Start', daily: 'Täglich', league: 'Liga',
       achievements: 'Erfolge', profile: 'Profil', settings: 'Einstellungen',
       play: 'Spielen', resume: 'Weiter', newGame: 'Neues Spiel', again: 'Nochmal',
-      cardBack: 'Kartenrücken', backCarpet: 'Teppich', backTermeh: 'Termeh-Brokat',
+      cardBack: 'Kartenrücken', backCarpet: 'Teppich', backTermeh: 'Termeh-Brokat', cardSpeed: 'Tempo', speedSlow: 'Langsam', speedNormal: 'Normal', speedFast: 'Schnell',
       menu: 'Menü', back: 'Zurück', undo: 'Rückgängig', close: 'Schließen', cancel: 'Abbrechen', result: 'Ergebnis', seeBoard: 'Spielfeld ansehen',
       saveImage: 'Bild speichern', copyText: 'Text kopieren',
       updateReady: 'Eine neue Version ist da', updateNow: 'Aktualisieren',
@@ -444,7 +445,7 @@
       appName: 'Chogan', home: 'Inicio', daily: 'Diario', league: 'Liga',
       achievements: 'Logros', profile: 'Perfil', settings: 'Ajustes',
       play: 'Jugar', resume: 'Seguir', newGame: 'Nueva partida', again: 'Otra vez',
-      cardBack: 'Reverso', backCarpet: 'Alfombra', backTermeh: 'Termeh',
+      cardBack: 'Reverso', backCarpet: 'Alfombra', backTermeh: 'Termeh', cardSpeed: 'Velocidad', speedSlow: 'Lenta', speedNormal: 'Normal', speedFast: 'Rápida',
       menu: 'Menú', back: 'Atrás', undo: 'Deshacer', close: 'Cerrar', cancel: 'Cancelar', result: 'Resultado', seeBoard: 'Ver el tablero',
       saveImage: 'Guardar imagen', copyText: 'Copiar texto',
       updateReady: 'Hay una versión nueva', updateNow: 'Actualizar',
@@ -2057,6 +2058,35 @@
       applyBack();
       return true;
     }
+    // #425: one pace for every card game, like the back. Normal is the timing the
+    // games always had; slow and fast scale the bots' pauses and every card's flight
+    // together. Reduced motion still means no flight at all, at any pace.
+    var SPEEDS = { slow: 1.5, normal: 1, fast: 0.6 };
+    function speed() { return SPEEDS[state.settings.cardSpeed] || 1; }
+    function pace(ms) { return Math.round(ms * speed()); }
+    function setSpeed(v) {
+      if (!SPEEDS[v]) return false;
+      state.settings.cardSpeed = v;
+      saveSettings();
+      return true;
+    }
+    // the row for a card game's gear sheet
+    function speedRow() {
+      var cur = SPEEDS[state.settings.cardSpeed] ? state.settings.cardSpeed : 'normal';
+      return el('div', { class: 'ch-item' }, [
+        el('div', { class: 'ch-item__label', text: Chogan.t('cardSpeed') }),
+        Chogan.ui.segmented([{ value: 'slow', label: Chogan.t('speedSlow') }, { value: 'normal', label: Chogan.t('speedNormal') }, { value: 'fast', label: Chogan.t('speedFast') }],
+          cur, function (v) { setSpeed(v); Chogan.feedback('tap'); })
+      ]);
+    }
+    // a gear holding only the speed, for card games with no other options (#409, #425)
+    function speedGear() {
+      var g = el('button', { class: 'ch-iconbtn', type: 'button', 'aria-label': Chogan.t('settings'), title: Chogan.t('settings') }, [Chogan.icon('gear', 20)]);
+      g.addEventListener('click', function () {
+        Chogan.ui.modal({ title: Chogan.t('settings'), body: [el('div', { class: 'ch-list' }, [speedRow()])], actions: [{ label: Chogan.t('done'), kind: 'primary' }] });
+      });
+      return g;
+    }
     function back(extra) { applyBack(); return el('div', { class: 'ch-pback' + (extra ? ' ' + extra : ''), 'aria-hidden': 'true' }); }
     // A small button showing the current back; a tap moves to the next one (#181)
     function backPicker() {
@@ -2094,7 +2124,8 @@
         type: 'button', 'aria-label': label(c) }, kids);
     }
     return { GLYPH: GLYPH, RANKS: RANKS, BACKS: BACKS, rank: rank, suit: suit, isRed: isRed, label: label, faceSvg: faceSvg,
-      backSvg: backSvg, setBack: setBack, applyBack: applyBack, backPicker: backPicker, el: cardEl, back: back };
+      backSvg: backSvg, setBack: setBack, applyBack: applyBack, backPicker: backPicker, el: cardEl, back: back,
+      SPEEDS: SPEEDS, speed: speed, pace: pace, setSpeed: setSpeed, speedRow: speedRow, speedGear: speedGear, paced: false };
   })();
 
   Chogan.icon = function (name, size, cls) {
@@ -2408,7 +2439,11 @@
     var dx = (a.left + a.width / 2) - (b.left + b.width / 2);
     var dy = (a.top + a.height / 2) - (b.top + b.height / 2);
     var k = a.width ? a.width / b.width : 1;
-    var ms = opts.ms || 300, delay = opts.delay || 0;
+    // a card game's flights follow its pace (#425); 1 anywhere else, and in the tests'
+    // sandboxes, which run this helper without the rest of the core. Its own name:
+    // reusing `k` turned the start scale into the pace, so a card began 1.5x big.
+    var pk = typeof Chogan !== 'undefined' && Chogan.cards && Chogan.cards.paced ? Chogan.cards.speed() : 1;
+    var ms = Math.round((opts.ms || 300) * pk), delay = Math.round((opts.delay || 0) * pk);
     // a node placed with its own transform (Hokm's centred trick cards) keeps it
     // at both ends; the move and the scale wrap around it
     var own = global.getComputedStyle ? global.getComputedStyle(node).transform : 'none';
@@ -2441,12 +2476,13 @@
     opts = opts || {};
     var a = node.getBoundingClientRect(), b = to.getBoundingClientRect ? to.getBoundingClientRect() : to;
     if (!a.width) return null;
+    var pk = typeof Chogan !== 'undefined' && Chogan.cards && Chogan.cards.paced ? Chogan.cards.speed() : 1;
     var own = global.getComputedStyle ? global.getComputedStyle(node).transform : 'none';
     var end = own && own !== 'none' ? own + ' ' : '';
     var dx = (b.left + b.width / 2) - (a.left + a.width / 2), dy = (b.top + b.height / 2) - (a.top + a.height / 2);
     return node.animate([{ transform: end ? own : 'none', opacity: 1 },
       { transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) ' + end + 'scale(' + (opts.scale || 0.4) + ')', opacity: opts.fade === false ? 1 : 0.2 }],
-      { duration: opts.ms || 320, delay: opts.delay || 0, easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' });
+      { duration: Math.round((opts.ms || 320) * pk), delay: Math.round((opts.delay || 0) * pk), easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' });
   };
 
   // Short particle bursts on one shared layer above the board (#398): a mine
@@ -2708,6 +2744,8 @@
     var store = Chogan.storage(cfg.id);
     Chogan.recent.touch(cfg.id);
     if (cfg.strings) Chogan.strings(cfg.strings);
+    // a card game opts in, so its flights follow the card speed setting (#425)
+    if (cfg.cardSpeed) Chogan.cards.paced = true;
 
     // عنوان تب هم اسم بازی و اسم اپ را نشان می‌دهد؛ در HTML فارسی نوشته شده
     // و باید با زبان عوض شود. applyLang بعد از هر تغییر زبان صدایش می‌زند.
