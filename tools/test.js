@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4723;
+const MIN_CHECKS = 4787;
 
 function ok(cond, msg) {
   checks++;
@@ -9439,6 +9439,113 @@ function testPersianCardIndex() {
   }
 }
 
+function testShelem() {
+  head('Shelem (#418)');
+  const t0 = Date.now();
+  const E = loadEngine('shelem', 'ShelemEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/shelem/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+  const card = (r, s) => r * 4 + s;            // ranks 0..12 (A..K), suits ♣ ♦ ♥ ♠
+  const all = (S) => S.hands.flat().concat(S.widow, S.buried, S.played).sort((a, b) => a - b).join(',');
+  const deck = [...Array(52).keys()].join(',');
+
+  // The deal: twelve each and a widow of four; 165 points in the deck and its tricks
+  const S0 = E.newMatch(rng(1), 505, 0);
+  ok(S0.hands.every((h) => h.length === 12) && S0.widow.length === 4 && all(S0) === deck, 'twelve cards each and a widow of four, one full deck');
+  ok(E.sumPoints([...Array(52).keys()]) === 100 && E.cardPoints(card(0, 1)) === 10 && E.cardPoints(card(9, 2)) === 10 && E.cardPoints(card(4, 3)) === 5 && E.cardPoints(card(12, 0)) === 0, 'aces and tens 10, fives 5, nothing else: 100 in the cards');
+  ok(S0.phase === 'bid' && S0.turn === 1 && S0.target === 505 && E.newMatch(rng(1), 1165, 0).target === 1165 && E.newMatch(rng(1), 999, 0).target === 505, 'bidding starts left of the dealer; the match runs to 505 or 1165');
+
+  // Bidding: from 100 in fives up to 165, a pass is final, the last bidder declares
+  let S = E.newMatch(rng(2), 505, 0);
+  ok(!E.bid(S, 1, 95) && !E.bid(S, 1, 102) && !E.bid(S, 2, 100) && E.bid(S, 1, 100) && S.turn === 2, 'the first bid is at least 100, in fives, in turn');
+  ok(!E.bid(S, 2, 100) && E.bid(S, 2, 110) && E.pass(S, 3) && E.pass(S, 0) && S.turn === 1, 'a bid must top the last one; passing players are skipped');
+  ok(E.pass(S, 1) && S.phase === 'widow' && S.declarer === 2 && S.high === 110 && S.hands[2].length === 16 && S.widow.length === 0, 'when the others have passed, the highest bidder takes the widow');
+  ok(!E.bid(S, 3, 115) && !E.pass(S, 3), 'a pass is final');
+  S = E.newMatch(rng(3), 505, 0);
+  ok(E.bid(S, 1, 165) && S.phase === 'widow' && S.declarer === 1, 'a bid of 165 ends the auction at once');
+  S = E.newMatch(rng(4), 505, 0);
+  E.pass(S, 1); E.pass(S, 2); E.pass(S, 3);
+  ok(S.phase === 'bid' && S.turn === 0 && E.pass(S, 0) && S.phase === 'redeal' && S.dealer === 1, 'when all four pass, the next dealer deals again');
+  E.newHand(S, rng(5), true);
+  ok(S.handNo === 1 && S.phase === 'bid' && all(S) === deck, 'a redeal keeps the hand number');
+
+  // The widow: four cards back, counted as the declarer's first trick
+  S = E.newMatch(rng(6), 505, 3);
+  E.bid(S, 0, 100); E.pass(S, 1); E.pass(S, 2); E.pass(S, 3);
+  const h16 = S.hands[0].slice(), back = [h16[0], h16[1], h16[2], h16[3]];
+  ok(!E.bury(S, [h16[0], h16[0], h16[1], h16[2]]) && !E.bury(S, back.slice(0, 3)) && !E.bury(S, [card(0, 0), card(0, 1), card(0, 2), S.hands[1][0]]), 'exactly four different cards of the declarer\'s own');
+  ok(E.bury(S, back) && S.hands[0].length === 12 && S.taken[0] === 5 + E.sumPoints(back) && S.phase === 'trump', 'the four put back score 5 and their points for the declarer\'s team');
+  ok(!E.chooseTrump(S, 4) && E.chooseTrump(S, 2) && S.trump === 2 && S.turn === 0 && S.phase === 'play', 'the declarer names trump and leads');
+
+  // Tricks: follow suit, the highest trump wins, else the highest of the suit led, aces high
+  ok(E.trickBest([{ p: 0, c: card(12, 0) }, { p: 1, c: card(0, 0) }, { p: 2, c: card(1, 2) }, { p: 3, c: card(5, 1) }], 2).p === 2, 'a trump beats an ace of the suit led');
+  ok(E.trickBest([{ p: 0, c: card(12, 0) }, { p: 1, c: card(0, 0) }, { p: 2, c: card(1, 1) }, { p: 3, c: card(5, 0) }], 2).p === 1, 'without trump, the ace of the suit led wins');
+  const F = { phase: 'play', turn: 1, trick: [{ p: 0, c: card(3, 0) }], hands: [[], [card(5, 0), card(2, 2)], [], []] };
+  ok(E.legal(F, 1).length === 1 && E.legal(F, 1)[0] === card(5, 0), 'you must follow suit');
+
+  // Scoring, on fixed outcomes
+  const sc = (bid, made, tricks12) => { const T = { declarer: 1, high: bid, taken: [165 - made, made], tricks: [12 - tricks12, tricks12], score: [0, 0], target: 505, dealer: 0 }; E.score(T); return T.lastHand.delta; };
+  ok(sc(120, 125, 9).join() === '40,125', 'made: the declarer\'s team scores all it took (125), the others theirs (40)');
+  ok(sc(120, 90, 7).join() === '75,-120', 'down but ahead of the others: minus the bid');
+  ok(sc(120, 70, 5).join() === '95,-240', 'down and behind the others: minus twice the bid');
+  ok(sc(165, 165, 12).join() === '0,330', 'a shelem, every trick: 330');
+  const End = { declarer: 0, high: 100, taken: [120, 45], tricks: [8, 4], score: [400, 300], target: 505, dealer: 0 }; E.score(End);
+  const Tie = { declarer: 0, high: 100, taken: [110, 55], tricks: [8, 4], score: [400, 455], target: 505, dealer: 0 }; E.score(Tie);
+  ok(End.done && End.winner === 0 && !Tie.done && Tie.phase === 'handover', 'a team past the target wins; level scores past it play on');
+
+  // Bots play whole matches: legal, every hand's points add up to 165, and the levels differ
+  const match = (levels, seed, target) => {
+    const r = rng(seed), M = E.newMatch(r, target || 505, seed % 4); let hands = 0, made = 0, bad = 0;
+    for (let g = 0; g < 400 && !M.done; g++) {
+      if (M.phase === 'redeal') { E.newHand(M, r, true); continue; }
+      if (M.phase === 'handover') { E.newHand(M, r); continue; }
+      if (M.phase === 'bid') { while (M.phase === 'bid') { const p = M.turn, m = E.aiBid(M, p, levels[E.team(p)], r); if (m.bid ? !E.bid(M, p, m.bid) : !E.pass(M, p)) return null; } continue; }
+      if (M.phase === 'widow') { const d = M.declarer, tr = E.aiTrump(M.hands[d]); if (!E.bury(M, E.aiBury(M.hands[d], tr)) || !E.chooseTrump(M, tr)) return null; continue; }
+      let res = null;
+      while (!res) { const p = M.turn, o = E.play(M, p, E.aiPlay(M, p, levels[E.team(p)], r)); if (!o) return null; res = o.hand; }
+      if (res.made + res.other !== 165) bad++;
+      hands++; if (!res.set) made++;
+    }
+    return { winner: M.winner, hands, made, bad, done: M.done };
+  };
+  const mm = [];
+  for (let i = 0; i < 40; i++) mm.push(match(['medium', 'medium'], 100 + i));
+  ok(mm.length === 40 && mm.every((m) => m && m.done && m.bad === 0), 'every bot move is legal, every hand\'s points add up to 165 and all 40 matches end');
+  const hn = mm.reduce((a, m) => a + m.hands, 0), mk = mm.reduce((a, m) => a + m.made, 0);
+  ok(hn / 40 >= 4 && hn / 40 <= 10 && mk / hn >= 0.6, 'a match to 505 takes 4 to 10 hands (' + (hn / 40).toFixed(1) + ') and bots make most contracts (' + Math.round(mk / hn * 100) + ' %)');
+  let he = 0;
+  for (let i = 0; i < 60; i++) { const sw = i % 2, m = match(sw ? ['easy', 'hard'] : ['hard', 'easy'], 3000 + i); if (m && m.winner === (sw ? 1 : 0)) he++; }
+  ok(he >= 42, 'hard beats easy in at least 42 of 60 matches (' + he + '; 182 of 200 when measured)');
+
+  // Page: shared cards, options behind a gear, the daily seeded, the table not mirrored
+  ok(/C\.cards\.el\(c, cls\)/.test(html) && /C\.ui\.fly\(/.test(html) && /C\.ui\.sendTo\(/.test(html), 'the cards are Chogan.cards and they move with the shared motion helpers');
+  ok(/function showSettings\(\)/.test(html) && /C\.t\('matchLen'\) \}\), seg2\]/.test(html) && /C\.cards\.speedRow\(\)/.test(html), 'level, match length and speed are behind the gear');
+  ok(/C\.daily\('shelem', daily\)\.rng/.test(html) && /newMatch\('hard', 505, dailyDate\)/.test(html), 'the daily hand is dealt from the day\'s seed against the hard bots');
+  ok(/\.sh-table \{ direction: ltr;/.test(html) && /\.sh-hand \{ direction: ltr;/.test(html), 'the table and the hand are not mirrored in Persian');
+
+  // Identity
+  const gm = games.find((g) => g.id === 'shelem');
+  ok(!!gm && gm.cat === 'cards' && gm.daily !== false && gm.name.fa === 'شلم', 'games.json lists it under card games');
+  ok(!!gm && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/shelem/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (x) => [1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16) / 255);
+  const lin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const lab = (x) => {
+    const [Rr, G, Bl] = rgb(x).map(lin), f = (q) => q > 0.008856 ? Math.cbrt(q) : 7.787 * q + 16 / 116;
+    const X = (Rr * 0.4124 + G * 0.3576 + Bl * 0.1805) / 0.95047, Y = Rr * 0.2126 + G * 0.7152 + Bl * 0.0722, Z = (Rr * 0.0193 + G * 0.1192 + Bl * 0.9505) / 1.08883;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  };
+  const dE = (a, b) => { const A = lab(a), Q = lab(b); return Math.hypot(A[0] - Q[0], A[1] - Q[1], A[2] - Q[2]); };
+  const lum = (x) => rgb(x).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const near = games.filter((g) => g.id !== 'shelem').map((g) => [g.id, dE(g.color, gm.color)]).sort((x, y) => x[1] - y[1])[0];
+  ok(near[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + near[0] + ', ' + near[1].toFixed(1) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['sh-win', 'sh-hard', 'sh-shelem'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '[^\\n]*des: '").test(core) && html.indexOf("unlock('" + id + "')") > 0), 'the three Shelem awards exist in every language and are unlocked');
+  ok(Date.now() - t0 < 12000, 'the Shelem tests finish in under 12 s (' + (Date.now() - t0) + ' ms)');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9682,6 +9789,7 @@ testKlondike();
 testCrazyEights();
 testCrazyEightsIran();
 testGinRummy();
+testShelem();
 testBowlingBanner();
 testCueSink();
 testBattleshipFx();

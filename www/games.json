@@ -912,6 +912,30 @@
       "soft": "#F6E2DF",
       "added": "2026-10-22",
       "files": []
+    },
+    {
+      "id": "shelem",
+      "cat": "cards",
+      "name": {
+        "fa": "شلم",
+        "en": "Shelem",
+        "zh": "谢勒姆",
+        "de": "Shelem",
+        "es": "Shelem"
+      },
+      "summary": {
+        "fa": "حکم با خواندن: با یارت بخوان، چهار کارت وسط را بردار و حکم را بگو؛ تا ۵۰۵ امتیاز.",
+        "en": "Hokm with bidding: bid with your partner, take the widow and name trump; a match to 505.",
+        "zh": "带叫分的霍克姆：和搭档叫分，拿底牌定王牌；先到505分。",
+        "de": "Hokm mit Bieten: mit dem Partner bieten, die Mitte nehmen, Trumpf bestimmen; bis 505.",
+        "es": "Hokm con subasta: apuesta con tu pareja, toma las cartas del centro y elige triunfo; a 505."
+      },
+      "path": "games/shelem/index.html",
+      "icon": "games/shelem/icon.svg",
+      "color": "#2D8627",
+      "soft": "#DFF0DA",
+      "added": "2026-10-23",
+      "files": []
     }
   ]
 }
