@@ -778,7 +778,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KlondikeEn
     g.fillStyle = E.isRed(c) ? T.red : T.text;
     g.textBaseline = 'top'; g.textAlign = 'left';
     g.font = '800 ' + Math.round(w * 0.32) + 'px ' + T.font;
-    g.fillText(C.cards.RANKS[E.rank(c)], x + w * 0.08, y + w * 0.06);
+    g.fillText(C.cards.rankText(E.rank(c)), x + w * 0.08, y + w * 0.06);
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.font = Math.round(w * 0.55) + 'px ' + T.font;
     g.fillText(C.cards.GLYPH[E.suit(c)], x + w / 2, y + h * 0.62);

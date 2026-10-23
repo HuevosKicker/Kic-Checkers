@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4713;
+const MIN_CHECKS = 4723;
 
 function ok(cond, msg) {
   checks++;
@@ -9413,6 +9413,32 @@ function testCardSpeed() {
   }
 }
 
+function testPersianCardIndex() {
+  head('Cards: Persian corner indices in Persian (#428)');
+  // The corners read A, J, Q, K and Western digits in every language; a Persian player
+  // asked for تـ، سـ، بـ، شـ and Persian digits, as on Persian decks.
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const a0 = core.indexOf('    var RANKS = '), b0 = core.indexOf('\n', core.indexOf('    function rankText(', a0 > 0 ? a0 : 0));
+  ok(a0 > 0 && core.indexOf('    function rankText(') > a0, 'the corner index is chosen in the core');
+  if (!(a0 > 0 && core.indexOf('    function rankText(') > a0)) return;
+  const state = { settings: { lang: 'fa' } };
+  const sb = { state };
+  vm.runInNewContext(core.slice(a0, b0) + ';this.rankText = rankText;', sb);
+  const fa = [...Array(13).keys()].map(sb.rankText);
+  ok(fa.join(' ') === 'تـ ۲ ۳ ۴ ۵ ۶ ۷ ۸ ۹ ۱۰ سـ بـ شـ', 'Persian: تـ, Persian digits, سـ بـ شـ (' + fa.join(' ') + ')');
+  for (const l of ['en', 'zh', 'de', 'es']) {
+    state.settings.lang = l;
+    ok([...Array(13).keys()].map(sb.rankText).join('') === 'A2345678910JQK', l + ': A, 2–10, J, Q, K as before');
+  }
+  ok(/text: rankText\(r\) \}\)\];/.test(core) && /function label\(c\) \{ return rankText\(rank\(c\)\) \+ GLYPH\[suit\(c\)\]; \}/.test(core), 'every card face and its label use it');
+  // games that draw or write a rank themselves use it too
+  const uses = { klondike: 1, freecell: 2, pasur: 2 };
+  for (const g of Object.keys(uses)) {
+    const html = fs.readFileSync(path.join(ROOT, 'www/games', g, 'index.html'), 'utf8');
+    ok((html.match(/C\.cards\.rankText\(/g) || []).length === uses[g] && !/RANK_TXT|C\.cards\.RANKS\[/.test(html), g + ': its drawn or written ranks follow the language');
+  }
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9650,6 +9676,7 @@ testFreecellMotion();
 testChessMotion();
 testStonesMotion();
 testCardSpeed();
+testPersianCardIndex();
 testSudokuClearNotes();
 testKlondike();
 testCrazyEights();

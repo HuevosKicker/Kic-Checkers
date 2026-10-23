@@ -476,7 +476,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
   /* ------------------------------------------------------------ رسم */
 
   var GLYPH = ['♣︎', '♦︎', '♥︎', '♠︎'];
-  var RANK_TXT = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
   function tokens() {
     var cs = getComputedStyle(document.documentElement);
@@ -505,7 +504,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
     g.textBaseline = 'top';
     g.textAlign = 'left';
     g.font = '800 ' + fs + 'px ' + T.font;
-    g.fillText(RANK_TXT[E.rank(c)], x + pad, y + pad);
+    g.fillText(C.cards.rankText(E.rank(c)), x + pad, y + pad);
     g.textAlign = 'right';
     g.font = fs + 'px ' + T.font;
     g.fillText(GLYPH[s], x + w - pad, y + pad);
@@ -954,7 +953,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
         g.fillStyle = E.isRed(c) ? red : col.text;
         g.textAlign = 'left'; g.textBaseline = 'top';
         g.font = '800 ' + Math.round(cw * 0.32) + 'px ' + font;
-        g.fillText(RANK_TXT[E.rank(c)], x + cw * 0.08, y0 + cw * 0.08);
+        g.fillText(C.cards.rankText(E.rank(c)), x + cw * 0.08, y0 + cw * 0.08);
         g.textAlign = 'center'; g.textBaseline = 'middle';
         g.font = Math.round(cw * 0.6) + 'px ' + font;
         g.fillText(GLYPH[E.suit(c)], x + cw / 2, y0 + ch * 0.6);

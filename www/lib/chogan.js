@@ -1820,6 +1820,10 @@
   Chogan.cards = (function () {
     var GLYPH = ['♣︎', '♦︎', '♥︎', '♠︎'];
     var RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    // In Persian the corners read تـک، سـرباز، بـی‌بی، شـاه and Persian digits (#428)
+    var RANKS_FA = ['تـ', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '۱۰', 'سـ', 'بـ', 'شـ'];
+    // the index a player reads in the corner of a card; RANKS stays the games' own notation
+    function rankText(r) { return (state.settings.lang === 'fa' ? RANKS_FA : RANKS)[r]; }
     var GOLD = '#D4A72C', GOLD2 = '#A9801A', SKIN = '#F2D3B1', SKIN2 = '#E2B994', INK = '#1E1A17', CURL = '#4A403A',
       ROSE = '#E8A39A', CREAM = '#F7EBD0', PEARL = '#FBF5E6', RUBY = '#C0392B', EMER = '#2E8B57';
     function f(n) { return Math.round(n * 100) / 100; }
@@ -2112,10 +2116,10 @@
     function rank(c) { return c >> 2; }
     function suit(c) { return c & 3; }
     function isRed(c) { return suit(c) === 1 || suit(c) === 2; }
-    function label(c) { return RANKS[rank(c)] + GLYPH[suit(c)]; }
+    function label(c) { return rankText(rank(c)) + GLYPH[suit(c)]; }
     // A card face as a button; extra classes carry the game's own states
     function cardEl(c, extra) {
-      var r = rank(c), kids = [el('span', { class: 'ch-pcard__r', text: RANKS[r] })];
+      var r = rank(c), kids = [el('span', { class: 'ch-pcard__r', text: rankText(r) })];
       if (r >= 10) {
         kids.push(el('span', { class: 'ch-pcard__mini', text: GLYPH[suit(c)] }));
         kids.push(el('span', { class: 'ch-pcard__face', html: faceSvg(r) }));
@@ -2123,7 +2127,7 @@
       return el('button', { class: 'ch-pcard' + (isRed(c) ? ' ch-pcard--red' : '') + (extra ? ' ' + extra : ''),
         type: 'button', 'aria-label': label(c) }, kids);
     }
-    return { GLYPH: GLYPH, RANKS: RANKS, BACKS: BACKS, rank: rank, suit: suit, isRed: isRed, label: label, faceSvg: faceSvg,
+    return { GLYPH: GLYPH, RANKS: RANKS, rankText: rankText, BACKS: BACKS, rank: rank, suit: suit, isRed: isRed, label: label, faceSvg: faceSvg,
       backSvg: backSvg, setBack: setBack, applyBack: applyBack, backPicker: backPicker, el: cardEl, back: back,
       SPEEDS: SPEEDS, speed: speed, pace: pace, setSpeed: setSpeed, speedRow: speedRow, speedGear: speedGear, paced: false };
   })();
