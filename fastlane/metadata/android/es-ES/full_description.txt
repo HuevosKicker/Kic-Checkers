@@ -1,8 +1,8 @@
-Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae treinta y ocho juegos, y los nuevos llegan como actualizaciones de la misma app.
+Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae treinta y nueve juegos; los nuevos llegan como actualizaciones.
 
 Los juegos:
 
-* Defensa de torres — cuatro torres, seis mapas fijos y un mapa diario, veinte oleadas y un modo infinito
+* Defensa de torres — cuatro torres, seis mapas y uno diario, veinte oleadas y modo infinito
 * Sudoku — cuatro dificultades con solución única garantizada, notas, pistas y un reto diario
 * Buscaminas — generación sin adivinar, cuatro tamaños, despeje rápido y banderas
 * Puntos y cajas — dos jugadores en un mismo móvil, o tres niveles de IA
@@ -24,7 +24,7 @@ Los juegos:
 * Lluvia de bloques — bloques que caen: un sprint de 40 líneas o un maratón de 100
 * Gomoku — cinco en línea en tablero de 9, 13 o 15, contra tres niveles de IA o para dos
 * Go — Go de 9×9 con recuento automático, contra tres niveles de IA o para dos
-* Salida — saca todas las flechas del tablero en un orden que funcione, tres corazones por nivel, niveles sin fin
+* Salida — saca todas las flechas del tablero en un orden que funcione, niveles sin fin
 * Blackjack — acércate más a 21 que la banca, partidas de diez manos sin apuestas
 * Bola 8 — mete tu grupo y al final la 8, contra la IA o para dos
 * Snooker — roja, luego color y al final los colores en orden; 6, 10 o 15 rojas, contra la IA o para dos
@@ -38,8 +38,9 @@ Los juegos:
 * Rompecabezas — de 12 a 150 piezas al marco; motivos persas y paisajes dibujados con código
 * Damas — 8×8 con captura obligatoria, reglas clásicas o españolas, contra la IA o para dos
 * Solitario — robo de una o de tres cartas, y una partida diaria siempre con solución
-* Ocho loco — sigue el palo o el número, los ochos cambian el palo; contra 1 a 3 bots
+* Ocho loco — sigue el palo o el número, reglas iraníes o internacionales; contra 1 a 3 bots
 * Gin Rummy — combinaciones contra un bot: cerrar, gin y contragolpe, hasta 100
+* Shelem — Hokm con subasta: toma el centro, elige triunfo, a 505
 
 Alrededor de los juegos:
 
