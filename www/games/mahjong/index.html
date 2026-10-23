@@ -196,9 +196,22 @@ function MahjongEngineFactory() {
     var h = S.history.pop();
     if (!h) return false;
     if (h.pair) { S.gone[h.pair[0]] = S.gone[h.pair[1]] = false; S.done = false; }
-    else if (h.faces) { S.faces = h.faces; S.shuffles--; }
+    else if (h.faces) { S.faces = h.faces; if (h.gone) S.gone = h.gone; S.shuffles--; }
     S.undos++;
     return true;
+  }
+
+  // As many ground-floor places as there are tiles left, nearest the middle of those tiles;
+  // ties broken at random so a retry can pick another set
+  function groundSpots(pos, idx, rnd) {
+    var cx = 0, cy = 0;
+    idx.forEach(function (i) { cx += pos[i][0]; cy += pos[i][1]; });
+    cx /= idx.length; cy /= idx.length;
+    var ground = [];
+    for (var i = 0; i < pos.length; i++) if (pos[i][2] === 0) ground.push({ i: i, d: Math.abs(pos[i][0] - cx) + Math.abs(pos[i][1] - cy) + rnd() * 0.5 });
+    if (ground.length < idx.length) return null;
+    ground.sort(function (a, b) { return a.d - b.d; });
+    return ground.slice(0, idx.length).map(function (g) { return g.i; }).sort(function (a, b) { return a - b; });
   }
 
   // بُر زدن کاشی‌های مانده، دوباره با پخش برعکس تا باز هم حل‌شدنی بماند
@@ -216,10 +229,23 @@ function MahjongEngineFactory() {
       }
     }
     if (pairs.length * 2 !== idx.length) return false;
-    var r = assign(pos, idx, shuffle(pairs, rnd), rnd);
-    if (!r) return false;
-    S.history.push({ faces: S.faces.slice() });
-    idx.forEach(function (i) { S.faces[i] = r.faces[i]; });
+    shuffle(pairs, rnd);
+    var r = assign(pos, idx, pairs, rnd), spots = idx;
+    // Some sets of places have no solvable deal at all: two last tiles stacked one on
+    // the other leave only one free, so the shuffle did nothing and the game could not
+    // be finished (#452). Then the tiles left are laid out again on the ground floor,
+    // on the places nearest to where they were.
+    if (!r) {
+      spots = groundSpots(pos, idx, rnd);
+      r = spots && assign(pos, spots, pairs, rnd);
+      if (!r) return false;
+    }
+    S.history.push({ faces: S.faces.slice(), gone: S.gone.slice() });
+    if (spots !== idx) {
+      idx.forEach(function (i) { S.gone[i] = true; });
+      spots.forEach(function (i) { S.gone[i] = false; });
+    }
+    spots.forEach(function (i) { S.faces[i] = r.faces[i]; });
     S.shuffles++;
     // ترتیب حل را برمی‌گرداند تا تست بتواند حل‌شدنی ماندن را واقعاً بازی کند
     return r.order;
