@@ -511,7 +511,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
   ctx.main.appendChild(wrap);
   ctx.mount();
 
-  function cardLabel(c) { return E.RANKS[E.rank(c)] + GLYPH[E.suit(c)]; }
+  function cardLabel(c) { return C.cards.rankText(E.rank(c)) + GLYPH[E.suit(c)]; }
 
   // The deck is drawn by the core (#178); Pasur only adds its own state classes
   function cardEl(c, extra) { return C.cards.el(c, 'ps-card' + (extra ? ' ' + extra : '')); }
@@ -693,7 +693,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PasurEngin
       var row = el('div', { class: 'ps-gone__row' + (su === 1 || su === 2 ? ' ps-gone__row--red' : '') }, [el('span', { class: 'ps-gone__suit', text: GLYPH[su] })]);
       for (var r = 0; r < 13; r++) {
         var c = (r << 2) | su;
-        row.appendChild(el('span', { class: 'ps-gone__c' + (gone[c] ? ' ps-gone__c--out' : ''), text: E.RANKS[r],
+        row.appendChild(el('span', { class: 'ps-gone__c' + (gone[c] ? ' ps-gone__c--out' : ''), text: C.cards.rankText(r),
           'aria-label': cardLabel(c) + (gone[c] ? ' ✓' : '') }));
       }
       goneBox.appendChild(row);
