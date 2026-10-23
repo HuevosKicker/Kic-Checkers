@@ -11,8 +11,10 @@
   :root { --hk-gold: #D4A72C; --ch-pface: var(--c-surface); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ch-pface: var(--c-surface-3); } }
   :root[data-theme="dark"] { --ch-pface: var(--c-surface-3); }
-  /* cards grow with the game area (#359); at 60px at most they were tiny on a tablet or laptop */
-  .hk-wrap { --cw: clamp(40px, min(12.8cqw, (100cqh - 340px) / 6), 110px); margin-block: auto; width: 100%; max-width: max(560px, calc(var(--cw) * 9.33)); display: flex; flex-direction: column; align-items: center; gap: var(--s-2); }
+  /* cards grow with the game area (#359); at 60px at most they were tiny on a tablet or laptop.
+     The rest of the page is about 350px tall, not 340: with 340, a 1920x1080 window at 150 %
+     scaling (1280x688) overflowed by 5px and showed a scrollbar over a page that fits (#427) */
+  .hk-wrap { --cw: clamp(40px, min(12.8cqw, (100cqh - 360px) / 6), 110px); margin-block: auto; width: 100%; max-width: max(560px, calc(var(--cw) * 9.33)); display: flex; flex-direction: column; align-items: center; gap: var(--s-2); }
   .hk-top { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; align-items: center; }
   /* scoreboard: us · trump · them */
   .hk-score { width: 100%; display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--s-2); align-items: stretch; }

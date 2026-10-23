@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4787;
+const MIN_CHECKS = 4790;
 
 function ok(cond, msg) {
   checks++;
@@ -9546,6 +9546,19 @@ function testShelem() {
   ok(Date.now() - t0 < 12000, 'the Shelem tests finish in under 12 s (' + (Date.now() - t0) + ' ms)');
 }
 
+function testHokmFit() {
+  head('Hokm: the cards leave room for the rest of the page (#427)');
+  // The card size reserved 340px for everything but the trick; the rest is about
+  // 350px, so a 1280x688 window (1920x1080 at 150 %) overflowed by 5px and showed a
+  // scrollbar. Measured with Playwright in the play phase, from 600 to 1000px tall.
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/hokm/index.html'), 'utf8');
+  const m = html.match(/\.hk-wrap \{ --cw: clamp\(40px, min\(12\.8cqw, \(100cqh - (\d+)px\) \/ 6\), 110px\);/);
+  ok(!!m, 'Hokm sizes its cards from the game area\'s height');
+  ok(!!m && +m[1] >= 360, 'the height reserved beside the trick is at least 360px (' + (m && m[1]) + ')');
+  const sh = fs.readFileSync(path.join(ROOT, 'www/games/shelem/index.html'), 'utf8');
+  ok(/\.sh-wrap \{ --cw: clamp\(40px, min\(12\.8cqw, \(100cqh - 360px\) \/ 6\), 104px\);/.test(sh), 'Shelem, on the same table, reserves the same');
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9790,6 +9803,7 @@ testCrazyEights();
 testCrazyEightsIran();
 testGinRummy();
 testShelem();
+testHokmFit();
 testBowlingBanner();
 testCueSink();
 testBattleshipFx();
