@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4692;
+const MIN_CHECKS = 4713;
 
 function ok(cond, msg) {
   checks++;
@@ -9167,6 +9167,79 @@ function testCrazyEights() {
   ok(Date.now() - t0 < 10000, 'the Crazy Eights tests finish in under 10 s (' + (Date.now() - t0) + ' ms)');
 }
 
+function testCrazyEightsIran() {
+  head('Haft Khabis: the Iranian rules by default (#449)');
+  // #416 shipped international Crazy Eights under the Persian name «هفت خبیث», whose
+  // players expect the jack wild, sevens that stack, eights again, tens reverse, aces skip.
+  const t0 = Date.now();
+  const E = loadEngine('crazyeights', 'CrazyEightsEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/crazyeights/index.html'), 'utf8');
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+  const card = (r, s) => r * 4 + s;            // ranks 0..12 (A..K): ace 0, seven 6, eight 7, ten 9, jack 10
+  const R4 = E.newRound(rng(4), 4, 0, 'iran');
+  ok(R4.rules === 'iran' && R4.hands.every((h) => h.length === 7) && E.validRound(R4), 'Iranian rules: seven cards each, also for four players');
+  let specialStarter = 0;
+  for (let i = 0; i < 300; i++) { const r = E.rank(E.newRound(rng(100 + i), 3, 0, 'iran').discard[0]); if ([0, 6, 7, 9, 10].indexOf(r) >= 0) specialStarter++; }
+  ok(specialStarter === 0, 'the starter is never a special card (300 deals)');
+  // a fixed table: three players, top card 4♥, suit hearts, player 0 to move
+  const T = (hands, top) => ({ n: hands.length, hands, stock: [card(1, 0), card(2, 0), card(3, 0), card(4, 0), card(5, 0)], discard: [top || card(3, 2)], suit: E.suit(top || card(3, 2)), turn: 0, drawn: -1, passes: 0, winner: -1, blocked: false, rules: 'iran', dir: 1, pending: 0 });
+  // jack: wild, names the suit
+  let R = T([[card(10, 0), card(12, 1)], [card(11, 3)], [card(12, 3)]]);
+  ok(E.canPlay(R, card(10, 0)) && E.play(R, card(10, 0), 3) && R.suit === 3 && R.turn === 1, 'a jack goes on anything and names the next suit');
+  ok(!E.canPlay(T([[card(7, 0)]]), card(7, 0)), 'an eight is no longer wild');
+  // seven: the next draws two, sevens stack
+  R = T([[card(6, 2), card(12, 1)], [card(6, 0), card(11, 3)], [card(12, 3), card(1, 1)]]);
+  ok(E.play(R, card(6, 2), -1) && R.pending === 2 && R.turn === 1, 'a seven puts two cards on the next player');
+  ok(E.legal(R, 1).length === 1 && E.legal(R, 1)[0] === card(6, 0) && E.draw(R) === -1 && !E.canPass(R), 'with a seven pending, only a seven may be played, and there is no ordinary draw or pass');
+  ok(E.play(R, card(6, 0), -1) && R.pending === 4 && R.turn === 2, 'a second seven stacks: four for the next');
+  ok(typeof E.takePenalty === 'function', 'the engine lets a player take a pending penalty');
+  if (typeof E.takePenalty !== 'function') return;
+  const got = E.takePenalty(R, rng(1));
+  ok(got.length === 4 && R.hands[2].length === 6 && R.pending === 0 && R.turn === 0, 'with no seven, the player takes all four and the turn ends');
+  // eight: play again
+  R = T([[card(7, 2), card(1, 2), card(12, 1)], [card(11, 3)], [card(12, 3)]]);
+  ok(E.play(R, card(7, 2), -1) && R.turn === 0 && E.play(R, card(1, 2), -1) && R.turn === 1, 'an eight lets the same player play one more card');
+  // ten: reverses with three players
+  R = T([[card(9, 2), card(12, 1)], [card(11, 3)], [card(12, 3)]]);
+  ok(E.play(R, card(9, 2), -1) && R.dir === -1 && R.turn === 2, 'a ten reverses: with three players the turn goes to the one on the other side');
+  // ace: skips the next
+  R = T([[card(0, 2), card(12, 1)], [card(11, 3)], [card(12, 3)]]);
+  ok(E.play(R, card(0, 2), -1) && R.turn === 2, 'an ace skips the next player');
+  R = T([[card(0, 2), card(12, 1)], [card(11, 3)]]);
+  ok(E.play(R, card(0, 2), -1) && R.turn === 0, 'with two players an ace means you play again');
+  ok(E.cardPoints(card(10, 0), 'iran') === 50 && E.cardPoints(card(6, 0), 'iran') === 20 && E.cardPoints(card(7, 0), 'iran') === 20 && E.cardPoints(card(12, 0), 'iran') === 10 && E.cardPoints(card(4, 0), 'iran') === 5 && E.cardPoints(card(7, 0)) === 50,
+    'scoring: jack 50, the other special cards 20; the international eight stays 50');
+  // a round saved before #449 has no rules and keeps the international game
+  const old = E.newRound(rng(7), 3, 0);
+  ok(old.rules === undefined && E.validRound(old) && E.perHand(3) === 5, 'a round without rules plays the international game');
+  // bots under the Iranian rules: every move legal, every round ends, levels still differ
+  const round = (levels, seed) => {
+    const r = rng(seed), RR = E.newRound(r, levels.length, seed % levels.length, 'iran');
+    for (let i = 0; i < 4000 && RR.winner < 0; i++) {
+      const m = E.botMove(RR, levels[RR.turn], r);
+      if (m.take) { E.takePenalty(RR, r); continue; }
+      if (m.play !== undefined) { if (!E.play(RR, m.play, m.suit)) return -9; }
+      else if (m.draw) { const s = RR.suit, p = RR.turn; if (E.draw(RR, r) < 0) { if (!E.pass(RR)) return -9; } else E.noteShort(RR, p, s); }
+      else if (!E.pass(RR)) return -9;
+      if (!E.validRound(RR)) return -8;
+    }
+    return RR.winner;
+  };
+  const games3 = [];
+  for (let i = 0; i < 150; i++) games3.push(round(['medium', 'easy', 'hard'].slice(0, 2 + (i % 3 ? 1 : 0)), 700 + i));
+  ok(games3.length === 150 && games3.every((w) => w >= 0), 'every bot move is legal and all 150 bot rounds end with a winner, two and three players');
+  // the special cards make this a game of luck: measured over 1000 rounds medium wins
+  // about 57 %, so the check uses 600 rounds to stay clear of noise
+  let mw = 0;
+  for (let i = 0; i < 600; i++) { const lv = i % 2 ? ['medium', 'easy'] : ['easy', 'medium']; if (round(lv, 2000 + i) === (i % 2 ? 0 : 1)) mw++; }
+  ok(mw >= 320, 'medium beats easy in at least 320 of 600 Iranian rounds (' + mw + ')');
+  // page: the default, the switch, and the daily
+  ok(/if \(prefs\.rules !== 'intl'\) prefs\.rules = 'iran';/.test(html) && /rules: daily \? 'iran' : prefs\.rules/.test(html), 'the Iranian rules are the default, and the daily always plays them');
+  ok(/C\.t\('rulesSet'\) \}\), seg3\]/.test(html) && /C\.t\(iranNow\(\) \? 'rulesIranText' : 'rules'\)/.test(html), 'the rules are chosen behind the gear, and the help describes the set in play');
+  ok(['rulesSet', 'rulesIran', 'rulesIntl', 'rulesIranText', 'takeN', 'tookN', 'youTook', 'eightAgain', 'skippedN', 'reversed', 'tutTitle2i', 'tutText2i'].every((k) => (html.match(new RegExp('\\b' + k + ": '", 'g')) || []).length === 5), 'every new string is in all five languages');
+  ok(Date.now() - t0 < 10000, 'the Haft Khabis tests finish in under 10 s (' + (Date.now() - t0) + ' ms)');
+}
+
 function testGinRummy() {
   head('Gin Rummy (#417)');
   const t0 = Date.now();
@@ -9580,6 +9653,7 @@ testCardSpeed();
 testSudokuClearNotes();
 testKlondike();
 testCrazyEights();
+testCrazyEightsIran();
 testGinRummy();
 testBowlingBanner();
 testCueSink();
