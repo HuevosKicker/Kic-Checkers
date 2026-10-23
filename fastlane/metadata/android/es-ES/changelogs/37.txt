@@ -1,0 +1,6 @@
+Juegos nuevos: solitario Klondike, Ocho loco (reglas iraníes o internacionales), Gin Rummy y Shelem.
+Mahjong: barajar libera las últimas fichas que no se pueden resolver.
+Hokm: sin barra de desplazamiento sobrante.
+Animaciones más vivas en los juegos.
+Juegos de cartas: ritmo lento, normal o rápido, y esquinas en persa con el idioma persa.
+Sudoku: casillas redondeadas, opciones tras un engranaje, notas automáticas desactivables y borrar todas las notas.

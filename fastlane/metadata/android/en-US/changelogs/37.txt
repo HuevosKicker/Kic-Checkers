@@ -1,0 +1,12 @@
+New games:
+- Klondike solitaire
+- Crazy Eights, with Iranian or international rules
+- Gin Rummy
+- Shelem, the Iranian bidding game for partners
+Bug fixes:
+- Mahjong: a shuffle frees last tiles that cannot be solved
+- Hokm: no stray scrollbar
+Improvements:
+- Livelier animations across the games
+- Card games: Slow, Normal or Fast pace, and Persian card corners in Persian
+- Sudoku: rounded cells, options behind a gear, auto notes you can switch off, and clear all notes

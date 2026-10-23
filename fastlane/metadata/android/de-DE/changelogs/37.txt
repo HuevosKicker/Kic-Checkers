@@ -1,0 +1,6 @@
+Neue Spiele: Klondike-Solitär, Verrückte Acht (iranische oder internationale Regeln), Gin Rommé und Shelem.
+Mahjong: Mischen löst letzte Steine, die nicht lösbar sind.
+Hokm: keine überflüssige Bildlaufleiste mehr.
+Lebendigere Animationen in den Spielen.
+Kartenspiele: Tempo langsam, normal oder schnell, persische Kartenecken auf Persisch.
+Sudoku: runde Felder, Optionen hinter einem Zahnrad, abschaltbare Auto-Notizen und alle Notizen löschen.
