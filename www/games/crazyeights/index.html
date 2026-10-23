@@ -237,6 +237,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CrazyEight
     name: { fa: 'هفت خبیث', en: 'Crazy Eights', zh: '疯狂八', de: 'Verrückte Acht', es: 'Ocho loco' },
     accent: '#A06420',
     mood: 'menu',
+    cardSpeed: true,
     scroll: true,
     strings: {
       fa: {
@@ -498,7 +499,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CrazyEight
     if (n) C.ui.fly(n, from, { ms: 220, flip: true });
     save();
     // a drawn card that does not fit passes the turn at once
-    if (!E.legal(R, 0).length) setTimeout(function () { if (human() && R.drawn === c) { E.pass(R); after(null, false); } }, 450);
+    if (!E.legal(R, 0).length) setTimeout(function () { if (human() && R.drawn === c) { E.pass(R); after(null, false); } }, C.cards.pace(450));
   }
   function humanPass() {
     if (!human() || !E.pass(M.R)) return;
@@ -538,7 +539,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CrazyEight
       E.pass(R);
       msg = C.t('passedN', { n: pname(p) });
       after(null, false);
-    }, C.ui.reduceMotion() ? 300 : BOT_MS);
+    }, C.cards.pace(C.ui.reduceMotion() ? 300 : BOT_MS));
   }
   function stopBot() { if (botTimer) { clearTimeout(botTimer); botTimer = null; } }
 
@@ -554,7 +555,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CrazyEight
     if (w === 0 && pile.firstChild) C.ui.burst(pile.firstChild, { count: 22, speed: 240, ring: 30, colors: ['#F2B84B', '#A06420', '#FFF1C9'] });
     var over = M.daily || M.scores[w] >= E.TARGET;
     save();
-    if (over) { setTimeout(finish, 900); return; }
+    if (over) { setTimeout(finish, C.cards.pace(900)); return; }
     var lines = [];
     for (var p = 0; p < M.n; p++) lines.push(el('div', { class: 'ch-item' }, [el('div', { class: 'ch-item__label', text: pname(p) }), el('b', { class: 'ch-num', text: C.num(M.scores[p]) })]));
     setTimeout(function () {
@@ -564,7 +565,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CrazyEight
         actions: [{ label: C.t('nextRound'), kind: 'primary', onClick: function () { newRound(); } }],
         onClose: function () { if (M && M.R === R) newRound(); }
       });
-    }, 700);
+    }, C.cards.pace(700));
   }
 
   function finish() {
@@ -619,7 +620,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CrazyEight
       title: C.t('settings'),
       body: [el('div', { class: 'ch-list' }, [
         el('div', { class: 'ch-item' }, [el('div', { class: 'ch-item__label', text: C.t('rivals') }), seg1]),
-        el('div', { class: 'ch-item' }, [el('div', { class: 'ch-item__label', text: C.t('level') }), seg2])
+        el('div', { class: 'ch-item' }, [el('div', { class: 'ch-item__label', text: C.t('level') }), seg2]),
+        C.cards.speedRow()
       ]), el('p', { class: 'ch-dim', text: C.t('optNote') })],
       actions: [{ label: C.t('done'), kind: 'primary' }]
     });

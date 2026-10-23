@@ -23,7 +23,7 @@
     border: 2px dashed var(--c-line); display: grid; place-items: center; color: var(--c-text-faint); font-size: calc(var(--cw) * .42);
   }
   .kl-slot--stock { cursor: pointer; border-style: solid; }
-  .kl-card { position: absolute; left: 0; top: 0; width: var(--cw); aspect-ratio: 5 / 7; transition: transform 180ms var(--ease); }
+  .kl-card { position: absolute; left: 0; top: 0; width: var(--cw); aspect-ratio: 5 / 7; transition: transform var(--kl-move, 180ms) var(--ease); }
   .kl-card > .ch-pcard { --pw: var(--cw); position: absolute; inset: 0; cursor: pointer; }
   .kl-card > .ch-pback { position: absolute; inset: 0; width: var(--cw); }
   .kl-card--down > .ch-pcard, .kl-card:not(.kl-card--down) > .ch-pback { display: none; }
@@ -320,6 +320,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KlondikeEn
     name: { fa: 'سالیتر', en: 'Klondike', zh: '克朗代克', de: 'Klondike', es: 'Solitario' },
     accent: '#408040',
     mood: 'sudoku',
+    cardSpeed: true,
     strings: {
       fa: {
         table: 'میز ورق', moves: 'حرکت', movesN: '{n} حرکت', dailyKl: 'سالیتر روزانه', newDeal: 'دست تازه', restartDaily: 'از اول همین دست',
@@ -464,6 +465,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KlondikeEn
     cw = Math.max(30, Math.min(cw, 110, Math.floor(H / 4.6 / 1.4)));
     var ch = Math.round(cw * 1.4), bw = cw * 7 + gap * 6;
     board.style.setProperty('--cw', cw + 'px');
+    board.style.setProperty('--kl-move', C.cards.pace(180) + 'ms');
     return { W: W, H: H, gap: gap, cw: cw, ch: ch, x0: Math.round((W - bw) / 2), ty: gap, cy: gap * 3 + ch,
       up: Math.max(18, Math.round(ch * 0.3)), dn: Math.max(6, Math.round(ch * 0.12)), fan: Math.round(cw * 0.3) };
   }
@@ -526,7 +528,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KlondikeEn
     // cards on the move fly above the rest, then take their places in the pile
     if (!still) moved.forEach(function (n, i) { n.style.zIndex = 1000 + i; });
     clearTimeout(render.zt);
-    render.zt = setTimeout(function () { if (!S) return; var P2 = positions(); for (var q in P2) nodes[q].style.zIndex = P2[q].z; }, 220);
+    render.zt = setTimeout(function () { if (!S) return; var P2 = positions(); for (var q in P2) nodes[q].style.zIndex = P2[q].z; }, C.cards.pace(220));
     setMoves();
     showFocus();
   }
@@ -607,7 +609,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KlondikeEn
       C.audio.sfx('pop');
       render();
       if (E.won(S)) { busy = false; save(); win(); return; }
-      autoTimer = setTimeout(step, C.ui.reduceMotion() ? 0 : 70);
+      autoTimer = setTimeout(step, C.ui.reduceMotion() ? 0 : C.cards.pace(70));
     })();
   }
   function stopAuto() { clearTimeout(autoTimer); autoTimer = null; busy = false; }
@@ -867,7 +869,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KlondikeEn
     C.ui.modal({
       title: C.t('settings'),
       body: [el('div', { class: 'ch-list' }, [
-        el('div', { class: 'ch-item' }, [el('div', { class: 'ch-item__label', text: C.t('drawRule') }), seg])
+        el('div', { class: 'ch-item' }, [el('div', { class: 'ch-item__label', text: C.t('drawRule') }), seg]),
+        C.cards.speedRow()
       ]), el('p', { class: 'ch-dim', text: C.t('drawNote') })],
       actions: [{ label: C.t('done'), kind: 'primary' }]
     });

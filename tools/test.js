@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4676;
+const MIN_CHECKS = 4692;
 
 function ok(cond, msg) {
   checks++;
@@ -8465,11 +8465,11 @@ function testFreecellMotion() {
   const fc = fs.readFileSync(path.join(ROOT, 'www/games/freecell/index.html'), 'utf8');
   const has = (re) => re.test(fc);
   ok(has(/function startAnim\(before\) \{\n\s+\/\/[^\n]*\n\s+if \(C\.ui\.reduceMotion\(\)\) \{ anim = null; draw\(\); return; \}/), 'moves snap into place with reduced motion');
-  ok(has(/function dealAnim\(\) \{\n\s+if \(C\.ui\.reduceMotion\(\) \|\| !L \|\| !board\.clientWidth\) return;/) && has(/from\[c\] = deck; delay\[c\] = n\+\+ \* 16; cards\.push\(c\);/) && has(/resetUi\(\);\n\s+dealAnim\(\);\n\s+\}/),
+  ok(has(/function dealAnim\(\) \{\n\s+if \(C\.ui\.reduceMotion\(\) \|\| !L \|\| !board\.clientWidth\) return;/) && has(/from\[c\] = deck; delay\[c\] = n\+\+ \* C\.cards\.pace\(16\); cards\.push\(c\);/) && has(/resetUi\(\);\n\s+dealAnim\(\);\n\s+\}/),
     'a new deal lays the cards out one by one from a pile; a restored game is drawn still');
   ok(has(/var pr = Math\.max\(0, Math\.min\(1, \(elapsed - \(anim\.delay \? anim\.delay\[mc\] : 0\)\) \/ anim\.ms\)\);/) && has(/if \(elapsed >= anim\.ms \+ \(anim\.span \|\| 0\)\) anim = null;/),
     'each card waits for its turn and the move ends with the last card');
-  ok(has(/setTimeout\(function \(\) \{ cascade\(finish\); \}, 260\);/) && has(/function cascade\(done\) \{\n\s+if \(C\.ui\.reduceMotion\(\) \|\| !L \|\| !board\.clientWidth\) \{ done\(\); return; \}/) &&
+  ok(has(/setTimeout\(function \(\) \{ cascade\(finish\); \}, C\.cards\.pace\(260\)\);/) && has(/function cascade\(done\) \{\n\s+if \(C\.ui\.reduceMotion\(\) \|\| !L \|\| !board\.clientWidth\) \{ done\(\); return; \}/) &&
     has(/cv\.addEventListener\('pointerdown', stop\);/) && has(/t - t0 > 5000\) \{ stop\(\); return; \}/),
     'a win bounces the cards before the result, a tap ends it, and it never runs past five seconds');
   // the cascade's physics settle: a card dropped from the top bounces lower each time
@@ -9300,6 +9300,46 @@ function testSudokuClearNotes() {
   ok(/settingRow\('autoNotes', 'autoNotes'\),\n        clearRow\(\)/.test(src), 'the action sits in the settings sheet, under auto notes');
 }
 
+function testCardSpeed() {
+  head('Card games: one speed setting, Slow, Normal, Fast (#425)');
+  // A friend found the card games' pace wrong, too fast for some and too slow
+  // for others; there was no way to change it.
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  const a0 = core.indexOf('    var SPEEDS'), b0 = core.indexOf('\n    }\n', core.indexOf('    function setSpeed(', a0)) + 6;
+  ok(a0 > 0 && b0 > a0, 'the card speed is in the core');
+  if (!(a0 > 0 && b0 > a0)) return;
+  const state = { settings: { cardSpeed: 'normal' } };
+  let savedN = 0;
+  const sb = { Math, state, saveSettings: () => savedN++ };
+  vm.runInNewContext(core.slice(a0, b0) + ';this.pace = pace; this.setSpeed = setSpeed;', sb);
+  const base = [600, 650, 700, 750, 950, 1100];
+  ok(base.every((ms) => sb.pace(ms) === ms), 'Normal keeps every timing exactly as it was');
+  sb.setSpeed('slow'); const slow = base.map(sb.pace);
+  sb.setSpeed('fast'); const fast = base.map(sb.pace);
+  ok(base.every((ms, i) => slow[i] > ms && ms > fast[i]), 'Slow is slower and Fast faster than Normal for every timing (' + slow[0] + ' > 600 > ' + fast[0] + ')');
+  ok(!sb.setSpeed('ludicrous') && state.settings.cardSpeed === 'fast' && savedN === 2, 'only the three speeds are taken, and each choice is saved');
+  ok(/cardSpeed: 'normal', \/\/ slow \| normal \| fast/.test(core) && /if \(cfg\.cardSpeed\) Chogan\.cards\.paced = true;/.test(core), 'Normal is the default, and a card game opts in');
+  ok(/var pk = typeof Chogan !== 'undefined' && Chogan\.cards && Chogan\.cards\.paced \? Chogan\.cards\.speed\(\) : 1;\n    var ms = Math\.round\(\(opts\.ms \|\| 300\) \* pk\), delay = Math\.round\(\(opts\.delay \|\| 0\) \* pk\);/.test(core) && /duration: Math\.round\(\(opts\.ms \|\| 320\) \* pk\), delay: Math\.round\(\(opts\.delay \|\| 0\) \* pk\)/.test(core), 'card flights and sweeps follow the pace');
+  const flyBody = core.slice(core.indexOf('  ui.fly = function'), core.indexOf('\n  };\n', core.indexOf('  ui.fly = function')));
+  ok((flyBody.match(/var k = /g) || []).length === 1 && /'scale\(' \+ k\.toFixed\(3\)/.test(flyBody), 'the pace never replaces the flight\'s start scale');
+  ok(/ui\.fly = function \(node, from, opts\) \{\n    if \(!node \|\| !from \|\| !node\.animate \|\| ui\.reduceMotion\(\)\) return null;/.test(core), 'reduced motion still means no flight at any pace');
+  ok((core.match(/backTermeh: '[^']+', cardSpeed: '[^']+', speedSlow: '[^']+', speedNormal: '[^']+', speedFast: '[^']+',/g) || []).length === LOCALE_CODES.length, 'the speed is named in every language');
+  // every card game opts in, shows the speed behind its gear and paces its bots
+  const paced = {
+    hokm: ['C.cards.pace(700)', 'C.cards.pace(holdTrick ? 950 : 600)', 'C.cards.pace(950)'],
+    pasur: ['C.cards.pace(900 + 8 * 35)', 'C.cards.pace(1100)', 'C.cards.pace(650)'],
+    blackjack: ['C.cards.pace(ms)', 'C.cards.pace(DEAL_MS)', 'C.cards.pace(DEAL_MS / 2)'],
+    freecell: ['ms: C.cards.pace(170)', 'ms: C.cards.pace(240)', 'C.cards.pace(260)'],
+    klondike: ["C.cards.pace(180) + 'ms'", 'C.cards.pace(220)', 'C.cards.pace(70)'],
+    crazyeights: ['C.cards.pace(C.ui.reduceMotion() ? 300 : BOT_MS)', 'C.cards.pace(450)', 'C.cards.pace(900)', 'C.cards.pace(700)'],
+    ginrummy: ['C.cards.pace(C.ui.reduceMotion() ? 300 : BOT_MS)', 'C.cards.pace(700)']
+  };
+  for (const g of Object.keys(paced)) {
+    const html = fs.readFileSync(path.join(ROOT, 'www/games', g, 'index.html'), 'utf8');
+    ok(/cardSpeed: true,/.test(html) && /C\.cards\.speed(Row|Gear)\(\)/.test(html) && paced[g].every((x) => html.indexOf(x) >= 0), g + ': opts in, shows the speed behind its gear, and paces its bots and holds');
+  }
+}
+
 function testKeyboardNav() {
   head('Keyboard: menu cards and the way back (#206)');
   // The menu's game cards were divs with only a click handler, so a keyboard
@@ -9536,6 +9576,7 @@ testPasurMotion();
 testFreecellMotion();
 testChessMotion();
 testStonesMotion();
+testCardSpeed();
 testSudokuClearNotes();
 testKlondike();
 testCrazyEights();

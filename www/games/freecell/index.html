@@ -307,6 +307,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
     name: { fa: 'فری‌سل', en: 'FreeCell', zh: '空当接龙', de: 'FreeCell', es: 'FreeCell' },
     accent: '#C9545F',
     mood: 'sudoku',
+    cardSpeed: true,
     strings: {
       fa: {
         table: 'میز ورق', moves: 'حرکت', movesN: '{n} حرکت', dealN: 'دست {n}', dailyFc: 'فری‌سل روزانه',
@@ -423,6 +424,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
     // شمار حرکت این‌جاست نه در نوار بالا: آن‌جا با سه دکمه عنوان بازی را می‌برید
     movesEl = el('span', { class: 'ch-badge' });
     top.appendChild(movesEl);
+    top.appendChild(C.cards.speedGear());
     setMoves();
   }
   function setMoves() { if (movesEl) movesEl.textContent = C.t('movesN', { n: C.num(S.moves) }); }
@@ -620,7 +622,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
     if (!cards.length) { anim = null; draw(); return; }
     // ترتیب رسم: کارت پایین‌تر هر ستون روی کارت بالاتر
     cards.sort(function (x, y) { return to[x].y - to[y].y; });
-    anim = { t0: performance.now(), ms: 170, cards: cards, from: from, to: to };
+    anim = { t0: performance.now(), ms: C.cards.pace(170), cards: cards, from: from, to: to };
     draw();
   }
 
@@ -634,12 +636,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
       for (var col = 0; col < 8; col++) {
         var c = S.cols[col][k];
         if (c === undefined) continue;
-        from[c] = deck; delay[c] = n++ * 16; cards.push(c);
+        from[c] = deck; delay[c] = n++ * C.cards.pace(16); cards.push(c);
       }
     }
     if (!cards.length) return;
     cards.sort(function (x, y) { return to[x].y - to[y].y || delay[x] - delay[y]; });
-    anim = { t0: performance.now(), ms: 240, cards: cards, from: from, to: to, delay: delay, span: (n - 1) * 16 };
+    anim = { t0: performance.now(), ms: C.cards.pace(240), cards: cards, from: from, to: to, delay: delay, span: (n - 1) * C.cards.pace(16) };
     draw();
   }
 
@@ -747,7 +749,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = FreecellEn
     if (autos.length) setTimeout(function () { C.audio.sfx('pop'); }, 120);
     setMoves();
     startAnim(before);
-    if (E.won(S)) { setTimeout(function () { cascade(finish); }, 260); S.done = true; return true; }
+    if (E.won(S)) { setTimeout(function () { cascade(finish); }, C.cards.pace(260)); S.done = true; return true; }
     save();
     if (!E.hasMoves(S)) {
       if (!stuckShown) C.ui.toast({ icon: 'info', title: C.t('noMoves'), sub: C.t('noMovesSub'), ms: 4200 });
