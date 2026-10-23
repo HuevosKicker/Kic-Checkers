@@ -876,11 +876,11 @@
         "es": "Ocho loco"
       },
       "summary": {
-        "fa": "هم‌خال یا هم‌عدد بازی کن، با هشت خال را عوض کن و زودتر دستت را خالی کن؛ مقابل ۱ تا ۳ ربات.",
-        "en": "Match the suit or rank, change the suit with an eight, and empty your hand first; against 1 to 3 bots.",
-        "zh": "跟花色或点数，用8换花色，抢先出完手牌；对战1到3个电脑。",
-        "de": "Farbe oder Wert bedienen, mit einer Acht die Farbe wechseln, zuerst die Hand leeren; gegen 1 bis 3 Bots.",
-        "es": "Sigue el palo o el número, cambia el palo con un ocho y vacía tu mano primero; contra 1 a 3 bots."
+        "fa": "هم‌خال یا هم‌عدد بازی کن، با سرباز خال را عوض کن، هفت جریمه دارد و زودتر دستت را خالی کن؛ مقابل ۱ تا ۳ ربات.",
+        "en": "Match the suit or rank, change the suit with a jack, dodge the sevens, and empty your hand first; against 1 to 3 bots.",
+        "zh": "跟花色或点数，用J换花色，躲开7的罚牌，抢先出完手牌；对战1到3个电脑。",
+        "de": "Farbe oder Wert bedienen, mit einem Buben die Farbe wechseln, den Siebenen ausweichen, zuerst die Hand leeren; gegen 1 bis 3 Bots.",
+        "es": "Sigue el palo o el número, cambia el palo con una jota, esquiva los sietes y vacía tu mano primero; contra 1 a 3 bots."
       },
       "path": "games/crazyeights/index.html",
       "icon": "games/crazyeights/icon.svg",
