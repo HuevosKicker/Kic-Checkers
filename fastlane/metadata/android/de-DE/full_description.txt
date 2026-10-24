@@ -1,9 +1,9 @@
-Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Neununddreißig Spiele sind dabei, neue kommen als Updates dazu.
+Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Vierzig Spiele sind dabei, neue kommen als Updates dazu.
 
 Die Spiele:
 
 * Turmverteidigung — vier Türme, sechs Karten plus eine Tageskarte, zwanzig Wellen, Endlosmodus
-* Sudoku — vier Schwierigkeitsstufen mit garantiert eindeutiger Lösung, Notizen, Tipps und ein Tagesrätsel
+* Sudoku — vier Stufen, je eine Lösung, Notizen und Tipps
 * Minesweeper — ohne Raten erzeugt, vier Größen, Akkorde und Flaggen
 * Käsekästchen — zu zweit an einem Handy oder gegen drei Stufen Computer
 * Backgammon — zu zweit oder gegen drei Stufen Computer, Gammons zählen doppelt
@@ -17,17 +17,17 @@ Die Spiele:
 * Brücken — drei Größen, jedes Rätsel mit genau einer Lösung
 * Codeknacker — drei Stufen, farbenblindfreundlich
 * Breakout — zwölf feste Level, je drei Bälle
-* Pasur — das persische Kartenspiel gegen drei Stufen Computer, mit Surs und klassischer Wertung
+* Pasur — das persische Kartenspiel gegen drei Stufen Computer
 * Mahjong — drei Aufstellungen samt Schildkröte, jedes Spiel lösbar
 * Schach — gegen die KI in drei Stufen oder zu zweit an einem Handy, dazu Lichess-Rätsel
 * Hokm — das persische Kartenspiel zu viert: du und dein Partner gegen zwei KI-Gegner
 * Blocksturz — fallende Steine: 40-Reihen-Sprint oder 100-Reihen-Marathon
-* Gomoku — fünf in einer Reihe auf 9, 13 oder 15 Linien, gegen die KI in drei Stufen oder zu zweit
+* Gomoku — fünf in einer Reihe auf 9, 13 oder 15 Linien, gegen die KI oder zu zweit
 * Go — Go auf 9×9 mit automatischer Zählung, gegen die KI in drei Stufen oder zu zweit
 * Ausweg — schick jeden Pfeil in einer passenden Reihenfolge vom Brett, Level ohne Ende
 * Blackjack — näher an 21 als der Croupier, Partien aus zehn Händen ohne Einsätze
 * 8-Ball — versenke deine Gruppe und zuletzt die 8, gegen die KI oder zu zweit
-* Snooker — Rot, dann Farbe, zuletzt die Farben der Reihe nach; 6, 10 oder 15 Rote, gegen die KI oder zu zweit
+* Snooker — Rot, dann Farbe, zuletzt die Farben der Reihe nach; 6, 10 oder 15 Rote
 * Stau — schieb die Autos weg und fahr vom Parkplatz, Level ohne Ende
 * Kettenreaktion — Kugeln legen, bis Felder in Ketten platzen; 2 bis 4 Spieler oder gegen Bots
 * Ludo — mit einer Sechs raus, schlagen, alle Figuren ins Ziel; 2 bis 4 Spieler oder gegen Bots
@@ -41,6 +41,7 @@ Die Spiele:
 * Verrückte Acht — Farbe oder Wert bedienen, iranische oder internationale Regeln; gegen 1 bis 3 Bots
 * Gin Rommé — Kombinationen gegen einen Bot: klopfen, Gin, Unterbieten, bis 100
 * Shelem — Hokm mit Bieten: die Mitte nehmen, Trumpf bestimmen, bis 505
+* Spider — zwei Decks in zehn Spalten, vom König bis zum Ass; eine, zwei oder vier Farben
 
 Rund um die Spiele:
 
