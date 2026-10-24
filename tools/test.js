@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 5099;
+const MIN_CHECKS = 5101;
 
 function ok(cond, msg) {
   checks++;
@@ -3097,8 +3097,10 @@ function swHarness(build) {
   const listeners = {};
   const opened = [];
   const deleted = [];
+  const added = [];
   const sandbox = {
     console,
+    Request: function (url, init) { this.url = url; this.cache = (init && init.cache) || 'default'; },
     skipWaitingCalls: 0,
     importScripts: function () {
       vm.runInContext(verSrc, sandbox);
@@ -3106,7 +3108,7 @@ function swHarness(build) {
     },
     caches: {
       keys: () => Promise.resolve([]),
-      open: (name) => { opened.push(name); return Promise.resolve({ addAll: () => Promise.resolve() }); },
+      open: (name) => { opened.push(name); return Promise.resolve({ addAll: (list) => { added.push.apply(added, list); return Promise.resolve(); } }); },
       delete: (name) => { deleted.push(name); return Promise.resolve(true); },
       match: () => Promise.resolve(null)
     },
@@ -3125,7 +3127,7 @@ function swHarness(build) {
     (listeners[name] || []).forEach((fn) => fn(Object.assign({ waitUntil: (p) => { waited = p; } }, event)));
     return waited || Promise.resolve();
   };
-  return { sandbox, listeners, opened, deleted, fire };
+  return { sandbox, listeners, opened, deleted, added, fire };
 }
 
 function testSw() {
@@ -3138,6 +3140,11 @@ function testSw() {
     ok(plain.opened[0] === 'chogan-v' + version, 'بدون شناسه‌ی بیلد، اسم کش فقط نسخه است');
     ok(stamped.opened[0] === 'chogan-v' + version + '-abc123abc123', 'شناسه‌ی بیلد وارد اسم کش می‌شود');
     ok(plain.opened[0] !== stamped.opened[0], 'دو انتشار وب پشت سر هم دو کش جدا می‌گیرند');
+    // #482: a deploy ten minutes after another filled the new cache with the old
+    // games.json from the browser's HTTP cache, and the new game was missing
+    const urls = stamped.added.map((r) => (typeof r === 'string' ? r : r.url));
+    ok(urls.length > 10 && urls.indexOf('./games.json') >= 0 && urls.indexOf('./games/x/index.html') >= 0, 'install caches the shell and every game (' + urls.length + ' files)');
+    ok(stamped.added.every((r) => typeof r === 'object' && r.cache === 'reload'), 'every file of a new cache is fetched from the network, not the browser\'s HTTP cache');
     // نصب دیگر بی‌خبر جای نسخه‌ی قبلی را نمی‌گیرد؛ صفحه باید اول از کاربر بپرسد
     ok(stamped.sandbox.skipWaitingCalls === 0, 'نصب، خودش جای نسخه‌ی قبلی را نمی‌گیرد');
 
