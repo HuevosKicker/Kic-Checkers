@@ -1,4 +1,4 @@
-Chogan is a collection of small, finishable games in a single app. It ships with forty games; new ones arrive as updates to the same app.
+Chogan is a collection of small, finishable games in a single app. It ships with forty-one games; new ones arrive as updates to the same app.
 
 The games:
 
@@ -42,6 +42,7 @@ The games:
 * Gin Rummy — melds and deadwood against a bot: knock, gin and undercut, a match to 100
 * Shelem — Hokm with bidding: take the widow, name trump, a match to 505
 * Spider — two decks in ten columns, king down to ace; one, two or four suits
+* Pairs — the memory game: turn two cards at a time and find every pair
 
 Around the games:
 

@@ -1,4 +1,4 @@
-Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae cuarenta juegos; los nuevos llegan como actualizaciones.
+Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae cuarenta y un juegos; los nuevos llegan como actualizaciones.
 
 Los juegos:
 
@@ -19,7 +19,7 @@ Los juegos:
 * Rompeladrillos — doce niveles fijos, tres bolas en cada uno
 * Pasur — el juego de cartas persa de pesca contra tres niveles de IA
 * Mahjong — tres disposiciones con la tortuga clásica, todas con solución
-* Ajedrez — contra la IA en tres niveles o para dos en un mismo móvil, y además problemas de Lichess
+* Ajedrez — contra la IA en tres niveles o para dos, y problemas de Lichess
 * Hokm — el juego de cartas persa para cuatro: tú y tu compañero contra dos rivales de la IA
 * Lluvia de bloques — bloques que caen: un sprint de 40 líneas o un maratón de 100
 * Gomoku — cinco en línea en tablero de 9, 13 o 15, contra tres niveles de IA o para dos
@@ -31,7 +31,7 @@ Los juegos:
 * Atasco — aparta los coches y saca el tuyo del aparcamiento, niveles sin fin
 * Reacción en cadena — añade orbes hasta que estallen en cadena; de 2 a 4 o contra bots
 * Ludo — tira, sal con un seis, come y lleva tus fichas a casa; de 2 a 4 jugadores o contra bots
-* Serpientes y escaleras — sube por escaleras, baja por serpientes, llega primero a 100; de 2 a 4 o contra bots
+* Serpientes y escaleras — sube, baja y llega primero a 100; de 2 a 4 o contra bots
 * Dardos — 501 o 301, tres dardos por turno y cierre en doble; contra un bot o a dos
 * Bolos — diez juegos, desliza para lanzar y curva para dar efecto; solo, contra un bot o a dos
 * Puzle deslizante — ordena las fichas numeradas, de 3×3 a 5×5, con pocos movimientos
@@ -42,6 +42,7 @@ Los juegos:
 * Gin Rummy — combinaciones contra un bot: cerrar, gin y contragolpe, hasta 100
 * Shelem — Hokm con subasta: toma el centro, elige triunfo, a 505
 * Spider — dos barajas en diez columnas, del rey al as; uno, dos o cuatro palos
+* Parejas — el juego de memoria: gira dos cartas cada vez y encuentra todas las parejas
 
 Alrededor de los juegos:
 

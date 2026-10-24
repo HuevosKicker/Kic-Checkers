@@ -54,6 +54,7 @@ Ways to play:
 | Gin Rummy | Ten cards each against a bot at three levels: draw from the stock or take the upcard, make sets and runs, knock at 10 or less deadwood, gin and undercut bonuses, lay-offs at the showdown, a match to 100; drag to reorder your hand or tap Arrange, and a daily hand dealt the same for everyone |
 | Shelem | The Iranian partnership game: you and a bot partner against two bots, twelve cards each, bids from 100 to 165 in fives, the declarer takes the four-card widow, puts four back and names trump; aces and tens 10, fives 5, every trick 5, a shelem (every trick) 330; three levels, a match to 505 or 1165, and a daily hand dealt the same for everyone |
 | Spider | Two decks in ten columns: build each suit from king down to ace and a full run leaves by itself; one, two or four suits, a tap sends a run to its best place or drag it, a hint, unlimited undo, and a daily one-suit deal dealt the same for everyone |
+| Pairs | The memory game: every picture twice, face down; turn two cards at a time and find every pair in as few moves as you can, on a 4×4, 4×6 or 6×6 table, with eighteen pictures that differ in shape and colour, no clock, and a daily table the same for everyone |
 
 Around the games: a daily challenge that is identical on every device with no server at all, a weekly offline league with five tiers, over eighty awards, a shared coin that is only ever spent on hints and cosmetics, stats and a profile, and a Persian, English, Simplified Chinese, German and Spanish interface with light and dark themes.
 
@@ -164,6 +165,7 @@ MIT, see [LICENSE](LICENSE). The Vazirmatn font is under the OFL; its licence te
 | جین رامی | ده کارت مقابل یک ربات در سه سطح: از دسته یا کارت رو بردار، دسته‌ی هم‌عدد یا پشت سر هم بساز، با ۱۰ یا کمتر ناک کن، جایزه‌ی جین و آندرکات، چسباندن کارت در پایان دست، مسابقه تا ۱۰۰؛ کارت‌ها را بکش و مرتب کن یا «مرتب کن» را بزن، و دست روزانه‌ای که برای همه یکی است |
 | شلم | بازی دونفره‌ی تیمی ایرانی: تو و یار رباتت مقابل دو ربات، دوازده کارت به هر نفر، خواندن از ۱۰۰ تا ۱۶۵ پنج‌تا‌پنج‌تا، خواننده چهار کارت وسط را برمی‌دارد، چهار کارت می‌خواباند و حکم را می‌گوید؛ آس و ده ۱۰، پنج ۵، هر دست ۵ و شلم (همه‌ی دست‌ها) ۳۳۰؛ سه سطح، مسابقه تا ۵۰۵ یا ۱۱۶۵، و دست روزانه‌ای که برای همه یکی است |
 | عنکبوت | دو دست ورق در ده ستون: هر خال را از شاه تا آس پشت سر هم بچین تا ردیف کامل خودش برداشته شود؛ یک، دو یا چهار خال، با یک ضربه یا کشیدن، راهنمایی، برگرداندن بی‌حد و دست روزانه‌ی یک‌خال که برای همه یکی است |
+| جفت‌ها | بازی حافظه: هر نقش دو بار، پشت‌ورو؛ دو کارت دو کارت برگردان و همه‌ی جفت‌ها را با کمترین حرکت پیدا کن، روی میز ۴×۴، ۴×۶ یا ۶×۶، با هجده نقش که هم شکلشان فرق دارد هم رنگشان، بدون ساعت، و میز روزانه‌ای که برای همه یکی است |
 
 بیرون از بازی‌ها: چالش روزانه‌ی مشترک برای همه‌ی دستگاه‌ها بدون هیچ سروری، لیگ هفتگی آفلاین با پنج رده، بیش از هشتاد دستاورد، سکه‌ی مشترک که فقط خرج راهنمایی و تزئینات می‌شود، آمار و پروفایل، و رابط فارسی، انگلیسی، چینی ساده‌شده، آلمانی و اسپانیایی با تم روشن و تاریک.
 

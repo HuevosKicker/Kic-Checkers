@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4870;
+const MIN_CHECKS = 4926;
 
 function ok(cond, msg) {
   checks++;
@@ -9580,6 +9580,116 @@ function testSpider() {
   ok(Date.now() - t0 < 15000, 'the Spider tests finish in under 15 s (' + (Date.now() - t0) + ' ms)');
 }
 
+function testPairs() {
+  head('Pairs (#461)');
+  const t0 = Date.now();
+  const E = loadEngine('pairs', 'PairsEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/pairs/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+
+  // The deal: every size the owner chose, each picture exactly twice
+  let dealsOk = 0;
+  for (const n of E.ORDER) {
+    const S = E.make(n, rng(n));
+    const count = {};
+    S.cards.forEach((c) => { count[c] = (count[c] || 0) + 1; });
+    if (S.cards.length === n && S.cols * S.rows === n && Object.keys(count).length === n / 2 && Object.values(count).every((v) => v === 2)) dealsOk++;
+  }
+  ok(E.ORDER.join() === '16,24,36' && dealsOk === 3, 'three tables, 4×4, 4×6 and 6×6, with every picture exactly twice');
+  ok(E.SYMBOLS === 18, 'eighteen pictures, enough for the 6×6 table without repeating one');
+
+  // Turning cards over: a match stays up, a miss stays up until the next tap
+  const S = E.make(16, rng(3));
+  const a = 0, mate = S.cards.indexOf(S.cards[0], 1), other = S.cards.findIndex((c, i) => i !== 0 && c !== S.cards[0]);
+  ok(E.flip(S, a) === 'first' && E.flip(S, a) === null && S.moves === 0, 'the first card turns over; tapping it again does nothing');
+  ok(E.flip(S, other) === 'miss' && S.moves === 1 && S.open.length === 2, 'two different pictures are a miss: one move, both stay up for now');
+  ok(E.flip(S, mate) === 'first' && S.open.length === 1 && S.open[0] === mate, 'the next tap turns the miss back and starts a new pair');
+  ok(E.flip(S, a) === 'match' && S.found[a] && S.found[mate] && S.open.length === 0 && S.moves === 2, 'a matching picture is a pair: both found, one more move');
+  ok(E.flip(S, a) === null, 'a found card cannot be turned again');
+  // A slip: missing a pair whose second card had already been seen
+  const M = E.make(16, rng(5));
+  const x = 0, xm = M.cards.indexOf(M.cards[0], 1), y = M.cards.findIndex((c, i) => i !== 0 && i !== xm && c !== M.cards[0]);
+  E.flip(M, xm); E.flip(M, y);                  // xm is now seen
+  E.flip(M, x); const yy = M.cards.findIndex((c, i) => i !== x && i !== xm && i !== y && c !== M.cards[x]);
+  ok(E.flip(M, yy) === 'miss' && M.misses === 1, 'missing a pair whose partner was already seen counts as a slip');
+  const N = E.make(16, rng(6));
+  const n2 = N.cards.findIndex((c, i) => i > 0 && c !== N.cards[0]);
+  E.flip(N, 0); E.flip(N, n2);
+  ok(N.misses === 0, 'a first look at two unknown cards is no slip');
+
+  // A whole game with a perfect memory ends won; its moves bound the sharp award
+  let perfectMoves = 0, played = 0, wonAll = 0;
+  for (const n of E.ORDER) {
+    for (let g = 0; g < 200; g++) {
+      const P = E.make(n, rng(1000 + g)); const known = {}; let next = 0, guard = 0;
+      while (!P.done && guard++ < 200) {
+        let pair = null;
+        for (const k in known) if (known[k].length === 2) { pair = known[k]; delete known[k]; break; }
+        if (pair) { E.flip(P, pair[0]); E.flip(P, pair[1]); continue; }
+        while (P.seen[next]) next++;
+        const f = next++; E.flip(P, f);
+        const k1 = P.cards[f];
+        if (known[k1] && known[k1].length === 1) { E.flip(P, known[k1][0]); delete known[k1]; continue; }
+        while (P.seen[next]) next++;
+        const s2 = next++;
+        if (E.flip(P, s2) === 'miss') { (known[k1] = known[k1] || []).push(f); (known[P.cards[s2]] = known[P.cards[s2]] || []).push(s2); }
+      }
+      played++;
+      if (P.done && P.misses === 0) wonAll++;
+      perfectMoves += P.moves / (n / 2);
+    }
+  }
+  const avg = perfectMoves / played;
+  ok(played === 600 && wonAll === 600, 'a perfect memory wins all 600 games without a slip');
+  ok(avg > 1.5 && avg < 1.65 && E.perfect(16) === 12 && E.perfect(36) === 27, 'a perfect memory needs ' + avg.toFixed(2) + ' moves a pair, so the sharp award at 1.5 needs a good memory and a little luck');
+
+  // Saves: a good one comes back, a damaged one is refused
+  const R = E.make(24, rng(9));
+  E.flip(R, 0); E.flip(R, R.cards.indexOf(R.cards[0], 1));
+  const back = E.restore(JSON.parse(JSON.stringify({ n: R.n, cards: R.cards, found: R.found, seen: R.seen, moves: R.moves, misses: R.misses })));
+  ok(!!back && back.found.filter(Boolean).length === 2 && back.moves === 1 && back.cols === 4 && back.rows === 6, 'a saved table comes back as it was');
+  const bad1 = { n: 24, cards: R.cards.slice(), found: R.found.slice(), moves: 1 }; bad1.cards[5] = bad1.cards[6];
+  const bad2 = { n: 24, cards: R.cards.slice(), found: R.found.map((f, i) => i === 0 ? false : f), moves: 1 };
+  ok(!E.restore(bad1) && !E.restore(bad2) && !E.restore({ n: 20 }) && !E.restore(null), 'a save with a picture three times, half a pair found, or a wrong size is refused');
+  // one seed, one table
+  ok(E.make(24, rng(99)).cards.join() === E.make(24, rng(99)).cards.join(), 'one seed, one table');
+  ok(/E\.make\(n, daily \? C\.daily\('pairs', daily\)\.rng : Math\.random\)/.test(html) && /newGame\(E\.DAILY_SIZE, dailyDate\)/.test(html) && E.DAILY_SIZE === 24, 'the daily table is 4×6 from the day\'s seed');
+
+  // Page: pictures differ in shape and colour, the table is not mirrored, no clock
+  const art = html.slice(html.indexOf('  var ART = ['), html.indexOf('  ];', html.indexOf('  var ART = [')));
+  const cols = (art.match(/\['(#[0-9A-F]{6})', '/g) || []).map((c) => c.slice(2, 9));
+  ok(cols.length === 18 && new Set(cols).size === 18, 'eighteen pictures, each its own colour (' + cols.length + ')');
+  ok(LOCALE_CODES.every((l) => { const sec = html.slice(html.indexOf('      ' + l + ': {')); return [...Array(18).keys()].every((k) => new RegExp('s' + k + ": '[^']+'").test(sec)); }), 'every picture has a name in every language, for screen readers');
+  ok(/\.pr-board \{\n    direction: ltr;/.test(html), 'the table is not mirrored in Persian');
+  ok(!/setInterval|timer: true/.test(html), 'there is no clock to race');
+
+  // Identity
+  const gm = games.find((g) => g.id === 'pairs');
+  ok(!!gm && gm.cat === 'puzzle' && gm.daily !== false, 'games.json lists it under puzzles, with a daily table');
+  ok(!!gm && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/pairs/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const lin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const lab = (h) => {
+    const [R0, G, Bl] = rgb(h).map(lin), f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    const X = (R0 * 0.4124 + G * 0.3576 + Bl * 0.1805) / 0.95047, Y = R0 * 0.2126 + G * 0.7152 + Bl * 0.0722, Z = (R0 * 0.0193 + G * 0.1192 + Bl * 0.9505) / 1.08883;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  };
+  const dE = (p, q) => { const P = lab(p), Q = lab(q); return Math.hypot(P[0] - Q[0], P[1] - Q[1], P[2] - Q[2]); };
+  const lum = (h) => rgb(h).map(lin).reduce((acc, c, i) => acc + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const near = games.filter((g) => g.id !== 'pairs').map((g) => [g.id, dE(g.color, gm.color)]).sort((p, q) => p[1] - q[1])[0];
+  ok(near[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + near[0] + ', ' + near[1].toFixed(1) + ') and keeps white text at 4.5:1');
+  // the pictures sit on an ivory face in both themes: each keeps 3:1 against it
+  const face = lum('#EFE6D6');
+  const weak = cols.filter((c) => (face + 0.05) / (lum(c) + 0.05) < 3);
+  ok(!weak.length, 'every picture keeps 3:1 against the card face in both themes' + (weak.length ? ' (weak: ' + weak.join(', ') + ')' : ''));
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['pr-win', 'pr-big', 'pr-sharp'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '[^\\n]*des: '").test(core) && html.indexOf("unlock('" + id + "')") > 0), 'the three Pairs awards exist in every language and are unlocked');
+  ok(Date.now() - t0 < 10000, 'the Pairs tests finish in under 10 s (' + (Date.now() - t0) + ' ms)');
+}
+
 function testShelem() {
   head('Shelem (#418)');
   const t0 = Date.now();
@@ -9976,6 +10086,7 @@ testPersianCardIndex();
 testSudokuClearNotes();
 testKlondike();
 testSpider();
+testPairs();
 testCrazyEights();
 testCrazyEightsIran();
 testGinRummy();
