@@ -1,25 +1,25 @@
-Chogan is a collection of small, finishable games in a single app. It ships with forty-three games; new ones arrive as updates to the same app.
+Chogan is a collection of small, finishable games in a single app. It ships with forty-four games; new ones arrive as updates to the same app.
 
 The games:
 
 * Tower Defence — four towers, six maps plus a daily one, twenty waves and endless mode
 * Sudoku — four difficulties, one solution each, notes and hints
 * Minesweeper — no-guess generation, four sizes, chording and flags
-* Dots and Boxes — two players on one phone, or three levels of AI
-* Backgammon — two players or three levels of AI, gammons count double
-* Mancala — Kalah rules, two players or three levels of AI
+* Dots and Boxes — two players on one phone, or against the AI
+* Backgammon — two players or against the AI, gammons count double
+* Mancala — Kalah rules, two players or against the AI
 * Nonogram — three sizes, every puzzle solvable by logic alone
 * FreeCell — the classic numbered deals, never the one unwinnable deal, unlimited undo
-* Reversi — two players or three levels of AI
-* Nine Men's Morris — two players or three levels of AI
+* Reversi — two players or against the AI
+* Nine Men's Morris — two players or against the AI
 * Peg Solitaire — leave one peg, in the centre for a perfect game
 * Battleship — against an AI that only knows what you would know
 * Bridges — three sizes, every puzzle with exactly one solution
 * Code Breaker — three levels, colour-blind friendly
 * Breakout — twelve fixed levels, three balls each
-* Pasur — the Persian fishing card game against three levels of AI
+* Pasur — the Persian fishing card game, against the AI
 * Mahjong Solitaire — three layouts including the turtle, every deal solvable
-* Chess — against the AI on three levels or two players on one phone, plus Lichess puzzles
+* Chess — against the AI or two players, plus Lichess puzzles
 * Hokm — the Persian four-player card game: you and your partner against two AI rivals
 * Block Drop — falling blocks: a 40-line sprint or a 100-line marathon
 * Gomoku — five in a row on a 9, 13 or 15 board, against the AI or two players
@@ -39,12 +39,13 @@ The games:
 * Checkers — classic or Spanish rules, against the AI or two players
 * Klondike — classic solitaire, draw one or three, and a daily deal that is always winnable
 * Crazy Eights — match the suit or rank, Iranian or international rules
-* Gin Rummy — melds and deadwood against a bot: knock, gin and undercut, a match to 100
+* Gin Rummy — melds and deadwood against a bot, a match to 100
 * Shelem — Hokm with bidding: take the widow, name trump, a match to 505
 * Spider — two decks in ten columns, king down to ace; one, two or four suits
 * Pairs — the memory game: turn two cards at a time and find every pair
-* Gorillas — throw exploding bananas across a city: angle, power and wind; against a bot or two players
+* Gorillas — throw exploding bananas across a city: angle, power and wind; a bot or two players
 * Hop — bounce from platform to platform without falling; touch or tilt to steer
+* Tanks — fire across the hills: angle, power, wind and five weapons; a bot or two players
 
 Around the games:
 

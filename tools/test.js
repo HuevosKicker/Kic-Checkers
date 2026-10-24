@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 5041;
+const MIN_CHECKS = 5099;
 
 function ok(cond, msg) {
   checks++;
@@ -9918,6 +9918,110 @@ function testHop() {
   ok(Date.now() - t0 < 10000, 'the Hop tests finish in under 10 s (' + (Date.now() - t0) + ' ms)');
 }
 
+function testTanks() {
+  head('Tanks (#476)');
+  const t0 = Date.now();
+  const E = loadEngine('tanks', 'TanksEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/tanks/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+  const flat = (hgt) => { const M = E.match(rng(1)); M.h = M.h.map(() => hgt); M.wind = 0; return M; };
+
+  // The field and the match
+  const M0 = E.match(rng(5));
+  ok(M0.h.length === E.W + 1 && M0.h.every((v) => v >= 40 && v <= E.H - 120) && M0.tanks[0].x < 160 && M0.tanks[1].x > E.W - 160, 'the ground covers the width within its bounds, a tank near each end');
+  ok(M0.shots.join() === '10,10' && M0.moves.join() === '4,4' && M0.ammo[0].heavy === 2 && M0.ammo[0].triple === 2 && M0.ammo[0].roller === 2 && M0.ammo[0].dirt === 1 && Math.abs(M0.wind) <= E.WIND, 'ten shots and four moves each, two heavy, two triple, two rollers and one dirt, the wind in range');
+  ok(JSON.stringify(E.match(rng(9))) === JSON.stringify(E.match(rng(9))), 'one seed, one field');
+
+  // A shot is worked out without touching the match; firing applies it
+  const S = flat(150), before = JSON.stringify(S);
+  const sim = E.simulate(S, 0, 'shell', 45, 60);
+  ok(JSON.stringify(S) === before && sim.paths.length === 1 && sim.blasts.length === 1, 'simulating a shot changes nothing in the match');
+  const A = E.simulate(flat(150), 0, 'shell', 45, 60), B = E.simulate(flat(150), 0, 'shell', 45, 60);
+  ok(JSON.stringify(A.paths) === JSON.stringify(B.paths), 'the same shot flies the same path every time');
+  // Craters: each column loses the part inside the circle, and never goes below zero
+  const h = new Array(E.W + 1).fill(150), cx = 320, cy = E.H - 150, r = 30;
+  E.dig(h, cx, cy, r);
+  const lost = h.reduce((a, v) => a + (150 - v), 0);
+  ok(h[cx] === 150 - 30 && h[cx + 40] === 150 && Math.abs(lost - Math.PI * r * r / 2) < 60, 'a blast on the surface digs a half-round crater (' + lost + ' of ~' + Math.round(Math.PI * r * r / 2) + ' units)');
+  const hu = new Array(E.W + 1).fill(150);
+  E.dig(hu, 320, E.H - 100, 20);
+  ok(hu[320] === 150 - 40 && hu[340] === 150, 'a blast underground takes its circle out and the earth above falls in');
+  const hd = new Array(E.W + 1).fill(150);
+  E.build(hd, 320, E.H - 150, 30);
+  ok(hd[320] === 180 && hd[300] > 150 && hd[351] === 150, 'dirt builds a round mound where it lands');
+  // Damage falls off from the centre; damage to yourself scores for the other
+  const D = flat(150);
+  D.tanks[1].x = 400;
+  const near = E.simulate(D, 0, 'heavy', 45, 60).blasts[0];
+  ok(near.dmg[0] === 0 && near.r === 44, 'the blast is where the shell lands');
+  const M = flat(150); M.tanks[1].x = 400;
+  // hit the other tank: the bot's own search finds a direct hit on flat ground
+  const t = E.aim(M, 0, 'shell');
+  const res = E.fire(M, 0, 'shell', t.angle, t.power, null, rng(2));
+  ok(res && res.dealt >= 25 && M.score[0] === res.dealt && M.shots[0] === 9 && M.turn === 1 && Math.abs(M.wind) <= E.WIND, 'a hit scores its damage for the shooter (' + res.dealt + '), uses a shot and passes the turn with a new wind');
+  const self = flat(150);
+  const up = E.fire(self, 0, 'shell', 90, 30, null, rng(3));
+  ok(up && self.score[1] > 0 && self.score[0] === 0, 'a shot straight up comes down on the shooter and scores for the other (' + self.score[1] + ')');
+  const tri = E.simulate(flat(150), 0, 'triple', 45, 60);
+  ok(tri.paths.length === 3 && tri.blasts.length === 3, 'the triple fires three shells');
+  const hill = E.match(rng(1)); hill.wind = 0;
+  hill.h = hill.h.map((_, x) => Math.round(260 - x * 0.25));
+  const rl = E.simulate(hill, 0, 'roller', 30, 30), sh = E.simulate(hill, 0, 'shell', 30, 30);
+  ok(rl.blasts.length === 1 && sh.blasts.length === 1 && rl.blasts[0].x > sh.blasts[0].x + 20, 'a roller runs on downhill before it goes off (' + Math.round(rl.blasts[0].x - sh.blasts[0].x) + ' units further)');
+  const used = flat(150);
+  ['heavy', 'heavy'].forEach(() => E.fire(used, 0, 'heavy', 45, 60, null, rng(4)) && (used.turn = 0));
+  ok(E.left(used, 0, 'heavy') === 0 && E.fire(used, 0, 'heavy', 45, 60, null, rng(4)) === null, 'two heavy shells, then no more');
+  // Moves: four a match, a step at a time, never past the other tank
+  const mv = flat(150); mv.tanks[0].x = 100; mv.tanks[1].x = 140;
+  ok(!E.move(mv, 0, 1) && E.move(mv, 0, -1) && mv.tanks[0].x === 76 && mv.moves[0] === 3, 'a step never runs into the other tank, and one away from it works');
+  E.move(mv, 0, -1); E.move(mv, 0, -1); E.move(mv, 0, -1);
+  ok(mv.moves[0] === 0 && !E.move(mv, 0, 1), 'four moves a match');
+  // Twenty shots end the match; the higher score wins
+  const end = flat(150); end.shots = [0, 0]; end.score = [40, 12];
+  ok(E.over(end) && E.winner(end) === 0 && !E.validMatch(end), 'after twenty shots the match is over and the higher score wins');
+
+  // The bot: harder levels do more damage a shot
+  const avg = {};
+  for (const lv of ['easy', 'medium', 'hard']) {
+    let dmg = 0, n = 0;
+    for (let g = 0; g < 6; g++) {
+      const BM = E.match(rng(100 + g)), r2 = rng(200 + g);
+      for (let k = 0; k < 2; k++) { BM.turn = 1; const pl = E.botPlan(BM, 1, lv, r2); dmg += E.fire(BM, 1, pl.arm, pl.angle, pl.power, null, r2).dealt; n++; }
+    }
+    avg[lv] = dmg / n;
+  }
+  ok(avg.easy < avg.medium && avg.medium < avg.hard && avg.hard > 12, 'the bot does more damage a shot level by level (easy ' + avg.easy.toFixed(1) + ', medium ' + avg.medium.toFixed(1) + ', hard ' + avg.hard.toFixed(1) + ')');
+
+  // Page
+  ok(/class: 'ch-iconbtn tk-gear'/.test(html) && /\[\{ value: 'drag', label: C\.t\('ctlDrag'\) \}, \{ value: 'nums', label: C\.t\('ctlNums'\) \}\]/.test(html), 'drag and numbers are both offered, switched behind the gear');
+  const page = html.slice(html.indexOf('/* ==== ENGINE END ==== */'));
+  ok((page.match(/E\.simulate\(/g) || []).length === 1 && /var sim = E\.simulate\(M, who, a, angle, power\);/.test(page), 'the page works out a shot only when it is fired, so the aim never shows the path');
+  ok(/function rngFor\(tag\) \{ return G\.daily \? C\.daily\('tanks', G\.daily \+ '\|' \+ tag\)\.rng : Math\.random; \}/.test(html) && /mode: daily \? 'bot' : o\.mode, level: daily \? 'medium' : o\.level/.test(html), 'the daily match is against the medium bot, from the day\'s seed');
+  ok(/\.tk-canvas \{[^}]*direction: ltr;/.test(html), 'the field is not mirrored in Persian');
+
+  // Identity
+  const gm = games.find((g) => g.id === 'tanks');
+  ok(!!gm && gm.cat === 'skill' && gm.daily !== false, 'games.json lists it under skill games, with a daily match');
+  ok(!!gm && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/tanks/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (x) => [1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16) / 255);
+  const lin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const lab = (x) => {
+    const [R0, G, Bl] = rgb(x).map(lin), f = (q) => q > 0.008856 ? Math.cbrt(q) : 7.787 * q + 16 / 116;
+    const X = (R0 * 0.4124 + G * 0.3576 + Bl * 0.1805) / 0.95047, Y = R0 * 0.2126 + G * 0.7152 + Bl * 0.0722, Z = (R0 * 0.0193 + G * 0.1192 + Bl * 0.9505) / 1.08883;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  };
+  const dE = (p, q) => { const P = lab(p), Q = lab(q); return Math.hypot(P[0] - Q[0], P[1] - Q[1], P[2] - Q[2]); };
+  const lum = (x) => rgb(x).map(lin).reduce((acc, c, i) => acc + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const nearest = games.filter((g) => g.id !== 'tanks').map((g) => [g.id, dE(g.color, gm.color)]).sort((p, q) => p[1] - q[1])[0];
+  ok(nearest[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + nearest[0] + ', ' + nearest[1].toFixed(1) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['tnk-win', 'tnk-hard', 'tnk-big'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '[^\\n]*des: '").test(core) && html.indexOf("unlock('" + id + "')") > 0), 'the three Tanks awards exist in every language and are unlocked');
+  ok(Date.now() - t0 < 15000, 'the Tanks tests finish in under 15 s (' + (Date.now() - t0) + ' ms)');
+}
+
 function testShelem() {
   head('Shelem (#418)');
   const t0 = Date.now();
@@ -10317,6 +10421,7 @@ testSpider();
 testPairs();
 testGorillas();
 testHop();
+testTanks();
 testCrazyEights();
 testCrazyEightsIran();
 testGinRummy();
