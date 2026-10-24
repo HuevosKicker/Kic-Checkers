@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4983;
+const MIN_CHECKS = 4984;
 
 function ok(cond, msg) {
   checks++;
@@ -6975,6 +6975,10 @@ function testFitScreen() {
   const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
   ok(/\.ch-gamemain \{ container: game \/ size; \}/.test(css), 'the game area is a size container named game');
   ok(/\.ch-fit > \* \{ width: min\(100cqw, 100cqh \* var\(--fit-ar, 1\)\);/.test(css), 'a .ch-fit slot sizes its board by the width and the height it has');
+  // #474: the slot's one grid cell grew to the canvas drawn in it, so after turning the
+  // phone six canvas games read their upright size back and ran off the screen
+  const fitRule = (css.match(/\.ch-fit \{[\s\S]*?\n\}/) || [''])[0];
+  ok(/grid-template: minmax\(0, 1fr\) \/ minmax\(0, 1fr\);/.test(fitRule), 'the .ch-fit cell is the slot\'s own size, not its content\'s, so a turned phone redraws the board to fit');
   ok(/@container game \(min-aspect-ratio: 5 \/ 4\) \{\n  \.ch-split \{ flex-direction: row; \}/.test(css), 'in a wide window a .ch-split game puts its other rows beside the board');
   ok(FIT_GAMES.length > 0, 'the list of fitted games is not empty');
   for (const id of FIT_GAMES) {
