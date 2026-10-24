@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 5040;
+const MIN_CHECKS = 5041;
 
 function ok(cond, msg) {
   checks++;
@@ -8907,6 +8907,9 @@ function testBattleshipFx() {
   head('Battleship: a miss splashes, a hit bursts, a sinking shakes (#407)');
   // A shot only left its mark.
   const src = fs.readFileSync(path.join(ROOT, 'www/games/battleship/index.html'), 'utf8');
+  // #477: on a phone on its side the page was 84 px taller than the screen and could not
+  // scroll, so the bottom of the buttons was out of reach
+  ok(/C\.game\(\{[\s\S]{0,500}?scroll: true,/.test(src), 'Battleship\'s game area scrolls when it is taller than the screen');
   const a0 = src.indexOf('  var SPLASH_MS'), b0 = src.indexOf('\n  }\n', src.indexOf('  function splashRings(', a0)) + 4;
   ok(a0 > 0 && b0 > a0, 'cellOnPage and splashRings found in Battleship');
   if (!(a0 > 0 && b0 > a0)) return;
