@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 5101;
+const MIN_CHECKS = 5104;
 
 function ok(cond, msg) {
   checks++;
@@ -6061,6 +6061,21 @@ function testMenuPins() {
   const missing = [];
   for (const k of keys) { const n = (home.match(new RegExp('[ ,{]' + k + ": '", 'g')) || []).length; if (n < LOCALE_CODES.length) missing.push(k + ' ' + n); }
   ok(!missing.length, 'pin and recent strings exist in every language' + (missing.length ? ' (' + missing.join(', ') + ')' : ''));
+  // #481: new games went to the end of their section and the owner couldn't find Hop.
+  // The menu's own isNew and row code, run on invented games: new and unplayed only,
+  // newest first, pinned ones left out, six at most.
+  const isNewSrc = (home.match(/  function isNew\(g\) \{[\s\S]*?\n  \}\n/) || [''])[0];
+  const rowSrc = (home.match(/    var freshGames = [\s\S]*?\.slice\(0, 6\)\.map\(function \(x\) \{ return x\.g; \}\);/) || [''])[0];
+  ok(isNewSrc.length > 0 && rowSrc.length > 0, 'the menu has a row of new games');
+  if (isNewSrc && rowSrc) {
+    const day = (k) => new Date(Date.UTC(2026, 9, 25 - k)).toISOString().slice(0, 10);
+    const G = [['old', 40], ['a', 9], ['b', 2], ['c', 2], ['played', 1], ['pinned', 1], ['d', 5], ['e', 6], ['f', 7], ['g', 8], ['h', 20]].map((x) => ({ id: x[0], added: day(x[1]) }));
+    const sb = { GAMES: G, Date: { now: () => Date.UTC(2026, 9, 25, 12) },
+      C: { stats: { get: () => ({ byGame: { played: { plays: 1 } } }) }, keyToDate: (k) => new Date(k + 'T00:00:00Z'), pins: { has: (id) => id === 'pinned' } } };
+    vm.runInNewContext(isNewSrc + rowSrc + ';this.out = freshGames.map(function (g) { return g.id; });', sb);
+    ok(sb.out.join() === 'c,b,d,e,f,g', 'the row shows unplayed games added in the last three weeks, newest first, no pinned ones, six at most (' + sb.out.join() + ')');
+  }
+  ok((home.match(/[ ,{]freshRow: '/g) || []).length === LOCALE_CODES.length, 'the row is named in every language');
 }
 
 /* ------------------------------------------------ Ways to play (#203) */
@@ -8205,7 +8220,10 @@ function testDarkAccentText() {
     (css.match(/\{ color: var\(--game-text-dark, var\(--game, var\(--c-accent\)\)\); \}/g) || []).length === 2,
     'the dark theme gives the lightened text to the selected option, soft buttons, accent badges, pressed icon buttons and menu pins');
   ok(/r\.style\.setProperty\('--game-text-dark', Chogan\.textOnDark\(color\)\);/.test(core) && /r\.style\.removeProperty\('--game-text-dark'\);/.test(core), 'a game sets and clears it with its accent');
-  ok((menu.match(/'--game': g\.color, '--game-soft': g\.soft, '--game-text-dark': C\.textOnDark\(g\.color\)/g) || []).length === 4 && !/'--game': g\.color, '--game-soft': g\.soft \}/.test(menu),
+  // every place that gives an element a game's colour also gives it the dark-theme text
+  // (counting a fixed four broke when #481 added the new-games row)
+  const withColour = (menu.match(/'--game': g\.color/g) || []).length;
+  ok(withColour >= 4 && (menu.match(/'--game': g\.color, '--game-soft': g\.soft, '--game-text-dark': C\.textOnDark\(g\.color\)/g) || []).length === withColour,
     'every menu element that carries a game colour carries its dark text too');
 }
 
