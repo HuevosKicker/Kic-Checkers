@@ -1,4 +1,4 @@
-Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Einundvierzig Spiele sind dabei, neue kommen als Updates dazu.
+Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Zweiundvierzig Spiele sind dabei, neue kommen als Updates dazu.
 
 Die Spiele:
 
@@ -9,7 +9,7 @@ Die Spiele:
 * Backgammon — zu zweit oder gegen drei Stufen Computer, Gammons zählen doppelt
 * Mancala — Kalah-Regeln, zu zweit oder gegen drei Stufen Computer
 * Nonogramm — drei Größen, jedes Rätsel allein mit Logik lösbar
-* FreeCell — die klassischen nummerierten Spiele, nie das eine unlösbare, unbegrenztes Rückgängig
+* FreeCell — die klassischen nummerierten Spiele, nie das eine unlösbare
 * Reversi — zu zweit oder gegen drei Stufen Computer
 * Mühle — zu zweit oder gegen drei Stufen Computer
 * Solitär — lass einen Stift übrig, für das perfekte Spiel in der Mitte
@@ -23,19 +23,19 @@ Die Spiele:
 * Hokm — das persische Kartenspiel zu viert: du und dein Partner gegen zwei KI-Gegner
 * Blocksturz — fallende Steine: 40-Reihen-Sprint oder 100-Reihen-Marathon
 * Gomoku — fünf in einer Reihe auf 9, 13 oder 15 Linien, gegen die KI oder zu zweit
-* Go — Go auf 9×9 mit automatischer Zählung, gegen die KI in drei Stufen oder zu zweit
+* Go — Go auf 9×9 mit automatischer Zählung, gegen die KI oder zu zweit
 * Ausweg — schick jeden Pfeil in einer passenden Reihenfolge vom Brett, Level ohne Ende
 * Blackjack — näher an 21 als der Croupier, Partien aus zehn Händen ohne Einsätze
 * 8-Ball — versenke deine Gruppe und zuletzt die 8, gegen die KI oder zu zweit
 * Snooker — Rot, dann Farbe, zuletzt die Farben der Reihe nach; 6, 10 oder 15 Rote
 * Stau — schieb die Autos weg und fahr vom Parkplatz, Level ohne Ende
 * Kettenreaktion — Kugeln legen, bis Felder in Ketten platzen; 2 bis 4 Spieler oder gegen Bots
-* Ludo — mit einer Sechs raus, schlagen, alle Figuren ins Ziel; 2 bis 4 Spieler oder gegen Bots
-* Schlangen und Leitern — Leitern hoch, Schlangen runter, zuerst auf 100; 2 bis 4 Spieler oder gegen Bots
-* Darts — 501 oder 301, drei Darts pro Aufnahme, Finish auf Doppel; gegen einen Bot oder zu zweit
-* Bowling — zehn Frames, wischen zum Werfen, biegen für Drall; allein, gegen einen Bot oder zu zweit
-* Schiebepuzzle — nummerierte Plättchen wieder ordnen, 3×3 bis 5×5, mit wenigen Zügen
-* Puzzle — 12 bis 150 Teile in den Rahmen ziehen; persische Muster und Landschaften, im Code gezeichnet
+* Ludo — mit einer Sechs raus, alle Figuren ins Ziel; 2 bis 4 Spieler oder gegen Bots
+* Schlangen und Leitern — zuerst auf 100; 2 bis 4 Spieler oder gegen Bots
+* Darts — 501 oder 301, Finish auf Doppel; gegen einen Bot oder zu zweit
+* Bowling — zehn Frames, wischen zum Werfen; allein, gegen einen Bot oder zu zweit
+* Schiebepuzzle — nummerierte Plättchen ordnen, 3×3 bis 5×5
+* Puzzle — 12 bis 150 Teile; persische Muster und Landschaften, im Code gezeichnet
 * Dame — 8×8 mit Schlagzwang, klassisch oder spanisch, gegen die KI oder zu zweit
 * Klondike — Patience, eine oder drei Karten ziehen, das Tagesspiel ist immer lösbar
 * Verrückte Acht — Farbe oder Wert bedienen, iranische oder internationale Regeln; gegen 1 bis 3 Bots
@@ -43,6 +43,7 @@ Die Spiele:
 * Shelem — Hokm mit Bieten: die Mitte nehmen, Trumpf bestimmen, bis 505
 * Spider — zwei Decks in zehn Spalten, vom König bis zum Ass; eine, zwei oder vier Farben
 * Paare — das Memory-Spiel: immer zwei Karten umdrehen, alle Paare finden
+* Gorillas — explodierende Bananen über die Stadt: Winkel, Kraft, Wind; gegen einen Bot oder zu zweit
 
 Rund um die Spiele:
 
