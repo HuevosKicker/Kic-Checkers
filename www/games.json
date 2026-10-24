@@ -984,6 +984,30 @@
       "soft": "#EDE6FC",
       "added": "2026-10-24",
       "files": []
+    },
+    {
+      "id": "gorillas",
+      "cat": "skill",
+      "name": {
+        "fa": "گوریل‌ها",
+        "en": "Gorillas",
+        "zh": "大猩猩",
+        "de": "Gorillas",
+        "es": "Gorilas"
+      },
+      "summary": {
+        "fa": "از پشت‌بام موز منفجره پرت کن؛ زاویه، قدرت و باد. مقابل ربات یا دونفره.",
+        "en": "Throw exploding bananas across the rooftops: angle, power and wind. Against a bot or two players.",
+        "zh": "从屋顶扔出爆炸香蕉：角度、力度和风。对战电脑或双人。",
+        "de": "Wirf explodierende Bananen über die Dächer: Winkel, Kraft und Wind. Gegen einen Bot oder zu zweit.",
+        "es": "Lanza plátanos explosivos entre azoteas: ángulo, fuerza y viento. Contra un bot o para dos."
+      },
+      "path": "games/gorillas/index.html",
+      "icon": "games/gorillas/icon.svg",
+      "color": "#6B4423",
+      "soft": "#F0E6DD",
+      "added": "2026-10-24",
+      "files": []
     }
   ]
 }

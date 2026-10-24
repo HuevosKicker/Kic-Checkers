@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4926;
+const MIN_CHECKS = 4982;
 
 function ok(cond, msg) {
   checks++;
@@ -9690,6 +9690,116 @@ function testPairs() {
   ok(Date.now() - t0 < 10000, 'the Pairs tests finish in under 10 s (' + (Date.now() - t0) + ' ms)');
 }
 
+function testGorillas() {
+  head('Gorillas (#466)');
+  const t0 = Date.now();
+  const E = loadEngine('gorillas', 'GorillasEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/gorillas/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+  // a flat city for physics: every building 60 high, gorillas on the second from each edge
+  const flat = (wind) => { const b = []; for (let x = 0; x < E.W; x += 64) b.push({ x, w: 64, h: 60, c: 0, s: 1 }); return { b, g: [{ x: 96, y: E.H - 60 }, { x: E.W - 96 + 32 - 32, y: E.H - 60 }], wind: wind || 0, holes: [] }; };
+
+  // Cities: buildings fill the width, a gorilla on the second roof from each edge, wind in range
+  let shape = 0;
+  for (let i = 0; i < 30; i++) {
+    const c = E.city(rng(i + 1)), n = c.b.length;
+    const fills = c.b.reduce((x, b) => (b.x === x ? x + b.w : -1), 0) === E.W;
+    const onRoofs = c.g[0].x === c.b[1].x + c.b[1].w / 2 && c.g[0].y === E.H - c.b[1].h && c.g[1].y === E.H - c.b[n - 2].h;
+    if (fills && onRoofs && Math.abs(c.wind) <= E.WIND) shape++;
+  }
+  ok(shape === 30, 'every city fills the width, puts each gorilla on the second roof from its edge, and keeps the wind in range (' + shape + '/30)');
+  // Every city dealt can be won from both sides: the first draft had 17 in 60 where a
+  // building beside a gorilla blocked every throw
+  let fair = 0;
+  for (let i = 0; i < 20; i++) { const c = E.fairCity(rng(300 + i)); if (E.best(c, 0).hit && E.best(c, 1).hit) fair++; }
+  ok(fair === 20, 'every city dealt has a throw that hits for each gorilla (' + fair + '/20)');
+  let raw = 0;
+  for (let i = 0; i < 20; i++) if (E.best(E.city(rng(i + 1)), 0).hit) raw++;
+  ok(raw === 20, 'and the skyline itself no longer blocks a gorilla behind a tall neighbour (' + raw + '/20)');
+
+  // Physics: the same throw lands in the same place; wind pushes it; straight up comes back down
+  const A = E.shoot(flat(0), 0, 45, 50), B = E.shoot(flat(0), 0, 45, 50);
+  ok(JSON.stringify(A.path) === JSON.stringify(B.path) && A.path.length > 10, 'the same throw flies the same path every time');
+  // the wind is a steady push: over a flight of t seconds it moves the banana by wind·t²/2,
+  // so a wind of +40 against -40 should part the two landings by about 40·t²
+  const left = E.shoot(flat(-40), 0, 45, 45), right = E.shoot(flat(40), 0, 45, 45);
+  const tf = (left.path.length + right.path.length) / 2 / 60, apart = right.end.x - left.end.x;
+  ok(apart > 0 && Math.abs(apart - 40 * tf * tf) < 0.2 * 40 * tf * tf, 'a wind to the right carries the banana further than a wind to the left, by wind·t² (' + Math.round(apart) + ' units, expected ' + Math.round(40 * tf * tf) + ')');
+  const up = E.shoot(flat(0), 0, 90, 40);
+  ok(up.end.kind === 'gorilla' && up.end.who === 0, 'a throw straight up comes down on the thrower');
+  const mirror = E.shoot(flat(0), 1, 45, 50);
+  ok(Math.abs((E.W - mirror.end.x) - A.end.x) < 1.5, 'the right gorilla throws the mirror image of the left one');
+  // Holes: a hit eats into the city, and the next banana goes through the hole
+  const H = flat(0);
+  const s1 = E.shoot(H, 0, 30, 30);
+  E.apply(H, s1.end);
+  ok(s1.end.kind === 'building' && H.holes.length === 1 && H.holes[0].r === 22 && !E.solid(H, s1.end.x, s1.end.y), 'a banana that hits a building takes a round bite out of it');
+  const s2 = E.shoot(H, 0, 30, 30);
+  ok(s2.end.y > s1.end.y + 5 || Math.abs(s2.end.x - s1.end.x) > 5, 'the same throw then flies on through the hole');
+
+  // A match: misses pass the turn, a hit takes the round, hitting yourself gives it away, three rounds win
+  const M = E.match(rng(5));
+  const miss = { end: { kind: 'out', x: -100, y: 0 } };
+  ok(E.record(M, 0, miss, 40, 50) === 'next' && M.turn === 1 && M.misses[0] === 1 && M.last[0].angle === 40, 'a miss passes the turn and keeps the aim for next time');
+  ok(E.record(M, 1, { end: { kind: 'gorilla', who: 1, x: 0, y: 0 } }, 80, 20) === 'round' && M.score.join() === '1,0' && M.roundWinner === 0, 'hitting yourself gives the round to the other');
+  E.nextRound(M, rng(6));
+  ok(M.round === 2 && M.turn === 1 && M.misses.join() === '0,0', 'the next round opens with the other player and a new city');
+  E.record(M, 1, { end: { kind: 'gorilla', who: 0, x: 0, y: 0 } }, 45, 50); E.nextRound(M, rng(7));
+  E.record(M, 0, { end: { kind: 'gorilla', who: 1, x: 0, y: 0 } }, 45, 50); E.nextRound(M, rng(8));
+  ok(E.record(M, 0, { end: { kind: 'gorilla', who: 1, x: 0, y: 0 } }, 45, 50) === 'match' && M.winner === 0 && M.score.join() === '3,1', 'three rounds win the match');
+  ok(E.validMatch(E.match(rng(9))) && !E.validMatch(M) && !E.validMatch(Object.assign(E.match(rng(9)), { turn: 2 })), 'a saved match is checked: a finished or damaged one is refused');
+
+  // The bot: harder levels hit sooner, and hard beats easy
+  const firstHits = { easy: 0, medium: 0, hard: 0 };
+  for (const lv of ['easy', 'medium', 'hard']) {
+    for (let i = 0; i < 24; i++) {
+      const c = E.fairCity(rng(700 + i)), a = E.botAim(c, 0, lv, 0, rng(800 + i)), sh = E.shoot(c, 0, a.angle, a.power);
+      if (sh.end.kind === 'gorilla' && sh.end.who === 1) firstHits[lv]++;
+    }
+  }
+  ok(firstHits.easy < firstHits.medium && firstHits.medium < firstHits.hard && firstHits.hard <= 18, 'first throws hit more often level by level, and hard is not a sure thing (easy ' + firstHits.easy + ', medium ' + firstHits.medium + ', hard ' + firstHits.hard + ' of 24)');
+  let hardWins = 0;
+  for (let g = 0; g < 6; g++) {
+    const r = rng(77 + g), MM = E.match(r), lv = ['hard', 'easy'];
+    let guard = 0;
+    while (MM.winner < 0 && guard++ < 300) {
+      const who = MM.turn, a = E.botAim(MM.city, who, lv[who], MM.misses[who], r), sh = E.shoot(MM.city, who, a.angle, a.power);
+      if (E.record(MM, who, sh, a.angle, a.power) === 'round') E.nextRound(MM, r);
+    }
+    if (MM.winner === 0) hardWins++;
+  }
+  ok(hardWins >= 5, 'the hard bot beats the easy one (' + hardWins + '/6 matches)');
+
+  // Page: both controls behind the gear, no predicted path, the daily is seeded
+  ok(/class: 'ch-iconbtn gz-gear'/.test(html) && /\[\{ value: 'drag', label: C\.t\('ctlDrag'\) \}, \{ value: 'nums', label: C\.t\('ctlNums'\) \}\]/.test(html) && /function showSettings\(\)/.test(html), 'drag and numbers are both offered, switched behind the gear');
+  const page = html.slice(html.indexOf('/* ==== ENGINE END ==== */'));
+  ok((page.match(/E\.shoot\(/g) || []).length === 1 && /var shot = E\.shoot\(M\.city, who, angle, power\);/.test(page), 'the page simulates a throw only when it is thrown, so the aim never shows the path');
+  ok(/function rngFor\(tag\) \{ return G\.daily \? C\.daily\('gorillas', G\.daily \+ '\|' \+ tag\)\.rng : Math\.random; \}/.test(html) && /mode: daily \? 'bot' : o\.mode, level: daily \? 'medium' : o\.level/.test(html), 'the daily match is against the medium bot, with cities and bot throws from the day\'s seed');
+  ok(/\.gz-canvas \{[^}]*direction: ltr;/.test(html), 'the city is not mirrored in Persian');
+
+  // Identity
+  const gm = games.find((g) => g.id === 'gorillas');
+  ok(!!gm && gm.cat === 'skill' && gm.daily !== false, 'games.json lists it under skill games, with a daily match');
+  ok(!!gm && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/gorillas/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const lin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const lab = (h) => {
+    const [R0, G, Bl] = rgb(h).map(lin), f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    const X = (R0 * 0.4124 + G * 0.3576 + Bl * 0.1805) / 0.95047, Y = R0 * 0.2126 + G * 0.7152 + Bl * 0.0722, Z = (R0 * 0.0193 + G * 0.1192 + Bl * 0.9505) / 1.08883;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  };
+  const dE = (p, q) => { const P = lab(p), Q = lab(q); return Math.hypot(P[0] - Q[0], P[1] - Q[1], P[2] - Q[2]); };
+  const lum = (h) => rgb(h).map(lin).reduce((acc, c, i) => acc + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const near = games.filter((g) => g.id !== 'gorillas').map((g) => [g.id, dE(g.color, gm.color)]).sort((p, q) => p[1] - q[1])[0];
+  ok(near[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + near[0] + ', ' + near[1].toFixed(1) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['gor-win', 'gor-hard', 'gor-sharp'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '[^\\n]*des: '").test(core) && html.indexOf("unlock('" + id + "')") > 0), 'the three Gorillas awards exist in every language and are unlocked');
+  ok(Date.now() - t0 < 15000, 'the Gorillas tests finish in under 15 s (' + (Date.now() - t0) + ' ms)');
+}
+
 function testShelem() {
   head('Shelem (#418)');
   const t0 = Date.now();
@@ -10087,6 +10197,7 @@ testSudokuClearNotes();
 testKlondike();
 testSpider();
 testPairs();
+testGorillas();
 testCrazyEights();
 testCrazyEightsIran();
 testGinRummy();
