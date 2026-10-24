@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4794;
+const MIN_CHECKS = 4800;
 
 function ok(cond, msg) {
   checks++;
@@ -4808,6 +4808,11 @@ function testAwardToasts() {
   const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
   const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
   const un = core.slice(core.indexOf('    unlock: function (id) {'), core.indexOf('    check: function () {'));
+  // #464: Darts reused Dots and Boxes' dt-win and dt-hard, so its own two awards never
+  // showed and each game's wins counted for the other; every award id must be unique
+  const ids = (core.match(/\{ id: '([a-z0-9-]+)',/g) || []).map((x) => x.slice(7, -2));
+  const dup = ids.filter((x, i) => ids.indexOf(x) !== i);
+  ok(ids.length > 80 && !dup.length, 'every award id is unique (' + ids.length + ' awards' + (dup.length ? ', twice: ' + dup.join(', ') : '') + ')');
   ok(/Chogan\.ui\.toast\(\{[^}]*ms: 7000\s*\}\);/.test(un), 'an award notice stays seven seconds');
   ok(/node\.addEventListener\('pointerenter', hold\);/.test(core) && /node\.addEventListener\('pointerdown', hold\);/.test(core) && /node\.addEventListener\('pointerleave', release\);/.test(core), 'a finger or the mouse on a notice holds it');
   ok(/node\.addEventListener\('click', function \(\) \{ clearTimeout\(node\._chTimer\); node\._chHide\(\); \}\);/.test(core), 'a tap closes a notice');
@@ -7171,7 +7176,7 @@ function testDarts() {
   const near = games.filter((g) => g.id !== 'darts').map((g) => [g.id, dE(g.color, gm.color)]).sort((x, y) => x[1] - y[1])[0];
   ok(near[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + near[0] + ', ' + near[1].toFixed(1) + ') and keeps white text at 4.5:1');
   const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
-  ok(['dt-win', 'dt-hard', 'dt-180'].every((id) => core.indexOf("id: '" + id + "'") > 0 && html.indexOf("unlock('" + id + "')") > 0), 'the three darts awards exist and are unlocked');
+  ok(['dr-win', 'dr-hard', 'dt-180'].every((id) => core.indexOf("id: '" + id + "'") > 0 && html.indexOf("unlock('" + id + "')") > 0), 'the three darts awards exist and are unlocked');
   // The reporter asked for real sounds: a whoosh on the throw and a thud on the board, from the core
   ok(/    whoosh: function \(\) \{\n(      var b = now\(\);\n)?      noise\(/.test(core) && /    thud: function \(\) \{[\s\S]{0,80}noise\(/.test(core) && /whoosh: \['whoosh', null\], thud: \['thud', 'tap'\]/.test(core), 'the core has a whoosh and a thud, the whoosh without a buzz');
   ok(/if \(m\[1\]\) Chogan\.haptic\(m\[1\]\);/.test(core), 'feedback with no vibration does not fall back to a tap buzz');
