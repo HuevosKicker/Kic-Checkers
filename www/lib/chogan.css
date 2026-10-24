@@ -639,6 +639,11 @@ a  { color: var(--c-accent); text-decoration: none; }
 .ch-fit {
   flex: 1 1 0; min-height: 0; min-width: 0; align-self: stretch;
   container-type: size; display: grid; place-items: center;
+  /* the one cell is the slot's own size, never its content's: an auto row grew to the
+     canvas a game had drawn, and games that size their canvas by its box read that
+     size back, so turning a phone kept the upright board and it ran off the screen
+     (#474: Gorillas, Darts, Ludo, Snakes and Ladders, Chain Reaction, Bowling) */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   /* never taller than the board it holds, so in a tall window the other rows stay
      next to the board instead of being pushed to the edges */
   max-height: calc(100cqw / var(--fit-ar, 1));
