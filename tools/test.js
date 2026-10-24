@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4800;
+const MIN_CHECKS = 4870;
 
 function ok(cond, msg) {
   checks++;
@@ -9410,7 +9410,8 @@ function testCardSpeed() {
     freecell: ['ms: C.cards.pace(170)', 'ms: C.cards.pace(240)', 'C.cards.pace(260)'],
     klondike: ["C.cards.pace(180) + 'ms'", 'C.cards.pace(220)', 'C.cards.pace(70)'],
     crazyeights: ['C.cards.pace(C.ui.reduceMotion() ? 300 : BOT_MS)', 'C.cards.pace(450)', 'C.cards.pace(900)', 'C.cards.pace(700)'],
-    ginrummy: ['C.cards.pace(C.ui.reduceMotion() ? 300 : BOT_MS)', 'C.cards.pace(700)']
+    ginrummy: ['C.cards.pace(C.ui.reduceMotion() ? 300 : BOT_MS)', 'C.cards.pace(700)'],
+    spider: ["C.cards.pace(180) + 'ms'", 'C.cards.pace(order[k] * 40)', 'C.cards.pace(400)']
   };
   for (const g of Object.keys(paced)) {
     const html = fs.readFileSync(path.join(ROOT, 'www/games', g, 'index.html'), 'utf8');
@@ -9437,11 +9438,146 @@ function testPersianCardIndex() {
   }
   ok(/text: rankText\(r\) \}\)\];/.test(core) && /function label\(c\) \{ return rankText\(rank\(c\)\) \+ GLYPH\[suit\(c\)\]; \}/.test(core), 'every card face and its label use it');
   // games that draw or write a rank themselves use it too
-  const uses = { klondike: 1, freecell: 2, pasur: 2 };
+  const uses = { klondike: 1, freecell: 2, pasur: 2, spider: 1 };
   for (const g of Object.keys(uses)) {
     const html = fs.readFileSync(path.join(ROOT, 'www/games', g, 'index.html'), 'utf8');
     ok((html.match(/C\.cards\.rankText\(/g) || []).length === uses[g] && !/RANK_TXT|C\.cards\.RANKS\[/.test(html), g + ': its drawn or written ranks follow the language');
   }
+}
+
+function testSpider() {
+  head('Spider (#460)');
+  const t0 = Date.now();
+  const E = loadEngine('spider', 'SpiderEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/spider/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+  // a card of rank r (0..12, A..K) from set k (0..7); with one suit every set is spades
+  const card = (r, k) => k * 13 + r;
+  const empty = (suits) => ({ suits: suits || 1, tab: [[], [], [], [], [], [], [], [], [], []], down: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], stock: [], found: [], hist: [], undos: 0 });
+
+  // The deal: 6, 6, 6, 6 then 5 a column with only the top one up, 50 in the stock
+  const D = E.deal(rng(7), 1);
+  ok(D.tab.map((c) => c.length).join() === '6,6,6,6,5,5,5,5,5,5' && D.down.join() === '5,5,5,5,4,4,4,4,4,4' && D.stock.length === 50 && E.validState(D), 'a deal lays out 54 cards in ten columns, only the top ones face up, and 50 in the stock');
+  // Suits: one suit is all spades; two suits hearts and spades; four suits all, each 26 cards
+  const suitCount = (n) => { const S = E.deal(rng(1), n), c = [0, 0, 0, 0]; for (let i = 0; i < 104; i++) c[E.suitOf(n, i)]++; return c.join(); };
+  ok(suitCount(1) === '0,0,0,104' && suitCount(2) === '0,0,52,52' && suitCount(4) === '26,26,26,26', 'one suit is 104 spades, two suits 52 hearts and 52 spades, four suits 26 of each');
+  ok(E.face(E.deal(rng(1), 1), card(12, 3)) === 12 * 4 + 3, 'a card is drawn with Chogan.cards as rank * 4 + suit');
+
+  // Columns: any suit one rank higher takes a card, an empty column takes anything,
+  // but only a run of one suit moves together
+  const S = empty(2);
+  S.tab[0] = [card(7, 1)];                                   // 8♠ (set 1 is spades with two suits)
+  ok(E.canTab(S, card(6, 0), 0) && E.canTab(S, card(6, 1), 0), 'a 7 of either suit goes on the 8');
+  ok(!E.canTab(S, card(5, 0), 0) && !E.canTab(S, card(7, 0), 0), 'only exactly one rank lower');
+  ok(E.canTab(S, card(3, 0), 1) && E.canTab(S, card(11, 0), 1), 'an empty column takes any card');
+  S.tab[2] = [card(9, 1), card(8, 1), card(7, 0), card(6, 0)];   // 10♠ 9♠ 8♥ 7♥
+  ok(E.runStart(S, 2) === 2 && E.movable(S, 2, 2) && !E.movable(S, 2, 1), 'the 8♥ 7♥ move together; the 9♠ under them is held by the suit change');
+  ok(!E.legal(S, { col: 2, i: 1 }, 1), 'so the 9♠ with the hearts on it cannot move');
+
+  // A move turns over the card it uncovers, and undo turns it back
+  const M = empty(1);
+  M.tab[0] = [card(3, 0), card(9, 0)]; M.down[0] = 1;
+  M.tab[1] = [card(10, 1)];
+  const h = E.move(M, { col: 0, i: 1 }, 1);
+  ok(h && M.tab[1].length === 2 && M.down[0] === 0 && h.flip, 'moving the 10 onto the J turns the card under it over');
+  E.undo(M);
+  ok(M.tab[0].length === 2 && M.down[0] === 1 && M.tab[1].length === 1 && M.undos === 1, 'undo puts the 10 back and the card face down again');
+
+  // A full run king to ace in one suit leaves by itself, the card under it turns over, and undo brings it back
+  const R = empty(1);
+  R.tab[0] = [card(4, 2)];
+  for (let r = 12; r >= 1; r--) R.tab[0].push(card(r, 0));
+  R.down[0] = 1;
+  R.tab[1] = [card(0, 0)];                                   // the ace
+  E.move(R, { col: 1, i: 0 }, 0);
+  ok(R.found.length === 1 && R.tab[0].length === 1 && R.down[0] === 0 && R.found[0][0] === card(12, 0), 'the ace finishes king to ace: the run leaves, king first, and the card under it turns over');
+  E.undo(R);
+  ok(R.found.length === 0 && R.tab[0].length === 13 && R.down[0] === 1 && R.tab[1].length === 1, 'undo puts the run and the ace back exactly');
+  const R2 = empty(2);
+  for (let r = 12; r >= 1; r--) R2.tab[0].push(card(r, r === 6 ? 0 : 1));   // one heart in the middle
+  R2.tab[1] = [card(0, 1)];
+  E.move(R2, { col: 1, i: 0 }, 0);
+  ok(R2.found.length === 0 && R2.tab[0].length === 13, 'a king-to-ace run with a card of another suit does not leave');
+
+  // The stock: a card on every column, not while one is empty; undo takes the row back
+  const T = E.deal(rng(11), 1);
+  const st0 = T.stock.slice();
+  ok(E.dealRow(T) === 'deal' && T.stock.length === 40 && T.tab.every((c, i) => c[c.length - 1] === st0[st0.length - 1 - i]), 'a tap on the stock lays the next ten cards on the ten columns');
+  E.undo(T);
+  ok(T.stock.join() === st0.join() && T.tab.map((c) => c.length).join() === '6,6,6,6,5,5,5,5,5,5', 'undo takes the row back into the stock in order');
+  const T2 = E.clone(T); T2.stock = T2.stock.concat(T2.tab[9]); T2.tab[9] = []; T2.down[9] = 0;
+  ok(E.dealRow(T2) === 'empty' && T2.hist.length === 0, 'no row is dealt while a column is empty');
+
+  // A tap: same suit first, then any suit, then an empty column; a whole column never moves to another empty one
+  const A = empty(2);
+  A.tab[0] = [card(5, 1)];                                   // 6♠
+  A.tab[1] = [card(5, 0)];                                   // 6♥
+  A.tab[3] = [card(9, 1), card(4, 0)];                       // 10♠, 5♥
+  ok(E.autoTarget(A, { col: 3, i: 1 }) === 1, 'a tapped 5♥ goes on the 6♥ before the 6♠');
+  A.tab[1] = [card(2, 0)];
+  ok(E.autoTarget(A, { col: 3, i: 1 }) === 0, 'else on the 6♠');
+  A.tab[0] = [card(2, 1)];
+  ok(E.autoTarget(A, { col: 3, i: 1 }) === 2, 'else into the first empty column');
+  A.tab[3] = [card(4, 0)];
+  ok(E.autoTarget(A, { col: 3, i: 0 }) === null, 'a card alone in its column is not moved to another empty one');
+
+  // Hints: every hinted move is legal, and following them never goes round in circles
+  let hinted = 0, illegal = 0, endless = 0, valid = 0, games0 = 0;
+  for (const n of [1, 2, 4]) {
+    for (let g = 0; g < 12; g++) {
+      const H = E.deal(rng(100 + g), n);
+      let steps = 0;
+      games0++;
+      while (!E.won(H) && steps < 400) {
+        const x = E.hint(H);
+        if (!x) break;
+        if (x.deal) { if (E.dealRow(H) !== 'deal') { illegal++; break; } } else if (!E.move(H, x.src, x.dst)) { illegal++; break; }
+        steps++; hinted++;
+      }
+      if (steps >= 400) endless++;
+      if (E.validState(H)) valid++;
+      // and undo walks a whole game back to its deal
+      const back = E.deal(rng(100 + g), n);
+      while (E.undo(H));
+      if (JSON.stringify([H.tab, H.down, H.stock, H.found]) !== JSON.stringify([back.tab, back.down, back.stock, back.found])) illegal++;
+    }
+  }
+  ok(games0 === 36 && hinted > 300, 'hints were followed through 36 games (' + hinted + ' moves)');
+  ok(illegal === 0 && endless === 0 && valid === 36, 'every hint was legal, none went round in circles, every state stayed a full deck, and undo walked each game back to its deal');
+
+  // the same seed gives the same deal for everyone
+  const a1 = E.deal(rng(99), 1), a2 = E.deal(rng(99), 1);
+  ok(JSON.stringify(a1.tab) === JSON.stringify(a2.tab) && a1.stock.join() === a2.stock.join(), 'one seed, one deal');
+  ok(/E\.deal\(daily \? C\.daily\('spider', daily\)\.rng : Math\.random, daily \? 1 : prefs\.suits\)/.test(html), 'the daily deal comes from the day\'s seed and is always one suit');
+  ok(!E.validState(Object.assign(E.clone(D), { suits: 3 })) && !E.validState(Object.assign(E.clone(D), { stock: D.stock.slice(1) })), 'a damaged save is refused');
+
+  // Page: cards from the shared deck, the deal through the shared fly helper, options behind a gear
+  ok(/C\.cards\.el\(E\.face\(S, c\)\), C\.cards\.back\(\)/.test(html) && /C\.ui\.fly\(nodes\[c\], from, \{ ms: 200, delay: n\+\+ \* 18, flip: row === S\.down\[col\] \}\)/.test(html), 'the cards are Chogan.cards and the deal uses Chogan.ui.fly');
+  ok(/class: 'ch-iconbtn sp-gear', type: 'button', 'aria-label': C\.t\('settings'\)/.test(html) && /function showSettings\(\)/.test(html) && !/suitsRule[^\n]*showHelp/.test(html), 'the number of suits is chosen behind a gear, not in help');
+  ok(/if \(C\.ui\.reduceMotion\(\) \|\| !L\) \{ done\(\); return; \}/.test(html) && /if \(C\.ui\.reduceMotion\(\) \|\| !L\) return;/.test(html), 'no deal animation and no win cascade with reduced motion');
+  ok(/\.sp-board \{ direction: ltr;/.test(html), 'the table is not mirrored in Persian');
+
+  // Identity
+  const gm = games.find((g) => g.id === 'spider');
+  ok(!!gm && gm.cat === 'cards' && gm.daily !== false, 'games.json lists it under card games, with a daily deal');
+  ok(!!gm && /accent: '([^']+)'/.test(html) && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/spider/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (x) => [1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16) / 255);
+  const lin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const lab = (x) => {
+    const [R0, G, Bl] = rgb(x).map(lin), f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    const X = (R0 * 0.4124 + G * 0.3576 + Bl * 0.1805) / 0.95047, Y = R0 * 0.2126 + G * 0.7152 + Bl * 0.0722, Z = (R0 * 0.0193 + G * 0.1192 + Bl * 0.9505) / 1.08883;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  };
+  const dE = (a, b) => { const P = lab(a), Q = lab(b); return Math.hypot(P[0] - Q[0], P[1] - Q[1], P[2] - Q[2]); };
+  const lum = (x) => rgb(x).map((c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const near = games.filter((g) => g.id !== 'spider').map((g) => [g.id, dE(g.color, gm.color)]).sort((x, y) => x[1] - y[1])[0];
+  ok(near[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + near[0] + ', ' + near[1].toFixed(1) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['spi-win', 'spi-two', 'spi-four'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '[^\\n]*des: '").test(core) && html.indexOf("unlock('" + id + "')") > 0), 'the three Spider awards exist in every language and are unlocked');
+  ok(Date.now() - t0 < 15000, 'the Spider tests finish in under 15 s (' + (Date.now() - t0) + ' ms)');
 }
 
 function testShelem() {
@@ -9839,6 +9975,7 @@ testCardSpeed();
 testPersianCardIndex();
 testSudokuClearNotes();
 testKlondike();
+testSpider();
 testCrazyEights();
 testCrazyEightsIran();
 testGinRummy();

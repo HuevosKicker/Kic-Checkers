@@ -936,6 +936,30 @@
       "soft": "#DFF0DA",
       "added": "2026-10-23",
       "files": []
+    },
+    {
+      "id": "spider",
+      "cat": "cards",
+      "name": {
+        "fa": "عنکبوت",
+        "en": "Spider",
+        "zh": "蜘蛛纸牌",
+        "de": "Spider",
+        "es": "Spider"
+      },
+      "summary": {
+        "fa": "هر خال را از شاه تا آس پشت سر هم بچین؛ یک، دو یا چهار خال.",
+        "en": "Build each suit from king down to ace; one, two or four suits.",
+        "zh": "把每种花色从K到A依次排好；单色、双色或四色。",
+        "de": "Lege jede Farbe vom König bis zum Ass ab; eine, zwei oder vier Farben.",
+        "es": "Ordena cada palo del rey al as; uno, dos o cuatro palos."
+      },
+      "path": "games/spider/index.html",
+      "icon": "games/spider/icon.svg",
+      "color": "#55507A",
+      "soft": "#E6E4EF",
+      "added": "2026-10-24",
+      "files": []
     }
   ]
 }
