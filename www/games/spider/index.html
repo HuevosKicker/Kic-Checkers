@@ -37,6 +37,13 @@
     border: 3px solid var(--game); pointer-events: none; display: none; }
   .sp-cascade { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5000; }
   .sp-gear .ch-icon { pointer-events: none; }
+  /* a short, wide window (a phone on its side): the badges stand beside the table, so
+     the ten columns get the height (#472: the row above left the cards 30 px wide) */
+  .sp-wrap--side { flex-direction: row; align-items: stretch; }
+  .sp-wrap--side .sp-top { flex-direction: column; flex-wrap: nowrap; justify-content: center; }
+  /* the corner rank is what a player reads in a stack; on ten narrow columns it was 9 px */
+  .sp-card .ch-pcard__r { font-size: calc(var(--pw) * .4); }
+  .sp-card .ch-pcard__mini { font-size: calc(var(--pw) * .26); }
 </style>
 </head>
 <body>
@@ -408,22 +415,36 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
 
   /* ----------------------------------------------------------- layout */
 
+  // A short, wide window puts the stock in a column of its own on the left and the
+  // finished runs on the right, so the ten columns start at the top and get the whole
+  // height; otherwise both sit in a row above the columns, as in Windows.
+  function sideWanted() { return wrap.clientWidth > wrap.clientHeight * 1.9; }
   function layout() {
+    var side = sideWanted();
+    wrap.classList.toggle('sp-wrap--side', side);
     var W = board.clientWidth, H = board.clientHeight;
     if (!W || !H) return null;
-    var gap = Math.max(3, Math.round(Math.min(W, 900) * 0.01));
-    var cw = Math.floor((Math.min(W, 900) - gap * 11) / 10);
-    // on a wide, short window the card height has to fit too: a column often runs five cards tall
-    cw = Math.max(26, Math.min(cw, 96, Math.floor(H / 5 / 1.4)));
-    var ch = Math.round(cw * 1.4), bw = cw * 10 + gap * 9;
+    var n = side ? 12 : 10, wide = Math.min(W, side ? 1100 : 900);
+    var gap = Math.max(2, Math.round(wide * (side ? 0.008 : 0.006)));
+    var cw = Math.floor((wide - gap * (n + 1)) / n);
+    // the height has to fit too: in a row, the stock above and a column often five cards
+    // tall; beside, a column and the room for it to grow
+    cw = Math.max(24, Math.min(cw, 96, Math.floor(side ? (H - 2 * gap) / 1.4 / 2.4 : H / 5 / 1.4)));
+    var ch = Math.round(cw * 1.4), bw = cw * n + gap * (n - 1);
     board.style.setProperty('--cw', cw + 'px');
     board.style.setProperty('--sp-move', C.cards.pace(180) + 'ms');
-    return { W: W, H: H, gap: gap, cw: cw, ch: ch, x0: Math.round((W - bw) / 2), ty: gap, cy: gap * 3 + ch,
+    return { W: W, H: H, gap: gap, cw: cw, ch: ch, x0: Math.round((W - bw) / 2), ty: gap, cy: side ? gap : gap * 3 + ch, side: side, off: side ? 1 : 0,
       // ten narrow columns on a phone leave the room below empty, so a card shows more of
       // itself than in Klondike; a long column closes up again in offsets()
       up: Math.max(16, Math.round(ch * 0.4)), dn: Math.max(6, Math.round(ch * 0.14)) };
   }
   function colX(i) { return L.x0 + i * (L.cw + L.gap); }
+  function tabX(col) { return colX(col + L.off); }
+  // the stock: one back per deal left, fanned right in a row, down in a column of its own
+  function stockPos(g) {
+    var step = Math.max(4, Math.round(L.cw * 0.16));
+    return L.side ? { x: colX(0), y: L.ty + g * step } : { x: colX(0) + g * step, y: L.ty };
+  }
   // a long column closes up so its last card stays on the board
   function offsets(col) {
     var t = S.tab[col], d = S.down[col], up = L.up, dn = L.dn;
@@ -432,27 +453,29 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
     if (need > room && need > 0) { var k = room / need; up = Math.max(8, up * k); dn = Math.max(2, dn * k); }
     return { up: up, dn: dn };
   }
-  // the finished runs fill the slots from the right, as in Windows
-  function foundX(k) { return colX(E.COLS - 1 - k); }
+  // the finished runs fill the slots from the right, as in Windows; beside the table
+  // they pile down the right-hand column
+  function foundPos(k) { return L.side ? { x: colX(11), y: L.ty + k * Math.round(L.ch * 0.16) } : { x: colX(E.COLS - 1 - k), y: L.ty }; }
 
   // Where every card sits: { x, y, z, down, under }. The stock shows one back per deal
   // left; a card under others on the same spot is hidden, so stacked shadows don't add up.
   function positions() {
-    var P = {}, i, z = 1, step = Math.max(4, Math.round(L.cw * 0.16));
+    var P = {}, i, z = 1;
     for (i = 0; i < S.stock.length; i++) {
-      var g = Math.floor(i / 10);
-      P[S.stock[i]] = { x: colX(0) + g * step, y: L.ty, z: z++, down: true, under: i % 10 !== 9 };
+      var sp = stockPos(Math.floor(i / 10));
+      P[S.stock[i]] = { x: sp.x, y: sp.y, z: z++, down: true, under: i % 10 !== 9 };
     }
     for (var f = 0; f < S.found.length; f++) {
       var run = S.found[f];
       // the king lies on top, as the run was lifted king first
-      for (i = 0; i < 13; i++) P[run[i]] = { x: foundX(f), y: L.ty, z: 100 + f * 20 + (13 - i), down: false, under: i > 1 };
+      var fp = foundPos(f);
+      for (i = 0; i < 13; i++) P[run[i]] = { x: fp.x, y: fp.y, z: 100 + f * 20 + (13 - i), down: false, under: i > 1 };
     }
     for (var col = 0; col < E.COLS; col++) {
       var t = S.tab[col], o = offsets(col), y = L.cy;
       for (i = 0; i < t.length; i++) {
         var dn = i < S.down[col];
-        P[t[i]] = { x: colX(col), y: Math.round(y), z: 300 + i, down: dn };
+        P[t[i]] = { x: tabX(col), y: Math.round(y), z: 300 + i, down: dn };
         y += dn ? o.dn : o.up;
       }
     }
@@ -466,8 +489,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
     if (!L || !S) return;
     slots.stock.style.transform = 'translate(' + colX(0) + 'px,' + L.ty + 'px)';
     slots.stock.style.opacity = S.stock.length ? 0 : 1;
-    for (var f = 0; f < E.RUNS; f++) slots['f' + f].style.transform = 'translate(' + foundX(f) + 'px,' + L.ty + 'px)';
-    for (var c = 0; c < E.COLS; c++) slots['t' + c].style.transform = 'translate(' + colX(c) + 'px,' + L.cy + 'px)';
+    // beside the table one empty slot stands for the pile of runs
+    for (var f = 0; f < E.RUNS; f++) { var fp = foundPos(f); slots['f' + f].style.transform = 'translate(' + fp.x + 'px,' + fp.y + 'px)'; slots['f' + f].style.visibility = L.side && f ? 'hidden' : ''; }
+    for (var c = 0; c < E.COLS; c++) slots['t' + c].style.transform = 'translate(' + tabX(c) + 'px,' + L.cy + 'px)';
     var P = positions(), moved = [], order = {};
     if (stagger) stagger.forEach(function (id, i) { order[id] = i; });
     for (var k = 0; k < 104; k++) {
@@ -635,7 +659,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
     if (!pr.drag) { tap(pr.src); return; }
     // the dragged card's centre decides the column
     var b = pr.base[pr.cards[0]], x = b.x + pr.dx + L.cw / 2;
-    var col = Math.floor((x - L.x0 + L.gap / 2) / (L.cw + L.gap));
+    var col = Math.floor((x - L.x0 + L.gap / 2) / (L.cw + L.gap)) - L.off;
     if (col >= 0 && col < E.COLS && E.legal(S, pr.src, col)) doMove(pr.src, col);
     else render();
   }
@@ -649,7 +673,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
     if (!L) return null;
     if (f === 0) return { x: colX(0), y: L.ty };
     var col = f - 1, t = S.tab[col];
-    if (!t.length) return { x: colX(col), y: L.cy };
+    if (!t.length) return { x: tabX(col), y: L.cy };
     return positions()[t[t.length - 1]];
   }
   function showFocus() {
@@ -709,7 +733,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
     var T = { face: cs.getPropertyValue('--c-surface').trim() || '#FFFFFF', line: cs.getPropertyValue('--c-line').trim() || '#E7DACA',
       text: cs.getPropertyValue('--c-text').trim() || '#2C2620', red: cs.getPropertyValue('--c-bad').trim() || '#C8574B',
       font: getComputedStyle(document.body).fontFamily || 'system-ui, sans-serif' };
-    for (var r = 0; r < 13; r++) for (var f = 0; f < S.found.length; f++) queue.push({ c: S.found[f][r], x: foundX(f), y: L.ty });
+    for (var r = 0; r < 13; r++) for (var f = 0; f < S.found.length; f++) { var fp = foundPos(f); queue.push({ c: S.found[f][r], x: fp.x, y: fp.y }); }
     var stop = function () {
       if (over) return;
       over = true;

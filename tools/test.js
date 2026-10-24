@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4982;
+const MIN_CHECKS = 4983;
 
 function ok(cond, msg) {
   checks++;
@@ -9557,6 +9557,10 @@ function testSpider() {
   ok(/class: 'ch-iconbtn sp-gear', type: 'button', 'aria-label': C\.t\('settings'\)/.test(html) && /function showSettings\(\)/.test(html) && !/suitsRule[^\n]*showHelp/.test(html), 'the number of suits is chosen behind a gear, not in help');
   ok(/if \(C\.ui\.reduceMotion\(\) \|\| !L\) \{ done\(\); return; \}/.test(html) && /if \(C\.ui\.reduceMotion\(\) \|\| !L\) return;/.test(html), 'no deal animation and no win cascade with reduced motion');
   ok(/\.sp-board \{ direction: ltr;/.test(html), 'the table is not mirrored in Persian');
+  // #472: on a phone on its side the row above the table left the cards 30 px wide; a short,
+  // wide window now puts the badges, the stock and the finished runs beside the columns,
+  // and the corner rank is larger on Spider's narrow cards
+  ok(/function sideWanted\(\) \{ return wrap\.clientWidth > wrap\.clientHeight \* 1\.9; \}/.test(html) && /function tabX\(col\) \{ return colX\(col \+ L\.off\); \}/.test(html) && /cy: side \? gap : gap \* 3 \+ ch/.test(html) && /\.sp-wrap--side \{ flex-direction: row;/.test(html) && /\.sp-card \.ch-pcard__r \{ font-size: calc\(var\(--pw\) \* \.4\); \}/.test(html), 'a short, wide window puts the stock, the runs and the badges beside the columns, and the corner rank is larger');
 
   // Identity
   const gm = games.find((g) => g.id === 'spider');
