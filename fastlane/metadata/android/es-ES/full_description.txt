@@ -1,4 +1,4 @@
-Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae cuarenta y dos juegos; los nuevos llegan como actualizaciones.
+Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae cuarenta y tres juegos; los nuevos llegan como actualizaciones.
 
 Los juegos:
 
@@ -44,6 +44,7 @@ Los juegos:
 * Spider — dos barajas en diez columnas, del rey al as; uno, dos o cuatro palos
 * Parejas — el juego de memoria: gira dos cartas cada vez y encuentra todas las parejas
 * Gorilas — plátanos explosivos sobre la ciudad: ángulo, fuerza y viento; contra un bot o para dos
+* Salto — salta de plataforma en plataforma sin caer; toca o inclina el móvil
 
 Alrededor de los juegos:
 

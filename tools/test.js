@@ -21,7 +21,7 @@ let checks = 0;
 // اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
 // مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
 // پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
-const MIN_CHECKS = 4984;
+const MIN_CHECKS = 5040;
 
 function ok(cond, msg) {
   checks++;
@@ -9808,6 +9808,113 @@ function testGorillas() {
   ok(Date.now() - t0 < 15000, 'the Gorillas tests finish in under 15 s (' + (Date.now() - t0) + ' ms)');
 }
 
+function testHop() {
+  head('Hop (#467)');
+  const t0 = Date.now();
+  const E = loadEngine('hop', 'HopEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/hop/index.html'), 'utf8');
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+  // a hand-made world: the player on a platform at height 0, nothing else unless added
+  const bare = (plats) => { const S = E.newGame(rng(1), 0); S.plats = plats; S.top = 1e9; S.y = 0; S.vy = 0; S.x = 180; S.cam = -200; S.best = 0; return S; };
+
+  // A jump: from a platform the player rises v²/2g, and a spring sends it 1.6² as high
+  const J = bare([{ x: 180, y: 0, w: 360, kind: 'normal', vx: 0 }]);
+  J.vy = -1; let top = 0;
+  for (let i = 0; i < 200; i++) { E.step(J, 0); top = Math.max(top, J.y); }
+  ok(Math.abs(top - E.REACH) / E.REACH < 0.03, 'a jump from a platform rises to its reach (' + Math.round(top) + ' of ' + Math.round(E.REACH) + ')');
+  const SP = bare([{ x: 180, y: 0, w: 64, kind: 'spring', vx: 0 }]);
+  SP.vy = -1; let topS = 0;
+  for (let i = 0; i < 300; i++) { E.step(SP, 0); topS = Math.max(topS, SP.y); }
+  ok(Math.abs(topS / top - 2.56) < 0.12, 'a spring sends it about 2.6 times as high (' + (topS / top).toFixed(2) + ')');
+  // A crumbling platform breaks under you and does not bounce
+  const CR = bare([{ x: 180, y: 0, w: 64, kind: 'crumble', vx: 0 }]);
+  CR.y = 30; CR.vy = 0;
+  let ev = [];
+  for (let i = 0; i < 40; i++) ev = ev.concat(E.step(CR, 0));
+  ok(ev.includes('crumble') && !ev.includes('jump') && CR.plats[0].broken && CR.y < 0, 'a crumbling platform breaks under the player, who falls on through');
+  // Jumps go up through platforms; only a fall lands
+  const UP = bare([{ x: 180, y: 0, w: 360, kind: 'normal', vx: 0 }, { x: 180, y: 60, w: 64, kind: 'normal', vx: 0 }]);
+  UP.vy = 820; ev = [];
+  for (let i = 0; i < 6; i++) ev = ev.concat(E.step(UP, 0));
+  ok(!ev.length && UP.y > 60, 'a rising jump passes up through a platform');
+  // The sides wrap; moving platforms turn at the walls
+  const WR = bare([{ x: 180, y: -500, w: 360, kind: 'normal', vx: 0 }, { x: 330, y: 300, w: 64, kind: 'moving', vx: 120 }]);
+  WR.x = 355; WR.vx = 300; WR.vy = 400;
+  E.step(WR, 1);
+  ok(WR.x < 10, 'leaving the right side brings the player back on the left (x ' + WR.x.toFixed(1) + ')');
+  for (let i = 0; i < 30; i++) E.step(WR, 0);
+  ok(WR.plats[1].vx < 0 && WR.plats[1].x <= 360 - 32, 'a moving platform turns back at the wall');
+  // Falling out of view ends the run
+  const FL = bare([]); FL.cam = 0; FL.y = 10; FL.vy = -400;
+  ev = [];
+  for (let i = 0; i < 30 && !FL.over; i++) ev = ev.concat(E.step(FL, 0));
+  ok(FL.over && ev.includes('fall'), 'falling out of the bottom of the view ends the run');
+
+  // Courses: every gap between platforms you can stand on stays within a jump, at every height
+  ok([0, 5000, 15000, 1e6].every((h) => E.gapRange(h)[1] <= E.REACH * 0.85 + 1e-9), 'the widest gap at any height is under 85 % of a jump');
+  let worst = 0, courses = 0;
+  for (let g = 0; g < 12; g++) {
+    const S = E.newGame(rng(100 + g), 0); E.grow(S, 30000); courses++;
+    const ys = S.plats.filter((p) => p.kind !== 'crumble').map((p) => p.y).sort((a, b) => a - b);
+    for (let i = 1; i < ys.length; i++) worst = Math.max(worst, ys[i] - ys[i - 1]);
+  }
+  ok(courses === 12 && worst > 100 && worst <= E.REACH * 0.85, 'over 12 courses to 3,000 m the largest gap between standable platforms is ' + worst.toFixed(0) + ', within a jump of ' + Math.round(E.REACH));
+  const c1 = E.newGame(rng(77), 20000), c2 = E.newGame(rng(77), 20000);
+  E.grow(c1, 5000); E.grow(c2, 5000);
+  ok(JSON.stringify(c1.plats) === JSON.stringify(c2.plats), 'one seed, one course');
+  // The daily climb: the summit is reachable, never shadowed by a plain platform, and stays in view
+  let climbs = 0, summits = 0, shadow = 0, secs = [];
+  for (let g = 0; g < 30; g++) {
+    const S = E.newGame(rng(g + 1), 20000); let n = 0;
+    while (!S.over && !S.won && n++ < 60 * 400) E.step(S, E.botSteer(S));
+    climbs++; if (S.won) { summits++; secs.push(S.t); }
+    const sm = S.plats.find((p) => p.kind === 'summit');
+    if (!sm || S.plats.some((p) => p.kind !== 'summit' && p.kind !== 'crumble' && p.y > 20000 - 60 && p.y <= 20000)) shadow++;
+    if (S.cam > 20000 - 80 + 1e-9) shadow++;
+  }
+  secs.sort((a, b) => a - b);
+  ok(climbs === 30 && summits === 30, 'a steady climber reaches the 2,000 m summit on every one of 30 daily courses (' + summits + '/30)');
+  ok(shadow === 0, 'no plain platform sits level with the summit, and the view never rises past it');
+  ok(secs[15] > 90 && secs[15] < 240, 'a daily climb takes a couple of minutes (median ' + Math.round(secs[15]) + ' s)');
+  let far = 0;
+  for (let g = 0; g < 6; g++) {
+    const S = E.newGame(rng(500 + g), 0); let n = 0;
+    while (!S.over && S.y < 40000 && n++ < 60 * 600) E.step(S, E.botSteer(S));
+    if (S.y >= 40000) far++;
+  }
+  ok(far === 6, 'endless courses stay climbable past 4,000 m, at full difficulty (' + far + '/6)');
+
+  // Page: both controls behind the gear; tilt asks only where the browser makes it ask, on a tap
+  ok(/class: 'ch-iconbtn hp-gear'/.test(html) && /\[\{ value: 'touch', label: C\.t\('ctlTouch'\) \}, \{ value: 'tilt', label: C\.t\('ctlTilt'\) \}\]/.test(html), 'touch and tilt are both offered, switched behind the gear');
+  ok(/window\.addEventListener\('deviceorientation', onTilt\)/.test(html) && /if \(prefs\.control === 'tilt'\) startTilt\(true\);/.test(html) && /startTilt\(false\);/.test(html) && !/Accelerometer|Gyroscope|navigator\.permissions/.test(html), 'tilt uses deviceorientation (no Android permission), and asks for iOS permission only from the settings tap');
+  ok(/C\.ui\.toast\(\{ icon: 'info', title: C\.t\('noTilt'\) \}\)/.test(html) && /if \(prefs\.control === 'tilt' && tiltSeen\) k \+= tilt;/.test(html), 'without tilt events touch keeps working, and the player is told');
+  ok(/C\.daily\('hop', dailyDate\)\.rng/.test(html) && /var SUMMIT = 20000;/.test(html), 'the daily climb comes from the day\'s seed, to a summit at 2,000 m');
+  ok(/\.hp-canvas \{[^}]*direction: ltr;/.test(html), 'left is left in Persian too');
+  ok(/wrap\.addEventListener\('pointerdown', function \(e\) \{\n    if \(!S \|\| \(e\.target\.closest && e\.target\.closest\('button'\)\)\) return;/.test(html) && !/h = Math\.max\(320, h\)/.test(html), 'the whole game area steers and the sky never has a floor size, so a phone on its side plays and fits');
+
+  // Identity
+  const gm = games.find((g) => g.id === 'hop');
+  ok(!!gm && gm.cat === 'skill' && gm.daily !== false, 'games.json lists it under skill games, with a daily climb');
+  ok(!!gm && html.match(/accent: '([^']+)'/)[1] === gm.color, 'games.json and the page share the accent');
+  const icon = fs.readFileSync(path.join(ROOT, 'www/games/hop/icon.svg'), 'utf8');
+  ok(!!gm && new RegExp('<rect width="96" height="96" rx="22" fill="' + gm.soft + '"/>').test(icon), 'the icon starts on the soft tint of games.json');
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const lin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const lab = (h) => {
+    const [R0, G, Bl] = rgb(h).map(lin), f = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    const X = (R0 * 0.4124 + G * 0.3576 + Bl * 0.1805) / 0.95047, Y = R0 * 0.2126 + G * 0.7152 + Bl * 0.0722, Z = (R0 * 0.0193 + G * 0.1192 + Bl * 0.9505) / 1.08883;
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  };
+  const dE = (p, q) => { const P = lab(p), Q = lab(q); return Math.hypot(P[0] - Q[0], P[1] - Q[1], P[2] - Q[2]); };
+  const lum = (h) => rgb(h).map(lin).reduce((acc, c, i) => acc + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const near = games.filter((g) => g.id !== 'hop').map((g) => [g.id, dE(g.color, gm.color)]).sort((p, q) => p[1] - q[1])[0];
+  ok(near[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + near[0] + ', ' + near[1].toFixed(1) + ') and keeps white text at 4.5:1');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['hop-500', 'hop-2k', 'hop-summit'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '[^\\n]*des: '").test(core) && html.indexOf("unlock('" + id + "')") > 0), 'the three Hop awards exist in every language and are unlocked');
+  ok(Date.now() - t0 < 10000, 'the Hop tests finish in under 10 s (' + (Date.now() - t0) + ' ms)');
+}
+
 function testShelem() {
   head('Shelem (#418)');
   const t0 = Date.now();
@@ -10206,6 +10313,7 @@ testKlondike();
 testSpider();
 testPairs();
 testGorillas();
+testHop();
 testCrazyEights();
 testCrazyEightsIran();
 testGinRummy();

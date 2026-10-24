@@ -1,4 +1,4 @@
-Chogan is a collection of small, finishable games in a single app. It ships with forty-two games; new ones arrive as updates to the same app.
+Chogan is a collection of small, finishable games in a single app. It ships with forty-three games; new ones arrive as updates to the same app.
 
 The games:
 
@@ -22,28 +22,29 @@ The games:
 * Chess — against the AI on three levels or two players on one phone, plus Lichess puzzles
 * Hokm — the Persian four-player card game: you and your partner against two AI rivals
 * Block Drop — falling blocks: a 40-line sprint or a 100-line marathon
-* Gomoku — five in a row on a 9, 13 or 15 board, against three levels of AI or two players
-* Go — 9×9 Go with automatic counting, against three levels of AI or two players
+* Gomoku — five in a row on a 9, 13 or 15 board, against the AI or two players
+* Go — 9×9 Go with automatic counting, against the AI or two players
 * Way Out — send every arrow off the board in a working order, levels without end
 * Blackjack — closer to 21 than the dealer, ten-hand matches with no betting
 * 8-Ball Pool — pot your group, then the 8, against the AI or two players
 * Snooker — reds and colours, then the colours in order; 6, 10 or 15 reds
 * Gridlock — slide the cars aside and drive yours out of the lot
 * Chain Reaction — add orbs until cells burst in chains; 2 to 4 players or against bots
-* Ludo — come out on a six, capture and race your tokens home; 2 to 4 players or against bots
+* Ludo — come out on a six and race your tokens home; 2 to 4 players or bots
 * Snakes and Ladders — first to 100; 2 to 4 players or against bots
 * Darts — 501 or 301, three darts a turn, finish on a double; against a bot or two players
-* Bowling — ten frames, swipe to bowl and bend it for spin; alone, against a bot or two players
-* Sliding Puzzle — slide the numbered tiles back into order, from 3×3 to 5×5, in few moves
+* Bowling — ten frames, swipe to bowl; alone, against a bot or two players
+* Sliding Puzzle — slide the numbered tiles back into order, from 3×3 to 5×5
 * Jigsaw — 12 to 150 pieces, on Persian patterns and scenes drawn in code
 * Checkers — classic or Spanish rules, against the AI or two players
 * Klondike — classic solitaire, draw one or three, and a daily deal that is always winnable
-* Crazy Eights — match the suit or rank, Iranian or international rules; against 1 to 3 bots
+* Crazy Eights — match the suit or rank, Iranian or international rules
 * Gin Rummy — melds and deadwood against a bot: knock, gin and undercut, a match to 100
 * Shelem — Hokm with bidding: take the widow, name trump, a match to 505
 * Spider — two decks in ten columns, king down to ace; one, two or four suits
 * Pairs — the memory game: turn two cards at a time and find every pair
 * Gorillas — throw exploding bananas across a city: angle, power and wind; against a bot or two players
+* Hop — bounce from platform to platform without falling; touch or tilt to steer
 
 Around the games:
 

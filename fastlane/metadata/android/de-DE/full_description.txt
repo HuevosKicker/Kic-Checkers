@@ -1,4 +1,4 @@
-Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Zweiundvierzig Spiele sind dabei, neue kommen als Updates dazu.
+Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich zu Ende spielst. Dreiundvierzig Spiele sind dabei, neue kommen als Updates dazu.
 
 Die Spiele:
 
@@ -44,6 +44,7 @@ Die Spiele:
 * Spider — zwei Decks in zehn Spalten, vom König bis zum Ass; eine, zwei oder vier Farben
 * Paare — das Memory-Spiel: immer zwei Karten umdrehen, alle Paare finden
 * Gorillas — explodierende Bananen über die Stadt: Winkel, Kraft, Wind; gegen einen Bot oder zu zweit
+* Hüpf — von Plattform zu Plattform springen, ohne zu fallen; tippen oder neigen
 
 Rund um die Spiele:
 

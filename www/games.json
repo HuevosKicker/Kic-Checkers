@@ -1008,6 +1008,30 @@
       "soft": "#F0E6DD",
       "added": "2026-10-24",
       "files": []
+    },
+    {
+      "id": "hop",
+      "cat": "skill",
+      "name": {
+        "fa": "جهش",
+        "en": "Hop",
+        "zh": "跳跳",
+        "de": "Hüpf",
+        "es": "Salto"
+      },
+      "summary": {
+        "fa": "از سکو به سکو بالا برو و نیفت؛ با لمس یا کج کردن گوشی.",
+        "en": "Bounce from platform to platform and don't fall; touch or tilt to steer.",
+        "zh": "从一个平台跳到另一个平台，别掉下去；触摸或倾斜手机操作。",
+        "de": "Spring von Plattform zu Plattform und fall nicht; tippen oder neigen.",
+        "es": "Salta de plataforma en plataforma sin caer; toca o inclina el móvil."
+      },
+      "path": "games/hop/index.html",
+      "icon": "games/hop/icon.svg",
+      "color": "#1971C2",
+      "soft": "#E3EEF9",
+      "added": "2026-10-24",
+      "files": []
     }
   ]
 }
