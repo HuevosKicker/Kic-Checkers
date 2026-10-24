@@ -43,9 +43,10 @@ Die Spiele:
 * Shelem — Hokm mit Bieten: die Mitte nehmen, Trumpf bestimmen, bis 505
 * Spider — zwei Decks in zehn Spalten, vom König bis zum Ass; eine, zwei oder vier Farben
 * Paare — das Memory-Spiel: immer zwei Karten umdrehen, alle Paare finden
-* Gorillas — explodierende Bananen über die Stadt: Winkel, Kraft, Wind; Bot oder zu zweit
+* Gorillas — explodierende Bananen über die Stadt: Winkel, Kraft, Wind
 * Hüpf — von Plattform zu Plattform springen, ohne zu fallen; tippen oder neigen
-* Panzer — über die Hügel feuern: Winkel, Kraft, Wind und fünf Waffen; Bot oder zu zweit
+* Panzer — über die Hügel feuern, mit fünf Waffen; Bot oder zu zweit
+* Chinesisches Schach — Xiangqi mit Palast, Kanonen und fliegenden Generälen
 
 Rund um die Spiele:
 
