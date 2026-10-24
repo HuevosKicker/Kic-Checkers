@@ -960,6 +960,30 @@
       "soft": "#E6E4EF",
       "added": "2026-10-24",
       "files": []
+    },
+    {
+      "id": "pairs",
+      "cat": "puzzle",
+      "name": {
+        "fa": "جفت‌ها",
+        "en": "Pairs",
+        "zh": "翻牌配对",
+        "de": "Paare",
+        "es": "Parejas"
+      },
+      "summary": {
+        "fa": "کارت‌ها را دو تا دو تا برگردان و همه‌ی جفت‌ها را با کمترین حرکت پیدا کن.",
+        "en": "Turn two cards at a time and find every pair in as few moves as you can.",
+        "zh": "每次翻开两张牌，用最少的步数找出所有配对。",
+        "de": "Dreh immer zwei Karten um und finde alle Paare mit möglichst wenigen Zügen.",
+        "es": "Gira dos cartas cada vez y encuentra todas las parejas con pocos movimientos."
+      },
+      "path": "games/pairs/index.html",
+      "icon": "games/pairs/icon.svg",
+      "color": "#7C3AED",
+      "soft": "#EDE6FC",
+      "added": "2026-10-24",
+      "files": []
     }
   ]
 }
