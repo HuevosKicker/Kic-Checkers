@@ -2463,7 +2463,10 @@
     if (!b.width || !b.height) return null;
     var dx = (a.left + a.width / 2) - (b.left + b.width / 2);
     var dy = (a.top + a.height / 2) - (b.top + b.height / 2);
-    var k = a.width ? a.width / b.width : 1;
+    // A card starts at most a little bigger than itself: Hokm passes a bot's whole seat
+    // as the start, and the partner's seat spans the table, so the card began six times
+    // its size and filled the screen for a moment (#491, seen on a phone)
+    var k = Math.max(0.25, Math.min(1.25, a.width ? a.width / b.width : 1));
     // a card game's flights follow its pace (#425); 1 anywhere else, and in the tests'
     // sandboxes, which run this helper without the rest of the core. Its own name:
     // reusing `k` turned the start scale into the pace, so a card began 1.5x big.

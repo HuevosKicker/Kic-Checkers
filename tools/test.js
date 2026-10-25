@@ -8275,6 +8275,11 @@ function coreMotion(core, css, fly, burstAt, burstEnd) {
   ok(a && e.anims.length === 1 && a.frames[0].transform === 'translate(187.5px,-97.5px) scale(0.500)' && a.frames[1].transform === 'none',
     'fly starts the card at the shoe, half its size, and ends it in its own place (' + (a ? a.frames[0].transform : 'none') + ')');
   ok(a && a.o.delay === 190 && a.o.fill === 'backwards' && a.o.duration > 0, 'a delayed card waits at the shoe, not in its place');
+  // #491: a start as wide as the table (Hokm's partner seat) began the card six times its size
+  const seat = { getBoundingClientRect: () => ({ left: 0, top: 10, width: 360, height: 60 }) };
+  const wide = e.ui.fly(card, seat, {});
+  const ks = wide && /scale\(([\d.]+)\)/.exec(wide.frames[0].transform);
+  ok(ks && +ks[1] <= 1.25 && +ks[1] >= 1, 'a card leaving a wide seat starts at most a little bigger than itself (scale ' + (ks ? ks[1] : '?') + ', the seat is 7.2× the card)');
   const f = e.ui.fly(card, card, { flip: true });
   const cover = card.kids.find((k) => /ch-turnback/.test(k.attrs.class || ''));
   ok(f && f.frames.length === 3 && /scaleX\(\.02\)/.test(f.frames[1].transform) && cover && /ch-pback/.test(cover.attrs.class),
