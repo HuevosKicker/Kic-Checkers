@@ -1129,7 +1129,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SnookerEng
     if (setMsgClear()) drawMsg();
     if (F.inHand && dc < grab) drag = { id: e.pointerId, mode: 'hand', x0: e.clientX, y0: e.clientY, a0: aimA, dx: c.x - p.x, dy: c.y - p.y };
     else if (prefs.aim === 'turn') drag = { id: e.pointerId, mode: 'turn', a0: aimA, last: p };
-    else if (dc < grab) drag = { id: e.pointerId, mode: 'sling', x0: e.clientX, y0: e.clientY, a0: aimA };
+    // the cue stick itself is a handle too: pull it back to shoot (#532)
+    else if (dc < grab || Cue.onStick(aimA, c.x, c.y, p.x, p.y, R, R * 1.4 + 66 + 10 / G.s, Math.max(R * 1.2, 14 / G.s))) drag = { id: e.pointerId, mode: 'sling', x0: e.clientX, y0: e.clientY, a0: aimA };
     else { drag = { id: e.pointerId, mode: 'aim' }; aimA = Math.atan2(p.y - c.y, p.x - c.x); }
     kbOn = false;
     try { cv.setPointerCapture(e.pointerId); } catch (er) { /* old browsers */ }

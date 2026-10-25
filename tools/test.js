@@ -9593,6 +9593,28 @@ function testMenuSearch() {
   ok(/C\.icon\('search', 18\)/.test(html) && /search: 'M/.test(fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8')), 'the search icon exists in the core');
 }
 
+// #532: a player could pull back only by starting on the white ball, and Spider lagged
+// while dragging cards on their phone (a Chrome trace: ~110 ms of raster work a move)
+function testDragAndStick() {
+  head('Pool and Snooker: pull the cue stick; dragged cards on their own layer (#532)');
+  const { Cue } = loadEightBall();
+  ok(typeof Cue.onStick === 'function', 'cue.js has onStick');
+  if (typeof Cue.onStick !== 'function') return;
+  // aim to the right (angle 0) from a ball at (100, 50): the stick lies to its left
+  const on = (px, py) => Cue.onStick(0, 100, 50, px, py, 9, 100, 10);
+  ok(on(60, 50) && on(60, 58) && on(5, 45), 'a press on the stick behind the ball grabs it');
+  ok(!on(140, 50) && !on(60, 70) && !on(96, 50) && !on(-20, 50), 'in front of the ball, beside the stick, on the ball itself or past its end does not');
+  const turned = Cue.onStick(Math.PI / 2, 100, 50, 100, 10, 9, 100, 10) && !Cue.onStick(Math.PI / 2, 100, 50, 100, 90, 9, 100, 10);
+  ok(turned, 'the stick turns with the aim (aiming down, it lies above the ball)');
+  for (const g of ['eightball', 'snooker']) {
+    const h = fs.readFileSync(path.join(ROOT, 'www/games/' + g + '/index.html'), 'utf8');
+    ok(/else if \(dc < grab \|\| Cue\.onStick\(aimA, c\.x, c\.y, p\.x, p\.y, [^\n]*?\)\) drag = \{ id: e\.pointerId, mode: 'sling'/.test(h), g + ': a press on the stick starts a pull, like one on the white ball');
+  }
+  const layered = [['spider', /\.sp-card--drag \{ will-change: transform; \}/], ['klondike', /\.kl-card--drag \{ will-change: transform; \}/], ['ginrummy', /\.gr-hand \.gr-drag \{[^}]*will-change: transform;/]]
+    .filter(([g, re]) => re.test(fs.readFileSync(path.join(ROOT, 'www/games/' + g + '/index.html'), 'utf8'))).map(([g]) => g);
+  ok(layered.length === 3, 'dragged cards get their own layer in Spider, Klondike and Gin Rummy (' + layered.join(', ') + ')');
+}
+
 // #492: aiming pointed the cue at the finger, and pulling back from the white ball shot,
 // which a player found hard to control; a second control turns the cue a little a pixel
 // and leaves shooting to the power bar, as in Miniclip's pool

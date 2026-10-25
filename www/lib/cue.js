@@ -269,6 +269,16 @@
     return Math.abs(d) < Math.PI * 40 / 180;
   }
 
+  // #532: a player could only pull back by starting on the white ball, which felt like a
+  // long press on it; the cue stick drawn behind the ball is a handle too. True when the
+  // point (px, py) is on the stick: behind the ball (cx, cy) against the aim, between the
+  // stick's tip (from) and its end (to), within tol of its line.
+  function onStick(angle, cx, cy, px, py, from, to, tol) {
+    var ux = Math.cos(angle), uy = Math.sin(angle), dx = px - cx, dy = py - cy;
+    var along = -(dx * ux + dy * uy), across = Math.abs(dx * uy - dy * ux);
+    return along >= from && along <= to && across <= tol;
+  }
+
   // #505: the turn control (#492) measured a drag across the aim line as it stood when
   // the drag began, so the same finger move turned the cue one way or the other with the
   // cue's direction, and its speed matched nothing the finger did. A move now turns the
@@ -311,7 +321,7 @@
   var api = {
     DT: DT, MAX_TICKS: MAX_TICKS, table: table, clone: clone, speedOf: speedOf,
     start: start, tick: tick, simulate: simulate, aim: aim, free: free, clear: clear, nearestPocket: nearestPocket,
-    pullsBack: pullsBack, turnStep: turnStep, barPower: barPower, SINK_MS: SINK_MS, sinksOf: sinksOf, sinkAt: sinkAt
+    pullsBack: pullsBack, onStick: onStick, turnStep: turnStep, barPower: barPower, SINK_MS: SINK_MS, sinksOf: sinksOf, sinkAt: sinkAt
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.ChoganCue = api;
