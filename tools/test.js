@@ -9462,6 +9462,28 @@ function testCardSpeed() {
   }
 }
 
+// #485: in the dark theme a card's edge was the dark line colour on a dark face (1.08:1),
+// and stacked cards ran together; the edge is now light in both dark-theme rules, and the
+// resulting contrast is computed here from the core's own colours
+function testCardEdgeDark() {
+  head('Cards: a light edge in the dark theme (#485)');
+  const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
+  const auto = /@media \(prefers-color-scheme: dark\) \{ :root:not\(\[data-theme="light"\]\) \.ch-pcard \{ border-color: rgba\(255, 255, 255, (\.\d+)\); \} \}/.exec(css);
+  const forced = /:root\[data-theme="dark"\] \.ch-pcard \{ border-color: rgba\(255, 255, 255, (\.\d+)\); \}/.exec(css);
+  ok(!!auto && !!forced && auto[1] === forced[1], 'the light edge is set for both the automatic and the chosen dark theme');
+  if (!auto) return;
+  // the darkest card face the games use in the dark theme is --c-surface-3
+  const dark = css.slice(css.indexOf('@media (prefers-color-scheme: dark)'));
+  const face = (/--c-surface-3:\s*(#[0-9A-Fa-f]{6})/.exec(dark) || [])[1];
+  ok(!!face, 'the dark theme\'s card face colour found (' + face + ')');
+  if (!face) return;
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const a = +auto[1], f = rgb(face), e = f.map((v) => 255 * a + v * (1 - a));
+  const L = (c) => c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const cr = (L(e) + 0.05) / (L(f) + 0.05);
+  ok(cr >= 3, 'a card edge stands out from its face at ' + cr.toFixed(2) + ':1 (3:1 is the bar for the edge of a control)');
+}
+
 function testPersianCardIndex() {
   head('Cards: Persian corner indices in Persian (#428)');
   // The corners read A, J, Q, K and Western digits in every language; a Persian player
