@@ -9710,6 +9710,9 @@ function testPairs() {
   ok(LOCALE_CODES.every((l) => { const sec = html.slice(html.indexOf('      ' + l + ': {')); return [...Array(18).keys()].every((k) => new RegExp('s' + k + ": '[^']+'").test(sec)); }), 'every picture has a name in every language, for screen readers');
   ok(/\.pr-board \{\n    direction: ltr;/.test(html), 'the table is not mirrored in Persian');
   ok(!/setInterval|timer: true/.test(html), 'there is no clock to race');
+  // #490: the browser's focus ring stayed on a clicked card while the keyboard cursor
+  // started again at the first, so two cards were ringed
+  ok(/\.pr-card:focus, \.pr-card:focus-visible \{ outline: none; \}/.test(html) && /board\.addEventListener\('mousedown', function \(e\) \{ if \(e\.target\.closest && e\.target\.closest\('\.pr-card'\)\) e\.preventDefault\(\); \}\);/.test(html) && /if \(cur < 0\) cur = lastTapped >= 0 \? lastTapped : 0;/.test(html), 'only the keyboard cursor rings a card, and it goes on from the card last clicked');
 
   // Identity
   const gm = games.find((g) => g.id === 'pairs');
