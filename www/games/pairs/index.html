@@ -44,6 +44,9 @@
   .pr-card--pop .pr-in { animation: pr-pop 360ms var(--ease); }
   @keyframes pr-pop { 0% { transform: rotateY(180deg) scale(1); } 45% { transform: rotateY(180deg) scale(1.12); } 100% { transform: rotateY(180deg) scale(1); } }
   .pr-card--cur { outline: 3px solid var(--c-accent); outline-offset: 3px; border-radius: 12%; }
+  /* the keyboard cursor above is the only ring: the browser's focus ring stayed on the
+     card last clicked while the cursor moved on, and two cards were ringed (#490) */
+  .pr-card:focus, .pr-card:focus-visible { outline: none; }
   .pr-sizes .ch-seg { flex-wrap: nowrap; }
 </style>
 </head>
@@ -471,10 +474,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PairsEngin
 
   /* ------------------------------------------------------------ input */
 
+  // a click doesn't move the browser's focus onto a card; the arrow keys go on from the
+  // card last clicked instead of starting again at the first
+  var lastTapped = -1;
+  board.addEventListener('mousedown', function (e) { if (e.target.closest && e.target.closest('.pr-card')) e.preventDefault(); });
   board.addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('.pr-card') : null;
     if (!b) return;
-    if (cur >= 0) cur = -1;
+    cur = -1;
+    lastTapped = b._i;
     tap(b._i);
   });
   board.addEventListener('contextmenu', function (e) { e.preventDefault(); });
@@ -491,7 +499,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = PairsEngin
     // the table is not mirrored, so the arrows are geometric in every language
     var d = { ArrowUp: -S.cols, ArrowDown: S.cols, ArrowLeft: -1, ArrowRight: 1 }[k];
     if (d !== undefined) {
-      if (cur < 0) cur = 0;
+      if (cur < 0) cur = lastTapped >= 0 ? lastTapped : 0;
       else {
         var c = cur % S.cols, nx = cur + d;
         if ((k === 'ArrowLeft' && c === 0) || (k === 'ArrowRight' && c === S.cols - 1) || nx < 0 || nx >= S.n) nx = cur;
