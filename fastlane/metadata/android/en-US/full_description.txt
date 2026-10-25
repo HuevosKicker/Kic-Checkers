@@ -48,6 +48,7 @@ The games:
 * Tanks — fire across the hills with five weapons; a bot or two players
 * Chinese chess — xiangqi with palace, cannons, elephants and flying generals
 * Ping Pong — table tennis from above, first to 11; a bot or two players
+* Air Hockey — a neon table, first to seven goals; a bot or two players
 
 Around the games:
 

@@ -48,6 +48,7 @@ Los juegos:
 * Tanques — dispara entre colinas con cinco armas; bot o para dos
 * Ajedrez chino — xiangqi con palacio, cañones y generales voladores
 * Ping-pong — tenis de mesa desde arriba, a 11; bot o para dos
+* Air hockey — una mesa de neón, a siete goles; bot o para dos
 
 Alrededor de los juegos:
 
