@@ -14,8 +14,9 @@
   .sd-tools, .sd-pad { width: 100%; }
   /* The box lines and the frame have their own colour, at least 3:1 against the
      cells: in the frame's --c-line the dark theme showed a 5px gap and a 2px gap
-     alike, and players could not find the 3x3 boxes (#519). */
-  :root { --sd-box: #927D64; }
+     alike, and players could not find the 3x3 boxes (#519). Only in the dark theme: the
+     owner found the light board right as it was (#526). */
+  :root { --sd-box: var(--c-line); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --sd-box: #857560; } }
   :root[data-theme="dark"] { --sd-box: #857560; }
   @container game (min-aspect-ratio: 5 / 4) {

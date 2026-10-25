@@ -9533,15 +9533,16 @@ function testAndroidShortcuts() {
 
 // #519: Sudoku's box lines were only a wider gap in --c-line, which in the dark theme is
 // almost the cells' own colour, so a player could not find the 3x3 boxes; the lines and
-// the frame now have their own colour, checked here against the core's cell colours
+// the frame now have their own colour in the dark theme, checked here against the core's
+// cell colours; the light theme keeps the frame's colour, as the owner wanted (#526)
 function testSudokuBoxLines() {
-  head('Sudoku: the 3x3 boxes stand out in both themes (#519)');
+  head('Sudoku: the 3x3 boxes stand out in the dark theme (#519, #526)');
   const sd = fs.readFileSync(path.join(ROOT, 'www/games/sudoku/index.html'), 'utf8');
   const css = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
-  const light = (/:root \{ --sd-box: (#[0-9A-Fa-f]{6}); \}/.exec(sd) || [])[1];
+  const light = /:root \{ --sd-box: var\(--c-line\); \}/.test(sd);
   const auto = (/@media \(prefers-color-scheme: dark\) \{ :root:not\(\[data-theme="light"\]\) \{ --sd-box: (#[0-9A-Fa-f]{6}); \} \}/.exec(sd) || [])[1];
   const forced = (/:root\[data-theme="dark"\] \{ --sd-box: (#[0-9A-Fa-f]{6}); \}/.exec(sd) || [])[1];
-  ok(!!light && !!auto && auto === forced, 'the box colour is set for the light, the automatic dark and the chosen dark theme (' + [light, auto, forced].join(', ') + ')');
+  ok(light && !!auto && auto === forced, 'the light theme keeps the frame colour, the automatic and the chosen dark theme get their own (' + [auto, forced].join(', ') + ')');
   ok(/\.sd-board \{[^}]*border: 3px solid var\(--sd-box\);/.test(sd) && /\.sd-sep \{ background: var\(--sd-box\);/.test(sd), 'the frame and the box lines are drawn in it');
   const seps = (/\[4, 8\]\.forEach\(function \(t\) \{([\s\S]*?)\}\);/.exec(sd) || [])[1] || '';
   ok(/sd-sep--col[\s\S]*'grid-column': String\(t\)/.test(seps) && /sd-sep--row[\s\S]*'grid-row': String\(t\)/.test(seps), 'a line sits in each of the four spacer tracks (columns and rows 4 and 8)');
@@ -9551,13 +9552,13 @@ function testSudokuBoxLines() {
   const L = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
   const cr = (a, b) => { const x = L(a), y = L(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
   const rows = [];
-  for (const [theme, box, src] of [['light', light, css], ['dark', auto, darkCss]]) {
+  for (const [theme, box, src] of [['dark', auto, darkCss]]) {
     for (const k of ['surface', 'surface-2', 'surface-3']) {
       const c = pick(src, k);
       rows.push(c ? [theme + ' ' + k, cr(box, c)] : [theme + ' ' + k + ' missing', 0]);
     }
   }
-  ok(rows.length === 6, 'six cell colours compared');
+  ok(rows.length === 3, 'three dark cell colours compared');
   const low = rows.filter((r) => !(r[1] >= 3));
   ok(!low.length, 'the box lines stand out from every cell colour at 3:1 or more (lowest ' + Math.min(...rows.map((r) => r[1])).toFixed(2) + ':1)' + (low.length ? ': ' + low.map((r) => r[0] + ' ' + r[1].toFixed(2)).join(', ') : ''));
 }
