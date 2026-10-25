@@ -9,9 +9,12 @@ A changelog is sections in this order, each a heading line and "- " bullets:
     Improvements:
     - ...
 --check validates that shape instead and exits 1 with the reason.
-Usage: tools/release-notes.py --md|--html|--check <changelog.txt>
+--thanks a,b adds a line thanking those GitHub users, each linked to their
+profile (#530): a contributor whose work is in a release is named in it.
+Usage: tools/release-notes.py --md|--html|--check <changelog.txt> [--thanks login,...]
 """
 import html
+import re
 import sys
 
 SECTIONS = ['New games', 'Bug fixes', 'Improvements']
@@ -43,10 +46,29 @@ def parse(text):
     return sections
 
 
+def thanks_line(logins, fmt):
+    links = []
+    for login in logins:
+        url = 'https://github.com/' + login
+        links.append('[@%s](%s)' % (login, url) if fmt == '--md' else '<a href="%s">@%s</a>' % (url, login))
+    names = links[0] if len(links) == 1 else ', '.join(links[:-1]) + ' and ' + links[-1]
+    return ('**Thanks to** ' if fmt == '--md' else '<b>Thanks to</b> ') + names
+
+
 def main():
-    if len(sys.argv) != 3 or sys.argv[1] not in ('--md', '--html', '--check'):
+    args = sys.argv[1:]
+    logins = []
+    if len(args) == 4 and args[2] == '--thanks':
+        logins = [x for x in args[3].split(',') if x]
+        # a login goes into a link, so only GitHub's own login characters pass
+        if not all(re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})', x) for x in logins):
+            print('--thanks: not a GitHub login in "%s"' % args[3], file=sys.stderr)
+            return 2
+        args = args[:2]
+    if len(args) != 2 or args[0] not in ('--md', '--html', '--check'):
         print(__doc__.strip().splitlines()[-1], file=sys.stderr)
         return 2
+    sys.argv = [sys.argv[0]] + args
     try:
         text = open(sys.argv[2], encoding='utf-8').read()
         sections = parse(text)
@@ -68,6 +90,10 @@ def main():
             out.append('<b>%s</b>' % html.escape(name))
             out.extend('• %s' % html.escape(i) for i in items)
             out.append('')
+    if logins:
+        if sys.argv[1] == '--md':
+            out.append('')
+        out.append(thanks_line(logins, sys.argv[1]))
     print('\n'.join(out).rstrip())
     return 0
 

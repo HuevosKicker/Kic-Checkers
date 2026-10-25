@@ -10880,7 +10880,8 @@ function testTelegramPost() {
   const tags = (spawnSync('git', ['tag', '-l', 'v*', '--sort=v:refname'], { cwd: ROOT, encoding: 'utf8' }).stdout || '').split('\n').filter((t) => t && !/-test$/.test(t));
   ok(tags.length >= 25, 'release tags are present (' + tags.length + '; CI must check out with fetch-depth: 0)');
   if (!tags.length) return;
-  const env = Object.assign({}, process.env, { DRY_RUN: '1', TELEGRAM_BOT_TOKEN: '' });
+  // offline: contributors come from git alone, so the test needs no network (#530)
+  const env = Object.assign({}, process.env, { DRY_RUN: '1', TELEGRAM_BOT_TOKEN: '', CONTRIBUTORS_OFFLINE: '1' });
   const run = (args, extra) => spawnSync('bash', [script].concat(args), { cwd: ROOT, env: Object.assign({}, env, extra || {}), encoding: 'utf8' });
   // The history is the channel's changelog: every release once, oldest first
   const hist = run(['--history']);
@@ -10902,7 +10903,17 @@ function testTelegramPost() {
   let kb = null; try { kb = JSON.parse(btnLine); } catch (e) { kb = null; }
   const urls = kb && Array.isArray(kb.inline_keyboard) ? [].concat(...kb.inline_keyboard).map((b) => b.text && b.url) : [];
   ok(urls.join() === ['https://choganhq.github.io/chogan/', 'https://github.com/choganhq/chogan/releases/tag/v0.5.1', 'https://f-droid.org/packages/io.github.choganhq.chogan/'].join(), 'the post has buttons for the web, this release and F-Droid');
-  ok(!/https?:\/\//.test(block('v0.5.1').replace(/^\[(buttons|cover)\].*$/gm, '')), 'no bare links in the text; they are buttons');
+  ok(!/https?:\/\//.test(block('v0.5.1').replace(/^\[(buttons|cover)\].*$/gm, '').replace(/<a href="https:\/\/github\.com\/[A-Za-z0-9-]+">@[A-Za-z0-9-]+<\/a>/g, '')), 'no bare links in the text; they are buttons (only a contributor\'s name links to their profile)');
+  // A contributor whose commit is in a release is thanked by name, linked to their profile (owner's wish, #530)
+  ok(/\n<b>Thanks to<\/b> <a href="https:\/\/github\.com\/lanlan3292">@lanlan3292<\/a>\n/.test(block('v0.18.0')) && !/Thanks to/.test(block('v0.17.0')) && !/margani/.test(hist.stdout || ''),
+    '0.18.0 thanks lanlan3292 for Chinese chess; a release with only the owner\'s work thanks no one, and the owner is never listed');
+  const contrib = spawnSync('bash', [path.join(ROOT, 'tools/contributors.sh'), 'v0.18.0'], { cwd: ROOT, env: Object.assign({}, process.env, { CONTRIBUTORS_OFFLINE: '1' }), encoding: 'utf8' });
+  ok(contrib.status === 0 && contrib.stdout === 'lanlan3292\n', 'tools/contributors.sh names the contributors of a release (' + JSON.stringify(contrib.stdout) + ')');
+  const cl39 = path.join(clDir, '39.txt');
+  const mdT = spawnSync('python3', [path.join(ROOT, 'tools/release-notes.py'), '--md', cl39, '--thanks', 'lanlan3292,ggYasin'], { encoding: 'utf8' }).stdout;
+  ok(/\n\n\*\*Thanks to\*\* \[@lanlan3292\]\(https:\/\/github\.com\/lanlan3292\) and \[@ggYasin\]\(https:\/\/github\.com\/ggYasin\)\n$/.test(mdT), 'the GitHub notes end with the thanks line, each name linked');
+  ok(spawnSync('python3', [path.join(ROOT, 'tools/release-notes.py'), '--html', cl39, '--thanks', 'x"><b'], { encoding: 'utf8' }).status === 2, 'a name that is not a GitHub login is refused, so nothing can be injected into the link');
+  ok(/THANKS=\$\(tools\/contributors\.sh "\$GITHUB_REF_NAME"/.test(relYml) && /\$\{THANKS:\+--thanks "\$THANKS"\}/.test(relYml) && /GH_TOKEN: \$\{\{ github\.token \}\}\n[\s\S]*?tools\/telegram-post\.sh "\$GITHUB_REF_NAME"/.test(relYml), 'release.yml thanks contributors in the GitHub notes and gives the post its token');
   let cover = null; try { cover = JSON.parse((block('v0.5.1').match(/^\[cover\] (.*)$/m) || [])[1]); } catch (e) { cover = null; }
   ok(!!cover && cover.url === 'https://github.com/choganhq/chogan/releases/tag/v0.5.1' && cover.prefer_large_media === true && cover.show_above_text === true, 'the cover is the release\'s GitHub card, large, above the text');
   const long = tags.filter((t) => block(t).replace(/^(===|\[buttons\]|\[cover\]).*$/gm, '').trim().length > 4096);

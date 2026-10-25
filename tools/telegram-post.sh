@@ -68,7 +68,9 @@ text_for() {
   fi
   day=$(LC_ALL=C date -u -d "$(git log -1 --format=%cI "$tag")" '+%-d %B %Y')
   # HTML for bold headings; the formatter escapes the changelog text
-  printf '%s\n\n%s' "<b>Chogan $version</b> · $day" "$(python3 tools/release-notes.py --html "$file")"
+  # people other than the owner whose commits are in this release, thanked by name (#530)
+  local thanks; thanks=$(tools/contributors.sh "$tag" | paste -sd, -)
+  printf '%s\n\n%s' "<b>Chogan $version</b> · $day" "$(python3 tools/release-notes.py --html "$file" ${thanks:+--thanks "$thanks"})"
 }
 # The links are buttons under the post (owner's wish); an album cannot carry
 # buttons, so a release with new games sends its pictures first and this after

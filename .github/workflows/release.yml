@@ -141,7 +141,9 @@ jobs:
             # changelog stays in place for F-Droid.
             # Sectioned changelog (New games, Bug fixes, Improvements) as nested bullets (#265)
             NOTES="$RUNNER_TEMP/notes.md"
-            if python3 tools/release-notes.py --md "fastlane/metadata/android/en-US/changelogs/${VERSION_CODE}.txt" > "$NOTES"; then
+            # contributors other than the owner are thanked with a link to their profile (#530)
+            THANKS=$(tools/contributors.sh "$GITHUB_REF_NAME" | paste -sd, - || true)
+            if python3 tools/release-notes.py --md "fastlane/metadata/android/en-US/changelogs/${VERSION_CODE}.txt" ${THANKS:+--thanks "$THANKS"} > "$NOTES"; then
               gh release create "$GITHUB_REF_NAME" --title "${GITHUB_REF_NAME}" --notes-file "$NOTES" \
                 || gh release edit "$GITHUB_REF_NAME" --notes-file "$NOTES"
             else
@@ -166,4 +168,6 @@ jobs:
       - name: Post to the channel
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          # the post names contributors through GitHub's compare API (#530)
+          GH_TOKEN: ${{ github.token }}
         run: tools/telegram-post.sh "$GITHUB_REF_NAME"
