@@ -10191,6 +10191,101 @@ function testHop() {
   ok(Date.now() - t0 < 10000, 'the Hop tests finish in under 10 s (' + (Date.now() - t0) + ' ms)');
 }
 
+// #512: a player asked for Ping Pong; the engine is tested on its own, with the bots
+// playing whole matches against each other and a test player that tracks the ball
+function testPingPong() {
+  head('Ping Pong (#512)');
+  const t0 = Date.now();
+  const E = loadEngine('pingpong', 'PingPongEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/pingpong/index.html'), 'utf8');
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+  const half = () => 0.5;
+
+  // Serves: two each, one each from ten all; first to 11, by two
+  const S = E.match(false);
+  const order = [];
+  for (const sc of [[0, 0], [1, 0], [1, 1], [2, 1], [5, 4], [10, 10], [11, 10], [11, 11]]) { S.score = sc; order.push(E.server(S)); }
+  ok(order.join('') === '00110010', 'serves go two each, then one each from ten all (' + order.join('') + ')');
+  const scoreTo = (a, b, who) => { const M = E.match(false); M.score = [a, b]; M.phase = 'play'; M.ball.y = who === 0 ? -50 : E.H + 50; M.ball.vy = who === 0 ? -1 : 1; E.step(M, null, half); return M; };
+  ok(scoreTo(10, 9, 0).winner === 0 && scoreTo(10, 10, 0).winner === -1 && scoreTo(11, 10, 0).winner === 0 && scoreTo(10, 11, 0).winner === -1 && scoreTo(9, 10, 1).winner === 1,
+    '11 wins at 11–9 and 12–10, never 11–10');
+  ok(scoreTo(3, 3, 0).score.join() === '4,3' && scoreTo(3, 3, 1).score.join() === '3,4', 'a ball past the top paddle is a point for the bottom, and the other way round');
+
+  // A paddle hit: the middle sends it straight, the edge at the steep angle, a little faster each time
+  const hit = (dx) => {
+    const M = E.match(false); M.phase = 'play'; M.pad[0].x = 180;
+    M.ball.x = 180 + dx; M.ball.y = E.faceY(0) - E.R - 1; M.ball.vx = 0; M.ball.vy = 300; M.ball.speed = 300;
+    const ev = E.step(M, [180, null], half);
+    return { ev, deg: Math.atan2(M.ball.vx, -M.ball.vy) * 180 / Math.PI, speed: Math.hypot(M.ball.vx, M.ball.vy) };
+  };
+  const mid = hit(0), edge = hit(E.PW / 2), miss = hit(E.PW / 2 + E.R + 4);
+  ok(mid.ev.includes('hit') && Math.abs(mid.deg) < 1 && edge.ev.includes('hit') && edge.deg > 45 && edge.deg <= 62.1 && Math.abs(mid.speed - 316) < 1,
+    'the middle returns straight, the edge at ' + edge.deg.toFixed(0) + '°, and each hit is 16 faster (' + mid.speed.toFixed(0) + ')');
+  ok(!miss.ev.includes('hit'), 'a ball beside the paddle goes past it');
+  const W2 = E.match(false); W2.phase = 'play'; W2.ball.x = 8; W2.ball.y = 300; W2.ball.vx = -400; W2.ball.vy = 10;
+  E.step(W2, null, half);
+  ok(W2.ball.vx > 0 && W2.ball.x >= E.R, 'the ball bounces off the side of the table');
+
+  // predictX agrees with the flight itself, side bounces included
+  let agree = 0, tried = 0;
+  for (let i = 0; i < 20; i++) {
+    const r = rng(i + 7), M = E.match(false); M.phase = 'play';
+    M.ball.x = 30 + r() * 300; M.ball.y = 320; const a = (r() * 2 - 1) * 1.1; M.ball.vx = Math.sin(a) * 500; M.ball.vy = Math.cos(a) * 500; M.ball.speed = 500;
+    M.pad[0].x = 9999; // keep the paddle out of the way: it clamps to the edge, so park it by the wall the ball won't reach
+    const p = E.predictX(M, 0);
+    M.pad[0].x = p < 180 ? E.W - E.PW / 2 : E.PW / 2;
+    let x = null;
+    for (let k = 0; k < 400 && x == null; k++) { const prevY = M.ball.y; E.step(M, null, half); if (prevY < E.faceY(0) - E.R && M.ball.y >= E.faceY(0) - E.R) x = M.ball.x; }
+    tried++; if (x != null && Math.abs(x - p) < 6) agree++;
+  }
+  ok(tried === 20 && agree === 20, 'where a bot expects the ball is where it arrives (' + agree + '/' + tried + ')');
+
+  // Whole matches: each level beats the one below, matches end, rallies are not endless
+  const play = (a, b, seed) => {
+    const M = E.match(false); E.setBot(M, 0, a); E.setBot(M, 1, b);
+    const r = rng(seed); let n = 0;
+    while (M.winner < 0 && n < 120 * 60 * 20) { E.step(M, null, r); n++; }
+    return { w: M.winner, min: n / 7200, longest: M.longest };
+  };
+  const series = (a, b, n) => { const out = []; for (let i = 0; i < n; i++) out.push(play(a, b, 31 + i)); return out; };
+  const me = series('medium', 'easy', 8), em = series('easy', 'medium', 4);
+  const meWins = me.filter((x) => x.w === 0).length + em.filter((x) => x.w === 1).length;
+  ok(meWins >= 10, 'medium beats easy, from either end (' + meWins + '/12)');
+  const hm = series('hard', 'medium', 4);
+  ok(hm.filter((x) => x.w === 0).length >= 3, 'hard beats medium (' + hm.filter((x) => x.w === 0).length + '/4)');
+  const all = me.concat(em, hm);
+  ok(all.length === 16 && all.every((x) => x.w >= 0 && x.min < 15 && x.longest < 120), 'every match ends within 15 game minutes, no rally runs past 120 hits (longest ' + Math.max(...all.map((x) => x.longest)) + ')');
+
+  // A test player that keeps its paddle where the ball is going, with a finger's speed
+  // and a little error, beats the easy bot: the game can be won by touch alone
+  let tpWins = 0;
+  for (let i = 0; i < 4; i++) {
+    const M = E.match(false); E.setBot(M, 1, 'easy');
+    const r = rng(90 + i), err = () => (r() * 2 - 1) * 14;
+    let aim = 180, n = 0;
+    while (M.winner < 0 && n < 120 * 60 * 20) {
+      if (M.phase === 'serve' && E.server(M) === 0) M.go = true;
+      const p = E.predictX(M, 0);
+      if (p != null && n % 24 === 0) aim = p + err();
+      E.step(M, [p == null ? 180 : aim, null], r); n++;
+    }
+    if (M.winner === 0) tpWins++;
+  }
+  ok(tpWins >= 3, 'a test player tracking the ball by touch beats the easy bot (' + tpWins + '/4)');
+
+  // Saves between points: the score comes back, a finished or broken save does not
+  const R = E.restore(E.snapshot(Object.assign(E.match(true), { score: [7, 5], longest: 9 })));
+  ok(!!R && R.score.join() === '7,5' && R.first === 1 && R.longest === 9 && R.phase === 'serve', 'a saved score comes back, waiting to serve');
+  ok(!E.restore({ score: [11, 5], first: 0 }) && !E.restore({ score: [3] }) && !E.restore(null) && !E.restore({ score: [-1, 2] }), 'a finished, short or broken save is refused');
+
+  // Page: a daily against the medium bot, both modes, the awards it unlocks exist
+  ok(/level: daily \? 'medium' : o\.level/.test(html) && /C\.daily\('pingpong', G\.daily \+ '\|' \+ tag\)/.test(html), 'the daily match is against the medium bot, with serves seeded by the day');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['pp-win', 'pp-hard', 'pp-rally'].every((id) => html.indexOf("unlock('" + id + "')") > 0 && core.indexOf("id: '" + id + "'") > 0), 'its three awards are defined in the core and unlocked by the game');
+  const ms = Date.now() - t0;
+  ok(ms < 12000, 'the group runs in ' + (ms / 1000).toFixed(1) + ' s (limit 12 s)');
+}
+
 function testTanks() {
   head('Tanks (#476)');
   const t0 = Date.now();

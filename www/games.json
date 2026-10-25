@@ -1080,6 +1080,30 @@
       "soft": "#F6E7DC",
       "added": "2026-10-25",
       "files": []
+    },
+    {
+      "id": "pingpong",
+      "cat": "skill",
+      "name": {
+        "fa": "پینگ‌پنگ",
+        "en": "Ping Pong",
+        "zh": "乒乓球",
+        "de": "Pingpong",
+        "es": "Ping-pong"
+      },
+      "summary": {
+        "fa": "توپ را از بالای میز برگردان تا از راکت حریف رد شود؛ اول ۱۱ امتیاز.",
+        "en": "Return the ball across the table until it gets past the other paddle; first to 11.",
+        "zh": "在球桌上把球打回去，直到它越过对方的球拍；先到 11 分。",
+        "de": "Spiel den Ball über den Tisch zurück, bis er am anderen Schläger vorbeigeht; zuerst 11.",
+        "es": "Devuelve la pelota por la mesa hasta que pase la otra pala; gana quien llegue a 11."
+      },
+      "path": "games/pingpong/index.html",
+      "icon": "games/pingpong/icon.svg",
+      "color": "#E2231A",
+      "soft": "#FBE5E2",
+      "added": "2026-10-25",
+      "files": []
     }
   ]
 }

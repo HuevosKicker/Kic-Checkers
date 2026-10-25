@@ -2,7 +2,7 @@ Chogan is a collection of small, finishable games in a single app. It ships with
 
 The games:
 
-* Tower Defence — four towers, six maps plus a daily one, twenty waves and endless mode
+* Tower Defence — four towers, six maps, twenty waves
 * Sudoku — four difficulties, one solution each, notes and hints
 * Minesweeper — no-guess generation, four sizes, chording and flags
 * Dots and Boxes — two players on one phone, or against the AI
@@ -33,7 +33,7 @@ The games:
 * Ludo — come out on a six and race your tokens home; 2 to 4 players or bots
 * Snakes and Ladders — first to 100; 2 to 4 players or against bots
 * Darts — 501 or 301, finish on a double; against a bot or two players
-* Bowling — ten frames, swipe to bowl; alone, against a bot or two players
+* Bowling — ten frames, swipe to bowl
 * Sliding Puzzle — slide the numbered tiles back into order, from 3×3 to 5×5
 * Jigsaw — 12 to 150 pieces, on Persian patterns and scenes drawn in code
 * Checkers — classic or Spanish rules, against the AI or two players
@@ -47,6 +47,7 @@ The games:
 * Hop — bounce from platform to platform without falling; touch or tilt to steer
 * Tanks — fire across the hills with five weapons; a bot or two players
 * Chinese chess — xiangqi with palace, cannons, elephants and flying generals
+* Ping Pong — table tennis from above, first to 11; a bot or two players
 
 Around the games:
 
