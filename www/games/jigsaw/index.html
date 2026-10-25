@@ -31,6 +31,10 @@
      and a piece is lifted out of it sideways (#516) */
   .jg-wrap--side { max-width: none; }
   .jg-wrap--side .jg-mid { flex-direction: row-reverse; justify-content: center; align-items: flex-start; gap: 12px; }
+  /* the sizes above the column and the mistakes under it, so the frame takes the full height */
+  .jg-aside { display: flex; flex-direction: column; gap: var(--s-2); min-height: 0; direction: ltr; }
+  html[dir="rtl"] .jg-aside { direction: rtl; }
+  .jg-aside .jg-tray { flex: 1; min-height: 0; }
   .jg-wrap--side .jg-tray { flex-wrap: wrap; align-content: flex-start; justify-content: center; overflow-x: hidden; overflow-y: auto; touch-action: pan-y; }
   .jg-wrap--side .jg-slot { touch-action: pan-y; }
   .jg-slot canvas { display: block; pointer-events: none; }
@@ -141,10 +145,13 @@ function JigsawEngineFactory() {
   // The picture's room in a game area, and whether the loose pieces go under the frame or in a
   // column beside it. Beside wins whenever it gives a bigger picture: on a wide window the row
   // under the frame took height from the picture and left most of the width empty (#516).
-  var BARS = 110, SIDES = 24, MAX_W = 900, GAP = 12;
+  // Beside, the sizes row and the mistakes line sit in the column too, so the frame keeps
+  // the whole height but the game area's own padding (EDGE): above and below it they cost
+  // the picture 86px on a full-HD window.
+  var BARS = 110, EDGE = 24, SIDES = 24, MAX_W = 900, GAP = 12;
   function room(mainW, mainH, trayW, trayH) {
     var below = [Math.min(mainW, MAX_W) - SIDES, Math.max(mainH - trayH - BARS, 200)];
-    var beside = [Math.min(mainW - trayW - GAP, MAX_W) - SIDES, Math.max(mainH - BARS, 200)];
+    var beside = [Math.min(mainW - trayW - GAP, MAX_W) - SIDES, Math.max(mainH - EDGE, 200)];
     var fit = function (r) { return Math.min(r[0], r[1] / ASPECT); };
     return fit(beside) > fit(below) ? { side: true, w: beside[0], h: beside[1] } : { side: false, w: below[0], h: below[1] };
   }
@@ -2295,6 +2302,7 @@ function JigsawPictures() {
   frame.appendChild(cursor);
   var tray = el('div', { class: 'jg-tray', role: 'list', 'aria-label': C.t('tray') });
   var status = el('div', { class: 'jg-status', 'aria-live': 'polite' });
+  var aside = el('div', { class: 'jg-aside' });
   var mid = el('div', { class: 'jg-mid' }, [frame, tray]);
   var wrap = el('div', { class: 'jg-wrap' }, [top, mid, status]);
 
@@ -2380,6 +2388,9 @@ function JigsawPictures() {
     L = E.layout(r[0], r[1], S.count);
     side = r[2];
     wrap.classList.toggle('jg-wrap--side', side);
+    // beside the frame, the sizes and the mistakes go with the pieces (#516); under it, back around the frame
+    if (side) { aside.append(top, tray, status); mid.append(frame, aside); }
+    else { aside.remove(); mid.append(frame, tray); wrap.prepend(top); wrap.append(status); }
     frame.style.width = L.w + 'px';
     frame.style.height = L.h + 'px';
     if (side) {
@@ -2387,8 +2398,10 @@ function JigsawPictures() {
       var slotW = (L.cw + 2 * L.m) * trayScale() + 6;
       var spare = (ctx.main.clientWidth || window.innerWidth) - L.w - E.GAP - 24;
       var cols = Math.max(2, Math.min(4, Math.floor((spare - 22) / slotW)));
-      tray.style.width = Math.ceil(cols * slotW + 22) + 'px';
-      tray.style.height = L.h + 'px';
+      aside.style.width = Math.ceil(cols * slotW + 22) + 'px';
+      aside.style.height = L.h + 'px';
+      tray.style.width = '';
+      tray.style.height = '';
       tray.style.maxWidth = '';
     } else {
       tray.style.width = '';
