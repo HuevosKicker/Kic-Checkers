@@ -255,6 +255,29 @@ a  { color: var(--c-accent); text-decoration: none; }
 @media (max-width: 360px) { .ch-seg.ch-cats button { padding-inline: 7px; } }
 .ch-cat__head { font-size: var(--fs-md); color: var(--c-text-dim); margin: var(--s-5) 0 var(--s-3); }
 .ch-cats + .ch-cat__head { margin-top: 0; }
+/* Search by name above the chips (#521). 16px text, or iOS zooms the page on focus;
+   while a search is on, the chips step back because the results ignore them. */
+.ch-search {
+  display: flex; align-items: center; gap: var(--s-2);
+  background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--r-pill);
+  padding: 0 6px 0 14px; margin-bottom: var(--s-3); color: var(--c-text-dim);
+  box-shadow: var(--sh-1);
+}
+.ch-search:focus-within { border-color: var(--c-accent); }
+.ch-search > svg { flex: none; }
+.ch-search__input {
+  flex: 1; min-width: 0; min-height: 44px; border: 0; background: none; outline: none;
+  font: inherit; font-size: var(--fs-md); color: var(--c-text);
+}
+.ch-search__input::placeholder { color: var(--c-text-dim); opacity: 1; }
+.ch-search__input::-webkit-search-cancel-button { display: none; }
+.ch-search__clear {
+  flex: none; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--c-surface-2);
+  color: var(--c-text-dim); display: grid; place-items: center; cursor: pointer;
+}
+.ch-search__clear[hidden] { display: none; }
+.ch-cats--off { opacity: .45; }
+.ch-search__none { color: var(--c-text-dim); text-align: center; padding: var(--s-6) 0; }
 
 /* ------------------------------------------------------- playing cards */
 /* Shared by the card games (#178). --pw is the card's width; a game sets it, or
