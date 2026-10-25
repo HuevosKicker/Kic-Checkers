@@ -22,7 +22,7 @@ let checks = 0;
 // is no longer raised in each pull request, where it made every new-game PR conflict
 // with the last (#493); it is raised at release time. Lowering it means checks were
 // removed on purpose and must be said in the PR.
-const MIN_CHECKS = 5225;
+const MIN_CHECKS = 5226;
 
 function ok(cond, msg) {
   checks++;
@@ -6473,6 +6473,15 @@ function testSnakes() {
   // The result window labels its play-again button with the core's 'again'; a
   // game string of that name relabelled it "A six: roll again"
   ok(!/[\s{,]again: '/.test(html), 'the page leaves the core\'s "again" label alone');
+  // #513: the die's nudge turns and grows it past its box; in the scrolling side
+  // column that showed both scrollbars, so the die keeps a margin as wide as the reach
+  const dieCss = (html.match(/\.sl-die \{([^}]*)\}/) || [])[1] || '';
+  const nudge = (html.match(/@keyframes sl-nudge \{(.*)\}\s*\n/) || [])[1] || '';
+  const dieSize = +((dieCss.match(/width: (\d+)px/) || [])[1] || 0), dieMargin = +((dieCss.match(/margin: (\d+)px/) || [])[1] || 0);
+  const degs = (nudge.match(/rotate\(-?[\d.]+deg\)/g) || []).map((s) => Math.abs(parseFloat(s.slice(7))) * Math.PI / 180);
+  const scales = (nudge.match(/scale\([\d.]+\)/g) || []).map((s) => parseFloat(s.slice(6)));
+  const reach = dieSize / 2 * (Math.max(1, ...scales) * Math.max(...degs.map((a) => Math.cos(a) + Math.sin(a)), 1) - 1);
+  ok(dieSize > 0 && degs.length > 0 && dieMargin >= reach, 'the die\'s nudge stays inside its margin (reach ' + reach.toFixed(1) + 'px, margin ' + dieMargin + 'px)');
   ok(Date.now() - t0 < 5000, 'the Snakes and Ladders group runs in under five seconds (' + (Date.now() - t0) + 'ms)');
 }
 
