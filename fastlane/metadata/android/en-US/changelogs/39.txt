@@ -1,7 +1,7 @@
 New games:
 - Ping Pong: table tennis from above
 - Air Hockey on a neon table
-- Chinese chess, from a contributor
+- Chinese chess, thanks to @lanlan3292
 Bug fixes:
 - Hokm no longer flashes a card before it flies
 - Spider deals by the rule and its hint glides
