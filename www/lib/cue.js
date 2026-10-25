@@ -269,6 +269,19 @@
     return Math.abs(d) < Math.PI * 40 / 180;
   }
 
+  // #505: the turn control (#492) measured a drag across the aim line as it stood when
+  // the drag began, so the same finger move turned the cue one way or the other with the
+  // cue's direction, and its speed matched nothing the finger did. A move now turns the
+  // cue by the angle it sweeps round the white ball (cx, cy), as Point mode does, but
+  // from where the cue already is, never snapping to the finger; inside minR of the ball
+  // the radius is taken as minR, so a finger crossing the ball cannot spin the cue.
+  function turnStep(cx, cy, px, py, qx, qy, minR) {
+    var rx = px - cx, ry = py - cy, r = Math.sqrt(rx * rx + ry * ry);
+    if (r < 1e-9) return 0;
+    var t = (rx * (qy - py) - ry * (qx - px)) / r;
+    return t / Math.max(r, minR);
+  }
+
   // #407: a potted ball vanished at the pocket's mouth in one frame. Pool and
   // snooker keep each pot for SINK_MS and draw the ball sliding into the
   // pocket's centre as it shrinks and fades. sinksOf reads where each ball of
@@ -290,7 +303,7 @@
   var api = {
     DT: DT, MAX_TICKS: MAX_TICKS, table: table, clone: clone, speedOf: speedOf,
     start: start, tick: tick, simulate: simulate, aim: aim, free: free, clear: clear, nearestPocket: nearestPocket,
-    pullsBack: pullsBack, SINK_MS: SINK_MS, sinksOf: sinksOf, sinkAt: sinkAt
+    pullsBack: pullsBack, turnStep: turnStep, SINK_MS: SINK_MS, sinksOf: sinksOf, sinkAt: sinkAt
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.ChoganCue = api;
