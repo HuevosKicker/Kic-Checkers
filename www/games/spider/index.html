@@ -430,8 +430,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
   /* ----------------------------------------------------------- layout */
 
   // A short, wide window puts the stock in a column of its own on the left and the
-  // finished runs on the right, so the ten columns start at the top and get the whole
-  // height; otherwise both sit in a row above the columns, as in Windows.
+  // finished runs on the right, both at the bottom as in Windows (#504: at the top they
+  // read as two more columns of the table), so the ten columns start at the top and get
+  // the whole height; otherwise both sit in a row above the columns.
   function sideWanted() { return wrap.clientWidth > wrap.clientHeight * 1.9; }
   function layout() {
     var side = sideWanted();
@@ -454,10 +455,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
   }
   function colX(i) { return L.x0 + i * (L.cw + L.gap); }
   function tabX(col) { return colX(col + L.off); }
-  // the stock: one back per deal left, fanned right in a row, down in a column of its own
+  // the bottom card's top in a column of its own beside the table
+  function bottomY() { return L.H - L.gap - L.ch; }
+  // the stock's empty slot, which the hint and the keyboard ring too
+  function stockSpot() { return { x: colX(0), y: L.side ? bottomY() : L.ty }; }
+  // the stock: one back per deal left, fanned right in a row, up from the bottom in a
+  // column of its own, so a deal takes the top back and the pile stays on the floor
   function stockPos(g) {
     var step = Math.max(4, Math.round(L.cw * 0.16));
-    return L.side ? { x: colX(0), y: L.ty + g * step } : { x: colX(0) + g * step, y: L.ty };
+    return L.side ? { x: colX(0), y: bottomY() - g * step } : { x: colX(0) + g * step, y: L.ty };
   }
   // a long column closes up so its last card stays on the board
   function offsets(col) {
@@ -468,8 +474,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
     return { up: up, dn: dn };
   }
   // the finished runs fill the slots from the right, as in Windows; beside the table
-  // they pile down the right-hand column
-  function foundPos(k) { return L.side ? { x: colX(11), y: L.ty + k * Math.round(L.ch * 0.16) } : { x: colX(E.COLS - 1 - k), y: L.ty }; }
+  // they pile up from the bottom of the right-hand column
+  function foundPos(k) { return L.side ? { x: colX(11), y: bottomY() - k * Math.round(L.ch * 0.16) } : { x: colX(E.COLS - 1 - k), y: L.ty }; }
 
   // Where every card sits: { x, y, z, down, under }. The stock shows one back per deal
   // left; a card under others on the same spot is hidden, so stacked shadows don't add up.
@@ -501,7 +507,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
   function render(still, stagger) {
     L = layout();
     if (!L || !S) return;
-    slots.stock.style.transform = 'translate(' + colX(0) + 'px,' + L.ty + 'px)';
+    var ss = stockSpot();
+    slots.stock.style.transform = 'translate(' + ss.x + 'px,' + ss.y + 'px)';
     slots.stock.style.opacity = S.stock.length ? 0 : 1;
     // beside the table one empty slot stands for the pile of runs
     for (var f = 0; f < E.RUNS; f++) { var fp = foundPos(f); slots['f' + f].style.transform = 'translate(' + fp.x + 'px,' + fp.y + 'px)'; slots['f' + f].style.visibility = L.side && f ? 'hidden' : ''; }
@@ -634,7 +641,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
     var h = E.hint(S);
     if (!h) { C.ui.toast({ icon: 'info', title: C.t('noHint') }); return; }
     C.feedback('tap');
-    if (h.deal) { ring(colX(0), L.ty, L.ch); return; }
+    if (h.deal) { var ss = stockSpot(); ring(ss.x, ss.y, L.ch); return; }
     var P = positions(), run = S.tab[h.src.col].slice(h.src.i), first = P[run[0]], last = P[run[run.length - 1]];
     var d = S.tab[h.dst], o = offsets(h.dst);
     var to = d.length ? { x: tabX(h.dst), y: Math.round(P[d[d.length - 1]].y + o.up) } : { x: tabX(h.dst), y: L.cy };
@@ -714,7 +721,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
   var SPOTS = 11;
   function spotBox(f) {
     if (!L) return null;
-    if (f === 0) return { x: colX(0), y: L.ty };
+    if (f === 0) return stockSpot();
     var col = f - 1, t = S.tab[col];
     if (!t.length) return { x: tabX(col), y: L.cy };
     return positions()[t[t.length - 1]];
