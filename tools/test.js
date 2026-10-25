@@ -4902,8 +4902,8 @@ function testEightBall() {
   ok(typeof pb === 'function' && !pb(up, 0, -10) && !pb(up, 10, 0) && !pb(up, 10, 10) && !pb(up, 0, 0), 'a move forward, sideways, at 45 degrees or not at all moves the white instead');
   for (const g of ['eightball', 'snooker']) {
     const page = fs.readFileSync(path.join(ROOT, 'www/games/' + g + '/index.html'), 'utf8');
-    ok(/if \(F\.inHand && dc < grab\) drag = \{ id: e\.pointerId, mode: 'hand'/.test(page) && /drag\.mode = Cue\.pullsBack\(aimA, p\.x - h0\.x, p\.y - h0\.y\) \? 'sling' : 'place'/.test(page),
-      g + ': a drag on the white in hand can still become a slingshot shot');
+    ok(/if \(F\.inHand && dc < grab\) drag = \{ id: e\.pointerId, mode: 'hand'/.test(page) && /drag\.mode = prefs\.aim !== 'turn' && Cue\.pullsBack\(aimA, p\.x - h0\.x, p\.y - h0\.y\) \? 'sling' : 'place'/.test(page),
+      g + ': a drag on the white in hand can still become a slingshot shot (with the default point control; #492)');
   }
   const T = E.T, r = T.r;
   ok(T.L === 2 * T.W && T.pockets.length === 6, 'the default table is 2:1 with six pockets');
@@ -9503,6 +9503,23 @@ function testAndroidShortcuts() {
   ok(/<meta-data android:name="android\.app\.shortcuts" android:resource="@xml\/shortcuts" \/>/.test(man) && (man.match(/<uses-permission /g) || []).length === 1, 'the launcher activity declares them, and still only one permission');
   ok(/openShortcut\(getIntent\(\)\);/.test(act) && /protected void onNewIntent\(Intent intent\) \{[\s\S]*?openShortcut\(intent\);/.test(act), 'a shortcut opens its game whether the app was closed or already open');
   ok(/if \(id == null \|\| !id\.matches\("\[a-z0-9-\]\{1,32\}"\)\) return;/.test(act) && /getBridge\(\)\.getLocalUrl\(\) \+ "\/games\/" \+ id \+ "\/index\.html\?from=shortcut"/.test(act), 'only a plain game id is accepted, and only a page of the app itself is loaded');
+}
+
+// #492: aiming pointed the cue at the finger, and pulling back from the white ball shot,
+// which a player found hard to control; a second control turns the cue a little a pixel
+// and leaves shooting to the power bar, as in Miniclip's pool
+function testCueTurnControl() {
+  head('Pool and Snooker: a fine "turn" aiming control (#492)');
+  for (const g of ['eightball', 'snooker']) {
+    const html = fs.readFileSync(path.join(ROOT, 'www/games', g, 'index.html'), 'utf8');
+    ok(/if \(prefs\.aim !== 'turn'\) prefs\.aim = 'point';/.test(html) && /\[\{ value: 'point', label: C\.t\('ctlPoint'\) \}, \{ value: 'turn', label: C\.t\('ctlTurn'\) \}\]/.test(html) && /addEventListener\('click', showSettings\)/.test(html),
+      g + ': point (the default) and turn are offered behind a gear');
+    ok(/else if \(prefs\.aim === 'turn'\) drag = \{ id: e\.pointerId, mode: 'turn'/.test(html) && /drag\.mode = prefs\.aim !== 'turn' && Cue\.pullsBack\(/.test(html),
+      g + ': in turn mode a drag never becomes a pull-back shot, even from the white ball');
+    const rate = +((/var TURN_RATE = ([\d.]+);/.exec(html) || [])[1]);
+    ok(rate > 0 && rate * 100 * 180 / Math.PI > 10 && rate * 100 * 180 / Math.PI < 30, g + ': a 100 px drag turns the cue ' + (rate * 100 * 180 / Math.PI).toFixed(0) + ' degrees');
+    ok(LOCALE_CODES.every((l) => { const sec = html.slice(html.indexOf('      ' + l + ': {')); return /aimCtl: '[^']+', ctlPoint: '[^']+', ctlTurn: '[^']+', ctlNote: '[^']+'/.test(sec.slice(0, sec.indexOf('\n      }'))); }), g + ': the control is named in every language');
+  }
 }
 
 function testPersianCardIndex() {
