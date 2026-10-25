@@ -2,7 +2,7 @@ Chogan ist eine Sammlung kleiner Spiele in einer einzigen App, die du wirklich z
 
 Die Spiele:
 
-* Turmverteidigung — vier Türme, sechs Karten plus eine Tageskarte, zwanzig Wellen, Endlosmodus
+* Turmverteidigung — vier Türme, sechs Karten, zwanzig Wellen
 * Sudoku — vier Stufen, je eine Lösung, Notizen und Tipps
 * Minesweeper — ohne Raten erzeugt, vier Größen, Akkorde und Flaggen
 * Käsekästchen — zu zweit an einem Handy oder gegen den Computer
@@ -33,20 +33,21 @@ Die Spiele:
 * Ludo — mit einer Sechs raus, alle Figuren ins Ziel; 2–4 Spieler oder Bots
 * Schlangen und Leitern — zuerst auf 100; 2–4 Spieler oder Bots
 * Darts — 501 oder 301, Finish auf Doppel; gegen einen Bot oder zu zweit
-* Bowling — zehn Frames, wischen zum Werfen; allein, gegen einen Bot oder zu zweit
+* Bowling — zehn Frames, wischen zum Werfen
 * Schiebepuzzle — nummerierte Plättchen ordnen, 3×3 bis 5×5
-* Puzzle — 12 bis 150 Teile; persische Muster und Landschaften, im Code gezeichnet
+* Puzzle — 12 bis 150 Teile, im Code gezeichnet
 * Dame — klassisch oder spanisch, gegen die KI oder zu zweit
 * Klondike — Patience, eine oder drei Karten ziehen, das Tagesspiel ist immer lösbar
 * Verrückte Acht — Farbe oder Wert bedienen, iranische oder internationale Regeln
-* Gin Rommé — Kombinationen gegen einen Bot: klopfen, Gin, Unterbieten, bis 100
+* Gin Rommé — Kombinationen gegen einen Bot, bis 100
 * Shelem — Hokm mit Bieten: die Mitte nehmen, Trumpf bestimmen, bis 505
-* Spider — zwei Decks in zehn Spalten, vom König bis zum Ass; eine, zwei oder vier Farben
+* Spider — zwei Decks in zehn Spalten; eine, zwei oder vier Farben
 * Paare — das Memory-Spiel: immer zwei Karten umdrehen, alle Paare finden
 * Gorillas — explodierende Bananen über die Stadt: Winkel, Kraft, Wind
 * Hüpf — von Plattform zu Plattform springen, ohne zu fallen; tippen oder neigen
 * Panzer — über die Hügel feuern, mit fünf Waffen; Bot oder zu zweit
 * Chinesisches Schach — Xiangqi mit Palast, Kanonen und fliegenden Generälen
+* Pingpong — Tischtennis von oben, bis 11; Bot oder zu zweit
 
 Rund um die Spiele:
 
