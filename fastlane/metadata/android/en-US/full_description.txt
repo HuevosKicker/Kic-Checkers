@@ -9,7 +9,7 @@ The games:
 * Backgammon — two players or against the AI, gammons count double
 * Mancala — Kalah rules, two players or against the AI
 * Nonogram — three sizes, every puzzle solvable by logic alone
-* FreeCell — the classic numbered deals, never the one unwinnable deal, unlimited undo
+* FreeCell — the classic numbered deals, never the one unwinnable deal
 * Reversi — two players or against the AI
 * Nine Men's Morris — two players or against the AI
 * Peg Solitaire — leave one peg, in the centre for a perfect game
@@ -24,7 +24,7 @@ The games:
 * Block Drop — falling blocks: a 40-line sprint or a 100-line marathon
 * Gomoku — five in a row on a 9, 13 or 15 board, against the AI or two players
 * Go — 9×9 Go with automatic counting, against the AI or two players
-* Way Out — send every arrow off the board in a working order, levels without end
+* Way Out — send every arrow off the board in a working order
 * Blackjack — closer to 21 than the dealer, ten-hand matches with no betting
 * 8-Ball Pool — pot your group, then the 8, against the AI or two players
 * Snooker — reds and colours, then the colours in order; 6, 10 or 15 reds
@@ -32,7 +32,7 @@ The games:
 * Chain Reaction — add orbs until cells burst in chains; 2 to 4 players or against bots
 * Ludo — come out on a six and race your tokens home; 2 to 4 players or bots
 * Snakes and Ladders — first to 100; 2 to 4 players or against bots
-* Darts — 501 or 301, three darts a turn, finish on a double; against a bot or two players
+* Darts — 501 or 301, finish on a double; against a bot or two players
 * Bowling — ten frames, swipe to bowl; alone, against a bot or two players
 * Sliding Puzzle — slide the numbered tiles back into order, from 3×3 to 5×5
 * Jigsaw — 12 to 150 pieces, on Persian patterns and scenes drawn in code
@@ -43,9 +43,10 @@ The games:
 * Shelem — Hokm with bidding: take the widow, name trump, a match to 505
 * Spider — two decks in ten columns, king down to ace; one, two or four suits
 * Pairs — the memory game: turn two cards at a time and find every pair
-* Gorillas — throw exploding bananas across a city: angle, power and wind; a bot or two players
+* Gorillas — exploding bananas across a city: angle, power and wind
 * Hop — bounce from platform to platform without falling; touch or tilt to steer
-* Tanks — fire across the hills: angle, power, wind and five weapons; a bot or two players
+* Tanks — fire across the hills with five weapons; a bot or two players
+* Chinese chess — xiangqi with palace, cannons, elephants and flying generals
 
 Around the games:
 

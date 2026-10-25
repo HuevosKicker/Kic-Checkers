@@ -42,10 +42,11 @@ Los juegos:
 * Gin Rummy — combinaciones contra un bot: cerrar, gin y contragolpe, hasta 100
 * Shelem — Hokm con subasta: toma el centro, elige triunfo, a 505
 * Spider — dos barajas en diez columnas, del rey al as; uno, dos o cuatro palos
-* Parejas — el juego de memoria: gira dos cartas cada vez y encuentra todas las parejas
-* Gorilas — plátanos explosivos sobre la ciudad: ángulo, fuerza y viento; bot o para dos
+* Parejas — el juego de memoria: gira dos cartas y encuentra las parejas
+* Gorilas — plátanos explosivos sobre la ciudad: ángulo, fuerza y viento
 * Salto — salta de plataforma en plataforma sin caer; toca o inclina el móvil
-* Tanques — dispara entre colinas: ángulo, fuerza, viento y cinco armas; bot o para dos
+* Tanques — dispara entre colinas con cinco armas; bot o para dos
+* Ajedrez chino — xiangqi con palacio, cañones y generales voladores
 
 Alrededor de los juegos:
 
