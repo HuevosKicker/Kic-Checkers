@@ -9638,6 +9638,10 @@ function testSpider() {
   ok(/class: 'ch-iconbtn sp-gear', type: 'button', 'aria-label': C\.t\('settings'\)/.test(html) && /function showSettings\(\)/.test(html) && !/suitsRule[^\n]*showHelp/.test(html), 'the number of suits is chosen behind a gear, not in help');
   ok(/if \(C\.ui\.reduceMotion\(\) \|\| !L\) \{ done\(\); return; \}/.test(html) && /if \(C\.ui\.reduceMotion\(\) \|\| !L\) return;/.test(html), 'no deal animation and no win cascade with reduced motion');
   ok(/\.sp-board \{ direction: ltr;/.test(html), 'the table is not mirrored in Persian');
+  // #486: the hint shook two cards and did not say which way the move went
+  const hintFn = (html.match(/  function showHint\(\) \{[\s\S]*?\n  \}\n/) || [''])[0];
+  ok(/ring\(first\.x, first\.y, last\.y - first\.y \+ L\.ch\);/.test(hintFn) && /ring\(to\.x, to\.y, L\.ch\);/.test(hintFn) && /if \(C\.ui\.reduceMotion\(\)\) return;/.test(hintFn) && /nodes\[c\]\.cloneNode\(true\)/.test(hintFn) && /g\.animate\(/.test(hintFn) && !/C\.ui\.shake/.test(hintFn),
+    'the hint rings both ends of its move and glides a copy of the cards there (rings only with reduced motion)');
   // #472: on a phone on its side the row above the table left the cards 30 px wide; a short,
   // wide window now puts the badges, the stock and the finished runs beside the columns,
   // and the corner rank is larger on Spider's narrow cards

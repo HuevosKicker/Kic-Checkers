@@ -35,6 +35,13 @@
   @keyframes sp-flip { from { transform: scaleX(0); } }
   .sp-hint { position: absolute; left: 0; top: 0; width: var(--cw); aspect-ratio: 5 / 7; border-radius: 6px; box-sizing: border-box;
     border: 3px solid var(--game); pointer-events: none; display: none; }
+  .sp-ring { position: absolute; left: 0; top: 0; width: var(--cw); border-radius: 8px; box-sizing: border-box; pointer-events: none; z-index: 4400;
+    border: 3px solid var(--game); box-shadow: 0 0 0 4px color-mix(in srgb, var(--game) 30%, transparent); animation: sp-ring 1400ms ease-out both; }
+  /* on the dark table the accent itself is too dim for a ring; the core's lightened copy reads */
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sp-ring { border-color: var(--game-text-dark, var(--game)); } }
+  :root[data-theme="dark"] .sp-ring { border-color: var(--game-text-dark, var(--game)); }
+  @keyframes sp-ring { 0% { opacity: 0; } 15% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+  .sp-ghost { pointer-events: none; transition: none; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .35)); }
   .sp-cascade { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5000; }
   .sp-gear .ch-icon { pointer-events: none; }
   /* a short, wide window (a phone on its side): the badges stand beside the table, so
@@ -611,14 +618,43 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
     save();
   }
 
+  // The hint shows its move: a faint copy of the cards glides from where they are to
+  // where they would go, and the game's ring marks both ends. A shake of two cards did
+  // not say which way the move went (#486). With reduced motion, just the rings.
+  var HINT_MS = 1400;
+  function ring(x, y, h) {
+    var r = el('div', { class: 'sp-ring' });
+    r.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+    r.style.height = h + 'px';
+    board.appendChild(r);
+    setTimeout(function () { r.remove(); }, HINT_MS);
+  }
   function showHint() {
     if (blocked()) return;
     var h = E.hint(S);
     if (!h) { C.ui.toast({ icon: 'info', title: C.t('noHint') }); return; }
-    if (h.deal) { var s = S.stock[S.stock.length - 1]; if (s !== undefined) C.ui.shake(nodes[s]); return; }
-    C.ui.shake(nodes[S.tab[h.src.col][h.src.i]]);
-    var d = S.tab[h.dst];
-    if (d.length) C.ui.shake(nodes[d[d.length - 1]]);
+    C.feedback('tap');
+    if (h.deal) { ring(colX(0), L.ty, L.ch); return; }
+    var P = positions(), run = S.tab[h.src.col].slice(h.src.i), first = P[run[0]], last = P[run[run.length - 1]];
+    var d = S.tab[h.dst], o = offsets(h.dst);
+    var to = d.length ? { x: tabX(h.dst), y: Math.round(P[d[d.length - 1]].y + o.up) } : { x: tabX(h.dst), y: L.cy };
+    ring(first.x, first.y, last.y - first.y + L.ch);
+    ring(to.x, to.y, L.ch);
+    if (C.ui.reduceMotion()) return;
+    run.forEach(function (c, i) {
+      var g = nodes[c].cloneNode(true), p = P[c];
+      g.className = 'sp-card sp-ghost';
+      g.style.transform = 'translate(' + p.x + 'px, ' + p.y + 'px)';
+      g.style.zIndex = 4500 + i;
+      board.appendChild(g);
+      var dy = to.y - first.y;
+      var anim = g.animate([
+        { transform: 'translate(' + p.x + 'px, ' + p.y + 'px)', opacity: 0.85 },
+        { transform: 'translate(' + to.x + 'px, ' + (p.y + dy) + 'px)', opacity: 0.85, offset: 0.6 },
+        { transform: 'translate(' + to.x + 'px, ' + (p.y + dy) + 'px)', opacity: 0 }
+      ], { duration: HINT_MS, easing: 'ease-in-out' });
+      anim.onfinish = function () { g.remove(); };
+    });
   }
 
   /* ------------------------------------------------------------ input */
