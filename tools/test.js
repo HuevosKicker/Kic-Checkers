@@ -22,7 +22,7 @@ let checks = 0;
 // is no longer raised in each pull request, where it made every new-game PR conflict
 // with the last (#493); it is raised at release time. Lowering it means checks were
 // removed on purpose and must be said in the PR.
-const MIN_CHECKS = 5224;
+const MIN_CHECKS = 5225;
 
 function ok(cond, msg) {
   checks++;
@@ -10182,6 +10182,8 @@ function testTanks() {
   ok(nearest[1] >= 15 && 1.05 / (lum(gm.color) + 0.05) >= 4.5, 'the accent differs from every other game by ΔE ≥ 15 (nearest ' + nearest[0] + ', ' + nearest[1].toFixed(1) + ') and keeps white text at 4.5:1');
   const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
   ok(['tnk-win', 'tnk-hard', 'tnk-big'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '[^\\n]*des: '").test(core) && html.indexOf("unlock('" + id + "')") > 0), 'the three Tanks awards exist in every language and are unlocked');
+  // #510: the field is drawn left to right in every language, so the step buttons must not follow RTL
+  ok(/el\('span', \{ class: 'tk-steps', dir: 'ltr' \}, \[stepBtn\(-1, 'moveL', '◀'\), stepBtn\(1, 'moveR', '▶'\)\]\)/.test(html), 'the step buttons sit in a left-to-right group, ◀ (left) first, in every language');
   ok(Date.now() - t0 < 15000, 'the Tanks tests finish in under 15 s (' + (Date.now() - t0) + ' ms)');
 }
 
