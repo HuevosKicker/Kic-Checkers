@@ -9573,6 +9573,22 @@ function testSpider() {
   ok(T.stock.join() === st0.join() && T.tab.map((c) => c.length).join() === '6,6,6,6,5,5,5,5,5,5', 'undo takes the row back into the stock in order');
   const T2 = E.clone(T); T2.stock = T2.stock.concat(T2.tab[9]); T2.tab[9] = []; T2.down[9] = 0;
   ok(E.dealRow(T2) === 'empty' && T2.hist.length === 0, 'no row is dealt while a column is empty');
+  // #487: near the end, with fewer cards on the table than columns, no move can fill every
+  // column, and the rule left the game stuck; then a row may be dealt anyway
+  const few = empty(1);
+  for (let k = 0; k < 6; k++) few.found.push(Array.from({ length: 13 }, (_, r) => k * 13 + 12 - r));
+  few.tab[0] = [card(5, 6)]; few.tab[3] = [card(9, 6), card(8, 6)]; few.tab[7] = [card(2, 6)];
+  for (let r = 0; r < 13; r++) if (![5, 9, 8, 2].includes(r)) few.stock.push(card(r, 6));
+  for (let r = 0; r < 13; r++) few.stock.push(card(r, 7));
+  few.stock = few.stock.slice(0, 20);
+  const before = JSON.stringify([few.tab, few.stock]);
+  ok(E.canDeal(few) && E.dealRow(few) === 'deal' && few.tab.every((c) => c.length > 0), 'with four cards on the table and ten columns, a row is dealt into the empty ones');
+  E.undo(few);
+  ok(JSON.stringify([few.tab, few.stock]) === before, 'and undo takes it back exactly');
+  const enough = empty(1);
+  for (let c2 = 0; c2 < 9; c2++) enough.tab[c2] = [card(c2 % 13, 0), card((c2 + 3) % 13, 1)];
+  enough.stock = Array.from({ length: 10 }, (_, i) => card(i, 2));
+  ok(!E.canDeal(enough) && E.dealRow(enough) === 'empty', 'with eighteen cards and one empty column, the empty column must still be filled first');
 
   // A tap: same suit first, then any suit, then an empty column; a whole column never moves to another empty one
   const A = empty(2);

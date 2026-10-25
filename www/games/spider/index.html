@@ -151,10 +151,17 @@ function SpiderEngineFactory() {
   }
 
   // One tap on the stock lays a card on every column. As in Windows, not while a
-  // column is empty. Returns 'deal', 'empty' or null (no stock left).
+  // column is empty — unless there are fewer cards on the table than columns, when no
+  // move can fill them all: the rule left such a game stuck, and the player had to undo
+  // runs they had built (#487). Returns 'deal', 'empty' or null (no stock left).
+  function canDeal(S) {
+    var cards = 0, holes = 0;
+    for (var c = 0; c < COLS; c++) { cards += S.tab[c].length; if (!S.tab[c].length) holes++; }
+    return !holes || cards < COLS;
+  }
   function dealRow(S) {
     if (!S.stock.length) return null;
-    for (var c = 0; c < COLS; c++) if (!S.tab[c].length) return 'empty';
+    if (!canDeal(S)) return 'empty';
     for (var d = 0; d < COLS; d++) S.tab[d].push(S.stock.pop());
     var done = [];
     for (var e = 0; e < COLS; e++) { var r = complete(S, e); if (r) done.push(r); }
@@ -229,7 +236,7 @@ function SpiderEngineFactory() {
       if (!S.tab[col].length) { if (hole < 0) hole = col; }
       else if (runStart(S, col) > 0 && (tall < 0 || S.tab[col].length > S.tab[tall].length)) tall = col;
     }
-    if (hole < 0) return { deal: true };
+    if (hole < 0 || canDeal(S)) return { deal: true };
     return tall < 0 ? null : { src: { col: tall, i: runStart(S, tall) }, dst: hole };
   }
 
@@ -253,7 +260,7 @@ function SpiderEngineFactory() {
   return {
     COLS: COLS, RUNS: RUNS, rank: rank, suitOf: suitOf, face: face, deal: deal, clone: clone, runStart: runStart, movable: movable,
     canTab: canTab, legal: legal, move: move, dealRow: dealRow, undo: undo, won: won, autoTarget: autoTarget, hint: hint,
-    validState: validState
+    validState: validState, canDeal: canDeal
   };
 }
 if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngineFactory;
@@ -279,7 +286,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
         suitsNote: 'از دست بعد اعمال می‌شود. روزانه همیشه یک خال است.', suitsMode: 'خال‌ها', stock: 'دسته', runsN: '{n} از ۸ ردیف',
         emptyCol: 'پیش از پخش کارت تازه، هر ستون باید دست‌کم یک کارت داشته باشد.', showHint: 'راهنمایی', noHint: 'حرکت مفیدی نمانده. برگرداندن را امتحان کن.',
         kbSpot: 'رفتن بین دسته و ستون‌ها', kbAuto: 'فرستادن به بهترین جا', kbDeal: 'پخش یک ردیف از دسته', kbHint: 'راهنمایی', kbNew: 'دست تازه',
-        rules: 'هر خال را در ستون‌ها از شاه تا آس پشت سر هم بچین؛ ردیف کامل خودش از میز برداشته می‌شود و با برداشتن هر هشت ردیف می‌بری. هر کارت روی کارتی یک رتبه بالاتر می‌نشیند، از هر خالی، ولی فقط کارت‌های پشت سر هم از یک خال با هم جابه‌جا می‌شوند. ستون خالی هر کارتی را می‌گیرد. زدن دسته روی هر ستون یک کارت می‌گذارد، به شرطی که ستون خالی نباشد. روزانه برای همه یک دست است و همیشه یک خال.',
+        rules: 'هر خال را در ستون‌ها از شاه تا آس پشت سر هم بچین؛ ردیف کامل خودش از میز برداشته می‌شود و با برداشتن هر هشت ردیف می‌بری. هر کارت روی کارتی یک رتبه بالاتر می‌نشیند، از هر خالی، ولی فقط کارت‌های پشت سر هم از یک خال با هم جابه‌جا می‌شوند. ستون خالی هر کارتی را می‌گیرد. زدن دسته روی هر ستون یک کارت می‌گذارد، به شرطی که ستون خالی نباشد؛ مگر کارت‌های روی میز از تعداد ستون‌ها کمتر باشد. روزانه برای همه یک دست است و همیشه یک خال.',
         tutTitle1: 'هدف', tutText1: 'هر خال را در ستون‌ها از شاه تا آس پشت سر هم بچین. ردیف کامل خودش برداشته می‌شود؛ هشت ردیف یعنی بُرد.',
         tutTitle2: 'ستون‌ها', tutText2: 'کارت روی کارتی یک رتبه بالاتر می‌نشیند، از هر خالی. فقط کارت‌های پشت سر هم از یک خال با هم جابه‌جا می‌شوند.',
         tutTitle3: 'دسته', tutText3: 'وقتی گیر کردی دسته را بزن: روی هر ستون یک کارت تازه می‌آید. برگرداندن بی‌حد است.'
@@ -290,7 +297,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
         suitsNote: 'Applies from the next deal. The daily deal is always one suit.', suitsMode: 'Suits', stock: 'Stock', runsN: '{n} of 8 runs',
         emptyCol: 'Every column needs a card before you deal a new row.', showHint: 'Hint', noHint: 'No useful move left. Try undo.',
         kbSpot: 'Move between the stock and the columns', kbAuto: 'Send to the best place', kbDeal: 'Deal a row from the stock', kbHint: 'Hint', kbNew: 'New deal',
-        rules: 'Build each suit down in the columns from king to ace; a full run leaves the table by itself, and clearing all eight wins. A card goes on one a rank higher of any suit, but only a run of one suit moves together. An empty column takes any card. A tap on the stock deals a card onto every column, as long as none is empty. The daily deal is the same for everyone and always one suit.',
+        rules: 'Build each suit down in the columns from king to ace; a full run leaves the table by itself, and clearing all eight wins. A card goes on one a rank higher of any suit, but only a run of one suit moves together. An empty column takes any card. A tap on the stock deals a card onto every column, as long as none is empty, unless there are fewer cards on the table than columns. The daily deal is the same for everyone and always one suit.',
         tutTitle1: 'The goal', tutText1: 'Build each suit down in the columns from king to ace. A full run leaves by itself; eight runs win.',
         tutTitle2: 'Columns', tutText2: 'A card goes on one a rank higher, of any suit. Only a run of one suit moves together.',
         tutTitle3: 'The stock', tutText3: 'Stuck? Tap the stock: every column gets a new card. Undo as often as you like.'
@@ -301,7 +308,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
         suitsNote: '从下一局开始生效。每日挑战总是单色。', suitsMode: '花色', stock: '牌堆', runsN: '{n}/8 组',
         emptyCol: '发新一行之前，每一列都要至少有一张牌。', showHint: '提示', noHint: '没有有用的走法了。试试撤销。',
         kbSpot: '在牌堆和各列之间移动', kbAuto: '送到最佳位置', kbDeal: '从牌堆发一行', kbHint: '提示', kbNew: '新一局',
-        rules: '在各列中把每种花色从K到A依次排好；排满一组会自动移走，移走全部八组即获胜。牌可以放在大一点的任何花色的牌上，但只有同一花色的连续牌才能一起移动。空列可以放任何牌。点牌堆会给每一列发一张牌，前提是没有空列。每日挑战人人相同，并且总是单色。',
+        rules: '在各列中把每种花色从K到A依次排好；排满一组会自动移走，移走全部八组即获胜。牌可以放在大一点的任何花色的牌上，但只有同一花色的连续牌才能一起移动。空列可以放任何牌。点牌堆会给每一列发一张牌，前提是没有空列；但如果桌上的牌比列数还少，就可以直接发牌。每日挑战人人相同，并且总是单色。',
         tutTitle1: '目标', tutText1: '在各列中把每种花色从K到A依次排好。排满一组自动移走；八组即获胜。',
         tutTitle2: '各列', tutText2: '牌放在大一点的牌上，花色不限。只有同一花色的连续牌才能一起移动。',
         tutTitle3: '牌堆', tutText3: '卡住了？点牌堆：每一列都会发一张新牌。撤销次数不限。'
@@ -312,7 +319,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
         suitsNote: 'Gilt ab dem nächsten Spiel. Das Tagesspiel hat immer eine Farbe.', suitsMode: 'Farben', stock: 'Stapel', runsN: '{n} von 8 Reihen',
         emptyCol: 'Jede Spalte braucht eine Karte, bevor du eine neue Reihe gibst.', showHint: 'Tipp', noHint: 'Kein nützlicher Zug mehr. Versuch es mit Zurück.',
         kbSpot: 'Zwischen Stapel und Spalten wechseln', kbAuto: 'An den besten Platz legen', kbDeal: 'Eine Reihe vom Stapel geben', kbHint: 'Tipp', kbNew: 'Neues Spiel',
-        rules: 'Lege in den Spalten jede Farbe vom König bis zum Ass ab; eine volle Reihe verlässt den Tisch von selbst, und wer alle acht abräumt, gewinnt. Eine Karte kommt auf eine um eins höhere jeder Farbe, aber nur eine Reihe einer Farbe zieht zusammen. Eine leere Spalte nimmt jede Karte. Ein Tipp auf den Stapel gibt jeder Spalte eine Karte, solange keine leer ist. Das Tagesspiel ist für alle gleich und hat immer eine Farbe.',
+        rules: 'Lege in den Spalten jede Farbe vom König bis zum Ass ab; eine volle Reihe verlässt den Tisch von selbst, und wer alle acht abräumt, gewinnt. Eine Karte kommt auf eine um eins höhere jeder Farbe, aber nur eine Reihe einer Farbe zieht zusammen. Eine leere Spalte nimmt jede Karte. Ein Tipp auf den Stapel gibt jeder Spalte eine Karte, solange keine leer ist, außer es liegen weniger Karten als Spalten auf dem Tisch. Das Tagesspiel ist für alle gleich und hat immer eine Farbe.',
         tutTitle1: 'Das Ziel', tutText1: 'Lege in den Spalten jede Farbe vom König bis zum Ass ab. Eine volle Reihe geht von selbst; acht Reihen gewinnen.',
         tutTitle2: 'Spalten', tutText2: 'Eine Karte kommt auf eine um eins höhere, egal welcher Farbe. Nur eine Reihe einer Farbe zieht zusammen.',
         tutTitle3: 'Der Stapel', tutText3: 'Fest? Tippe auf den Stapel: Jede Spalte bekommt eine neue Karte. Zurücknehmen so oft du willst.'
@@ -323,7 +330,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SpiderEngi
         suitsNote: 'Se aplica desde la próxima partida. La diaria siempre es de un palo.', suitsMode: 'Palos', stock: 'Mazo', runsN: '{n} de 8 escaleras',
         emptyCol: 'Cada columna necesita una carta antes de repartir una fila nueva.', showHint: 'Pista', noHint: 'No queda ningún movimiento útil. Prueba a deshacer.',
         kbSpot: 'Moverse entre el mazo y las columnas', kbAuto: 'Enviar al mejor sitio', kbDeal: 'Repartir una fila del mazo', kbHint: 'Pista', kbNew: 'Nueva partida',
-        rules: 'Ordena cada palo en las columnas del rey al as; una escalera completa sale sola de la mesa, y al quitar las ocho ganas. Una carta va sobre otra un punto más alta de cualquier palo, pero solo una escalera de un mismo palo se mueve junta. Una columna vacía admite cualquier carta. Un toque en el mazo reparte una carta en cada columna, siempre que ninguna esté vacía. La partida diaria es la misma para todos y siempre de un palo.',
+        rules: 'Ordena cada palo en las columnas del rey al as; una escalera completa sale sola de la mesa, y al quitar las ocho ganas. Una carta va sobre otra un punto más alta de cualquier palo, pero solo una escalera de un mismo palo se mueve junta. Una columna vacía admite cualquier carta. Un toque en el mazo reparte una carta en cada columna, siempre que ninguna esté vacía, salvo que haya menos cartas en la mesa que columnas. La partida diaria es la misma para todos y siempre de un palo.',
         tutTitle1: 'El objetivo', tutText1: 'Ordena cada palo en las columnas del rey al as. Una escalera completa sale sola; ocho escaleras ganan.',
         tutTitle2: 'Columnas', tutText2: 'Una carta va sobre otra un punto más alta, de cualquier palo. Solo una escalera de un mismo palo se mueve junta.',
         tutTitle3: 'El mazo', tutText3: '¿Atascado? Toca el mazo: cada columna recibe una carta nueva. Deshaz tantas veces como quieras.'
