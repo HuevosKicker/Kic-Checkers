@@ -22,7 +22,7 @@ let checks = 0;
 // is no longer raised in each pull request, where it made every new-game PR conflict
 // with the last (#493); it is raised at release time. Lowering it means checks were
 // removed on purpose and must be said in the PR.
-const MIN_CHECKS = 5104;
+const MIN_CHECKS = 5216;
 
 function ok(cond, msg) {
   checks++;
@@ -9684,6 +9684,19 @@ function testSpider() {
   // wide window now puts the badges, the stock and the finished runs beside the columns,
   // and the corner rank is larger on Spider's narrow cards
   ok(/function sideWanted\(\) \{ return wrap\.clientWidth > wrap\.clientHeight \* 1\.9; \}/.test(html) && /function tabX\(col\) \{ return colX\(col \+ L\.off\); \}/.test(html) && /cy: side \? gap : gap \* 3 \+ ch/.test(html) && /\.sp-wrap--side \{ flex-direction: row;/.test(html) && /\.sp-card \.ch-pcard__r \{ font-size: calc\(var\(--pw\) \* \.4\); \}/.test(html), 'a short, wide window puts the stock, the runs and the badges beside the columns, and the corner rank is larger');
+  // #504: beside the table the stock and the runs stood at the top and read as two more
+  // columns; they now sit at the bottom, as in Windows. Run the page's own placing code.
+  {
+    const grab = (name) => (html.match(new RegExp('  function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n  \\}\\n|  function ' + name + '\\([^)]*\\) \\{[^\\n]*\\}\\n')) || [''])[0];
+    const src = ['colX', 'bottomY', 'stockSpot', 'stockPos', 'foundPos'].map(grab);
+    ok(src.slice(0, 1).concat(src.slice(3)).every(Boolean), 'found the page\'s placing functions');
+    const place = (side) => new Function('L', 'E', src.join('') + 'return { spot: typeof stockSpot === "function" ? stockSpot() : null, s0: stockPos(0), s4: stockPos(4), f0: foundPos(0), f7: foundPos(7) };')(
+      { side, W: 1600, H: 800, gap: 12, cw: 96, ch: 134, x0: 50, ty: 12, cy: side ? 12 : 170, off: side ? 1 : 0 }, { COLS: 10 });
+    const sd = place(true), floor = 800 - 12 - 134, row = place(false);
+    ok(sd.s0.y === floor && sd.f0.y === floor && sd.s4.y < floor && sd.s4.y > 400 && sd.f7.y < floor && sd.f7.y > 0 && sd.spot && sd.spot.y === floor,
+      'beside the table the stock and the runs stand on the bottom and pile upwards (stock ' + sd.s0.y + ', runs ' + sd.f0.y + ', floor ' + floor + ')');
+    ok(row.s0.y === 12 && row.f0.y === 12 && row.s4.y === 12 && row.spot && row.spot.y === 12, 'in the row above the table nothing moved');
+  }
 
   // Identity
   const gm = games.find((g) => g.id === 'spider');
