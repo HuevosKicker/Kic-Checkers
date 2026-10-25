@@ -9562,6 +9562,35 @@ function testSudokuBoxLines() {
   ok(!low.length, 'the box lines stand out from every cell colour at 3:1 or more (lowest ' + Math.min(...rows.map((r) => r[1])).toFixed(2) + ':1)' + (low.length ? ': ' + low.map((r) => r[0] + ' ' + r[1].toFixed(2)).join(', ') : ''));
 }
 
+// #521: with 46 games a player who knew a name still had to look through a category;
+// the menu searches every language's name, folding what phone keyboards type differently
+function testMenuSearch() {
+  head('Menu: search games by name (#521)');
+  const html = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
+  const fold = (/^  function fold\(s\) \{[\s\S]*?^  \}$/m.exec(html) || [''])[0];
+  const match = (/^  function gameMatches\(g, q\) \{[\s\S]*?^  \}$/m.exec(html) || [''])[0];
+  ok(!!fold && !!match, 'the matcher found in the menu');
+  if (!fold || !match) return;
+  const sb = {};
+  vm.runInNewContext(fold + match + ';this.m = gameMatches;', sb);
+  const games = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  ok(games.length > 0, 'games listed (' + games.length + ')');
+  const find = (q) => games.filter((g) => sb.m(g, q)).map((g) => g.id);
+  const cases = [
+    ['شطرنج', ['chess', 'xiangqi']], ['chess', ['chess', 'xiangqi']], ['CHESS', ['chess', 'xiangqi']],
+    ['مین‌روب', ['minesweeper']], ['مین روب', ['minesweeper']], ['مينروب', ['minesweeper']],   // space, Arabic ي
+    ['turmverteidigung', ['tower-defence']],                                                  // German soft hyphen
+    ['数独', ['sudoku']], ['象棋', ['chess', 'xiangqi']], ['ajedrez', ['chess', 'xiangqi']], ['sudoku', ['sudoku']], ['qqqzz', []]
+  ];
+  const bad = cases.filter(([q, want]) => {
+    const got = find(q);
+    return want === null ? got.length === 0 : got.join() !== want.slice().sort((a, b) => games.findIndex((g) => g.id === a) - games.findIndex((g) => g.id === b)).join();
+  }).map(([q]) => q + ' → ' + find(q).join(','));
+  ok(!bad.length, 'names match in any language and keyboard (' + cases.length + ' queries)' + (bad.length ? ': ' + bad.join('; ') : ''));
+  ok(games.every((g) => sb.m(g, '') && sb.m(g, '  ') && Object.values(g.name).every((n) => sb.m(g, n))), 'an empty query keeps every game, and every game finds itself by each of its names');
+  ok(/C\.icon\('search', 18\)/.test(html) && /search: 'M/.test(fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8')), 'the search icon exists in the core');
+}
+
 // #492: aiming pointed the cue at the finger, and pulling back from the white ball shot,
 // which a player found hard to control; a second control turns the cue a little a pixel
 // and leaves shooting to the power bar, as in Miniclip's pool
