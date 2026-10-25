@@ -282,6 +282,14 @@
     return t / Math.max(r, minR);
   }
 
+  // #506: the power bar took the distance from where the finger went down in either
+  // direction, so sliding left of the start to back out of a shot built power instead.
+  // The bar fills from the left in every language; only a pull to the right adds power,
+  // and the full bar is 80% of its width away.
+  function barPower(dx, width) {
+    return width > 0 ? Math.max(0, Math.min(1, dx / (width * 0.8))) : 0;
+  }
+
   // #407: a potted ball vanished at the pocket's mouth in one frame. Pool and
   // snooker keep each pot for SINK_MS and draw the ball sliding into the
   // pocket's centre as it shrinks and fades. sinksOf reads where each ball of
@@ -303,7 +311,7 @@
   var api = {
     DT: DT, MAX_TICKS: MAX_TICKS, table: table, clone: clone, speedOf: speedOf,
     start: start, tick: tick, simulate: simulate, aim: aim, free: free, clear: clear, nearestPocket: nearestPocket,
-    pullsBack: pullsBack, turnStep: turnStep, SINK_MS: SINK_MS, sinksOf: sinksOf, sinkAt: sinkAt
+    pullsBack: pullsBack, turnStep: turnStep, barPower: barPower, SINK_MS: SINK_MS, sinksOf: sinksOf, sinkAt: sinkAt
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.ChoganCue = api;

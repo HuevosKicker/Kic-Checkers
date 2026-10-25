@@ -1128,7 +1128,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EightBallE
   });
   powerBar.addEventListener('pointermove', function (e) {
     if (!pdrag || e.pointerId !== pdrag.id) return;
-    power = Math.max(0, Math.min(1, Math.abs(e.clientX - pdrag.x0) / (pdrag.w * 0.8)));
+    power = Cue.barPower(e.clientX - pdrag.x0, pdrag.w);
     drawPower(); draw();
   });
   function endPower(e) {

@@ -22,7 +22,7 @@ let checks = 0;
 // is no longer raised in each pull request, where it made every new-game PR conflict
 // with the last (#493); it is raised at release time. Lowering it means checks were
 // removed on purpose and must be said in the PR.
-const MIN_CHECKS = 5220;
+const MIN_CHECKS = 5224;
 
 function ok(cond, msg) {
   checks++;
@@ -9510,6 +9510,17 @@ function testAndroidShortcuts() {
 // and leaves shooting to the power bar, as in Miniclip's pool
 function testCueTurnControl() {
   head('Pool and Snooker: a fine "turn" aiming control (#492)');
+  // #506: sliding left of where the finger went down on the power bar built power, so
+  // backing out of a shot shot instead; only a pull to the right adds power now
+  const bp = require(path.join(ROOT, 'www/lib/cue.js')).barPower;
+  ok(typeof bp === 'function' && bp(-120, 300) === 0 && bp(-1, 300) === 0 && bp(0, 300) === 0,
+    'a pull left of the start, or no pull, leaves the power at 0');
+  ok(typeof bp === 'function' && Math.abs(bp(120, 300) - 0.5) < 1e-9 && bp(240, 300) === 1 && bp(900, 300) === 1 && bp(50, 0) === 0,
+    'a pull to the right adds power, full at 80% of the bar, and never past it');
+  for (const g of ['eightball', 'snooker']) {
+    const html = fs.readFileSync(path.join(ROOT, 'www/games', g, 'index.html'), 'utf8');
+    ok(/power = Cue\.barPower\(e\.clientX - pdrag\.x0, pdrag\.w\);/.test(html) && !/Math\.abs\(e\.clientX - pdrag\.x0\)/.test(html), g + ': the power bar uses it');
+  }
   // #505: a finger moving round the white ball must turn the cue the same way and by the
   // same angle as Point mode would, whichever way the cue points and wherever the finger
   // is; a finger crossing the ball must not spin it
