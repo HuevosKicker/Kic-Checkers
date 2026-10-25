@@ -9950,6 +9950,30 @@ function testPairs() {
   ok(Date.now() - t0 < 10000, 'the Pairs tests finish in under 10 s (' + (Date.now() - t0) + ' ms)');
 }
 
+// #511: a player could not aim Gorillas by touch and asked for a joystick; it is a third
+// control behind the gear, pushed the way the banana should go
+function testGorillasStick() {
+  head('Gorillas: a joystick control (#511)');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/gorillas/index.html'), 'utf8');
+  const fn = (/^  function stickAim\(dx, dy, r, dir\) \{[\s\S]*?^  \}$/m.exec(html) || [''])[0];
+  ok(!!fn, 'stickAim found in Gorillas');
+  if (!fn) return;
+  const sb = {};
+  vm.runInNewContext(fn + ';this.f = stickAim;', sb);
+  const a = (dx, dy, dir) => { const v = sb.f(dx, dy, 50, dir); return v.angle + '/' + v.power; };
+  const cases = [
+    [[50, 0, 1], '0/100'], [[0, -50, 1], '90/100'], [[25, -25, 1], '45/71'],   // left gorilla: right, up, up-right half way
+    [[-25, -25, -1], '45/71'], [[25, -25, -1], '90/71'],                        // right gorilla throws left; a push away from it is clamped
+    [[200, 0, 1], '0/100'], [[3, 0, 1], '0/6'], [[30, 30, 1], '0/85']           // beyond the rim is full power; downwards is flat
+  ];
+  const bad = cases.filter(([args, want]) => a(...args) !== want).map(([args, want]) => args.join(',') + ' → ' + a(...args) + ' (want ' + want + ')');
+  ok(!bad.length, 'a push sets angle and power the way the banana goes (' + cases.length + ' pushes)' + (bad.length ? ': ' + bad.join('; ') : ''));
+  ok(/prefs\.control !== 'nums' && prefs\.control !== 'stick'/.test(html) && /\{ value: 'stick', label: C\.t\('ctlStick'\) \}/.test(html), 'the gear offers it and a saved choice of it is kept');
+  ok(/if \(cancel \|\| !a \|\| a\.power < 6 \|\| !canAim\(\)\) \{ draw\(\); return; \}/.test(html), 'a push let go near the middle is taken back, not thrown');
+  const langs = ['ctlStick', 'aimStick', 'stick'].every((k) => (html.match(new RegExp('\\b' + k + ': \'', 'g')) || []).length === 5);
+  ok(langs, 'its strings are in all five languages');
+}
+
 function testGorillas() {
   head('Gorillas (#466)');
   const t0 = Date.now();
@@ -10032,7 +10056,7 @@ function testGorillas() {
   ok(hardWins >= 5, 'the hard bot beats the easy one (' + hardWins + '/6 matches)');
 
   // Page: both controls behind the gear, no predicted path, the daily is seeded
-  ok(/class: 'ch-iconbtn gz-gear'/.test(html) && /\[\{ value: 'drag', label: C\.t\('ctlDrag'\) \}, \{ value: 'nums', label: C\.t\('ctlNums'\) \}\]/.test(html) && /function showSettings\(\)/.test(html), 'drag and numbers are both offered, switched behind the gear');
+  ok(/class: 'ch-iconbtn gz-gear'/.test(html) && /\[\{ value: 'drag', label: C\.t\('ctlDrag'\) \}, \{ value: 'nums', label: C\.t\('ctlNums'\) \}[,\]]/.test(html) && /function showSettings\(\)/.test(html), 'drag and numbers are both offered, switched behind the gear');
   const page = html.slice(html.indexOf('/* ==== ENGINE END ==== */'));
   ok((page.match(/E\.shoot\(/g) || []).length === 1 && /var shot = E\.shoot\(M\.city, who, angle, power\);/.test(page), 'the page simulates a throw only when it is thrown, so the aim never shows the path');
   ok(/function rngFor\(tag\) \{ return G\.daily \? C\.daily\('gorillas', G\.daily \+ '\|' \+ tag\)\.rng : Math\.random; \}/.test(html) && /mode: daily \? 'bot' : o\.mode, level: daily \? 'medium' : o\.level/.test(html), 'the daily match is against the medium bot, with cities and bot throws from the day\'s seed');

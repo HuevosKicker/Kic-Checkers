@@ -28,6 +28,13 @@
   .gz-dial__val { min-width: 4.2ch; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; }
   .gz-dial__lbl { font-size: var(--fs-xs); color: var(--c-text-dim); }
   .gz-gear .ch-icon { pointer-events: none; }
+  /* the joystick (#511): its own touch area, so a push never scrolls the page */
+  .gz-stick { position: relative; width: clamp(84px, min(34cqw, 26cqh), 168px); aspect-ratio: 1; border-radius: 50%; touch-action: none; cursor: grab;
+    background: radial-gradient(circle, var(--c-surface-2) 0 55%, var(--c-surface-3) 100%); box-shadow: inset 0 0 0 2px var(--c-line), var(--sh-1); }
+  .gz-stick__knob { position: absolute; left: 50%; top: 50%; width: 38%; aspect-ratio: 1; margin: -19% 0 0 -19%; border-radius: 50%;
+    background: var(--game); box-shadow: 0 0 0 5px var(--c-surface), var(--sh-2); pointer-events: none; }
+  .gz-stick--on .gz-stick__knob { transition: none; }
+  .gz-stick:not(.gz-stick--on) .gz-stick__knob { transition: transform var(--t-fast) var(--ease); }
 </style>
 </head>
 <body>
@@ -224,8 +231,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GorillasEn
       fa: {
         city: 'شهر و دو گوریل', vsBot: 'مقابل ربات', people: 'دو نفره', bot: 'ربات', playerN: 'بازیکن {n}', newMatch: 'مسابقه‌ی تازه',
         yourTurn: 'نوبت توست', turnOf: 'نوبت {n}', botThinks: '{n} نشانه می‌گیرد', roundN: 'دست {n}', roundTo: 'تا {n} برد',
-        aimDrag: 'از هر جای شهر بگیر و به عقب بکش، مثل فلاخن؛ رها کن تا پرت شود.', aimNums: 'زاویه و قدرت را تنظیم کن و «پرتاب» را بزن.',
-        angle: 'زاویه', power: 'قدرت', throwIt: 'پرتاب', wind: 'باد', calm: 'بی‌باد', control: 'نشانه‌گیری', ctlDrag: 'کشیدن', ctlNums: 'عدد',
+        aimDrag: 'از هر جای شهر بگیر و به عقب بکش، مثل فلاخن؛ رها کن تا پرت شود.', aimNums: 'زاویه و قدرت را تنظیم کن و «پرتاب» را بزن.', aimStick: 'دسته را به سمتی که می‌خواهی پرت شود بکش؛ هرچه دورتر، قوی‌تر. رها کن تا پرت شود.', stick: 'دسته‌ی نشانه‌گیری',
+        angle: 'زاویه', power: 'قدرت', throwIt: 'پرتاب', wind: 'باد', calm: 'بی‌باد', control: 'نشانه‌گیری', ctlDrag: 'کشیدن', ctlNums: 'عدد', ctlStick: 'دسته',
         hitOther: 'به {n} خورد!', hitSelf: 'به خودش خورد!', missed: 'نخورد', roundTo2: '{n} این دست را برد', playerWon: '{n} برد', dailyGz: 'گوریل‌های روزانه',
         throwsN: '{n} پرتاب', rounds: 'دست‌ها', throws: 'پرتاب‌ها',
         kAngle: 'زاویه بیشتر یا کمتر', kPower: 'قدرت بیشتر یا کمتر', kThrow: 'پرتاب',
@@ -237,8 +244,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GorillasEn
       en: {
         city: 'A city and two gorillas', vsBot: 'Against the bot', people: 'Two players', bot: 'Bot', playerN: 'Player {n}', newMatch: 'New match',
         yourTurn: 'Your turn', turnOf: '{n}\'s turn', botThinks: '{n} is aiming', roundN: 'Round {n}', roundTo: 'First to {n}',
-        aimDrag: 'Grab anywhere on the city and pull back like a slingshot; let go to throw.', aimNums: 'Set the angle and power, then tap Throw.',
-        angle: 'Angle', power: 'Power', throwIt: 'Throw', wind: 'Wind', calm: 'Calm', control: 'Aiming', ctlDrag: 'Drag', ctlNums: 'Numbers',
+        aimDrag: 'Grab anywhere on the city and pull back like a slingshot; let go to throw.', aimNums: 'Set the angle and power, then tap Throw.', aimStick: 'Push the joystick the way you want to throw; further is stronger. Let go to throw.', stick: 'Aiming joystick',
+        angle: 'Angle', power: 'Power', throwIt: 'Throw', wind: 'Wind', calm: 'Calm', control: 'Aiming', ctlDrag: 'Drag', ctlNums: 'Numbers', ctlStick: 'Joystick',
         hitOther: '{n} is hit!', hitSelf: 'Hit itself!', missed: 'Missed', roundTo2: '{n} takes the round', playerWon: '{n} wins', dailyGz: 'Daily Gorillas',
         throwsN: '{n} throws', rounds: 'Rounds', throws: 'Throws',
         kAngle: 'Raise or lower the angle', kPower: 'More or less power', kThrow: 'Throw',
@@ -250,8 +257,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GorillasEn
       zh: {
         city: '城市和两只大猩猩', vsBot: '对战电脑', people: '双人', bot: '电脑', playerN: '玩家 {n}', newMatch: '新比赛',
         yourTurn: '轮到你了', turnOf: '轮到{n}', botThinks: '{n}正在瞄准', roundN: '第 {n} 回合', roundTo: '先赢 {n} 回合',
-        aimDrag: '在城市任意位置按住，像弹弓一样往后拉；松手投掷。', aimNums: '调好角度和力度，然后点“投掷”。',
-        angle: '角度', power: '力度', throwIt: '投掷', wind: '风', calm: '无风', control: '瞄准方式', ctlDrag: '拖动', ctlNums: '数字',
+        aimDrag: '在城市任意位置按住，像弹弓一样往后拉；松手投掷。', aimNums: '调好角度和力度，然后点“投掷”。', aimStick: '把摇杆推向想投掷的方向，推得越远力度越大；松手投掷。', stick: '瞄准摇杆',
+        angle: '角度', power: '力度', throwIt: '投掷', wind: '风', calm: '无风', control: '瞄准方式', ctlDrag: '拖动', ctlNums: '数字', ctlStick: '摇杆',
         hitOther: '{n}被击中！', hitSelf: '打中了自己！', missed: '没打中', roundTo2: '{n}赢下本回合', playerWon: '{n}获胜', dailyGz: '每日大猩猩',
         throwsN: '{n} 次投掷', rounds: '回合', throws: '投掷',
         kAngle: '加大或减小角度', kPower: '加大或减小力度', kThrow: '投掷',
@@ -263,8 +270,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GorillasEn
       de: {
         city: 'Eine Stadt und zwei Gorillas', vsBot: 'Gegen den Bot', people: 'Zu zweit', bot: 'Bot', playerN: 'Spieler {n}', newMatch: 'Neues Spiel',
         yourTurn: 'Du bist dran', turnOf: 'Am Zug: {n}', botThinks: '{n} zielt', roundN: 'Runde {n}', roundTo: 'Bis {n} Runden',
-        aimDrag: 'Greif irgendwo in die Stadt und zieh zurück wie eine Schleuder; lass los zum Werfen.', aimNums: 'Stell Winkel und Kraft ein und tippe auf Werfen.',
-        angle: 'Winkel', power: 'Kraft', throwIt: 'Werfen', wind: 'Wind', calm: 'Windstill', control: 'Zielen', ctlDrag: 'Ziehen', ctlNums: 'Zahlen',
+        aimDrag: 'Greif irgendwo in die Stadt und zieh zurück wie eine Schleuder; lass los zum Werfen.', aimNums: 'Stell Winkel und Kraft ein und tippe auf Werfen.', aimStick: 'Schieb den Joystick in die Wurfrichtung; je weiter, desto kräftiger. Lass los zum Werfen.', stick: 'Joystick zum Zielen',
+        angle: 'Winkel', power: 'Kraft', throwIt: 'Werfen', wind: 'Wind', calm: 'Windstill', control: 'Zielen', ctlDrag: 'Ziehen', ctlNums: 'Zahlen', ctlStick: 'Joystick',
         hitOther: '{n} getroffen!', hitSelf: 'Sich selbst getroffen!', missed: 'Daneben', roundTo2: 'Runde an {n}', playerWon: 'Sieg: {n}', dailyGz: 'Gorillas des Tages',
         throwsN: '{n} Würfe', rounds: 'Runden', throws: 'Würfe',
         kAngle: 'Winkel größer oder kleiner', kPower: 'Mehr oder weniger Kraft', kThrow: 'Werfen',
@@ -276,8 +283,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GorillasEn
       es: {
         city: 'Una ciudad y dos gorilas', vsBot: 'Contra el bot', people: 'Dos jugadores', bot: 'Bot', playerN: 'Jugador {n}', newMatch: 'Nueva partida',
         yourTurn: 'Te toca', turnOf: 'Le toca a {n}', botThinks: '{n} apunta', roundN: 'Ronda {n}', roundTo: 'Gana quien llegue a {n}',
-        aimDrag: 'Agarra cualquier punto de la ciudad y tira hacia atrás como un tirachinas; suelta para lanzar.', aimNums: 'Ajusta el ángulo y la fuerza y toca Lanzar.',
-        angle: 'Ángulo', power: 'Fuerza', throwIt: 'Lanzar', wind: 'Viento', calm: 'Sin viento', control: 'Apuntar', ctlDrag: 'Arrastrar', ctlNums: 'Números',
+        aimDrag: 'Agarra cualquier punto de la ciudad y tira hacia atrás como un tirachinas; suelta para lanzar.', aimNums: 'Ajusta el ángulo y la fuerza y toca Lanzar.', aimStick: 'Empuja el joystick hacia donde quieres lanzar; cuanto más lejos, más fuerza. Suelta para lanzar.', stick: 'Joystick para apuntar',
+        angle: 'Ángulo', power: 'Fuerza', throwIt: 'Lanzar', wind: 'Viento', calm: 'Sin viento', control: 'Apuntar', ctlDrag: 'Arrastrar', ctlNums: 'Números', ctlStick: 'Joystick',
         hitOther: '¡{n} recibe el golpe!', hitSelf: '¡Se dio a sí mismo!', missed: 'Fallo', roundTo2: 'Ronda para {n}', playerWon: 'Gana {n}', dailyGz: 'Gorilas del día',
         throwsN: '{n} lanzamientos', rounds: 'Rondas', throws: 'Lanzamientos',
         kAngle: 'Subir o bajar el ángulo', kPower: 'Más o menos fuerza', kThrow: 'Lanzar',
@@ -295,7 +302,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GorillasEn
   if (!prefs) prefs = { mode: 'bot', level: 'medium', control: 'drag' };
   if (prefs.mode !== 'bot' && prefs.mode !== 'people') prefs.mode = 'bot';
   if (LEVELS.indexOf(prefs.level) < 0) prefs.level = 'medium';
-  if (prefs.control !== 'nums') prefs.control = 'drag';
+  if (prefs.control !== 'nums' && prefs.control !== 'stick') prefs.control = 'drag';
 
   // G: the game. phase: 'aim' (a person aims), 'busy' (a banana flies or the bot
   // thinks), 'over' (between rounds) or 'done'.
@@ -491,10 +498,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GorillasEn
   }
 
   // The aim control lives behind the gear (the owner's choice): drag like a slingshot,
-  // or numbers as in the original. It switches at once, mid-turn too.
+  // numbers as in the original, or a joystick a player asked for (#511). It switches
+  // at once, mid-turn too.
   function showSettings() {
-    var seg = C.ui.segmented([{ value: 'drag', label: C.t('ctlDrag') }, { value: 'nums', label: C.t('ctlNums') }], prefs.control, function (v) {
-      prefs.control = v === 'nums' ? 'nums' : 'drag';
+    var seg = C.ui.segmented([{ value: 'drag', label: C.t('ctlDrag') }, { value: 'nums', label: C.t('ctlNums') }, { value: 'stick', label: C.t('ctlStick') }], prefs.control, function (v) {
+      prefs.control = v === 'nums' || v === 'stick' ? v : 'drag';
       ctx.store.set('prefs', prefs);
       aiming = null;
       render();
@@ -703,7 +711,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GorillasEn
 
   function aimNow() {
     if (!G || G.phase !== 'aim' || isBot(G.M.turn)) return null;
-    if (prefs.control === 'drag') return aiming && aiming.aim ? aiming.aim : null;
+    if (prefs.control !== 'nums') return aiming && aiming.aim ? aiming.aim : null;
     return G.M.last[G.M.turn];
   }
 
@@ -726,7 +734,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GorillasEn
   }
   function renderStatus() {
     var seat = G.M.turn, who = isBot(seat) ? C.t('botThinks', { n: pname(seat) }) : (G.mode === 'people' ? C.t('turnOf', { n: pname(seat) }) : C.t('yourTurn'));
-    var how = G.phase === 'aim' ? ' — ' + C.t(prefs.control === 'nums' ? 'aimNums' : 'aimDrag') : '';
+    var how = G.phase === 'aim' ? ' — ' + C.t(prefs.control === 'nums' ? 'aimNums' : prefs.control === 'stick' ? 'aimStick' : 'aimDrag') : '';
     // in flight the line names nobody's turn: it waits for where the banana lands
     status.textContent = flight ? '…' : (msg && G.phase !== 'aim' ? msg : (G.done ? msg : who + how));
   }
@@ -754,9 +762,48 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GorillasEn
     show();
     return el('div', { class: 'gz-dial' }, [el('span', { class: 'gz-dial__lbl', text: C.t(key) }), btn(-1, '−'), val, btn(1, '+')]);
   }
+  // The joystick: pushed the way the banana should go, further is stronger. A push
+  // that comes back to the middle is taken back, not thrown.
+  function renderStick() {
+    var knob = el('div', { class: 'gz-stick__knob' });
+    var st = el('div', { class: 'gz-stick', role: 'img', 'aria-label': C.t('stick') }, [knob]);
+    var grab = null;
+    function move(e) {
+      var r = st.getBoundingClientRect(), R = r.width / 2;
+      var dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R), len = Math.hypot(dx, dy), k = len > R ? R / len : 1;
+      knob.style.transform = 'translate(' + (dx * k) + 'px,' + (dy * k) + 'px)';
+      aiming = { id: -1, aim: stickAim(dx, dy, R, G.M.turn === 0 ? 1 : -1) };
+      draw();
+    }
+    st.addEventListener('pointerdown', function (e) {
+      if (!canAim()) return;
+      e.preventDefault();
+      grab = e.pointerId;
+      st.classList.add('gz-stick--on');
+      try { st.setPointerCapture(e.pointerId); } catch (er) { /* old browsers */ }
+      move(e); kick();
+    });
+    st.addEventListener('pointermove', function (e) { if (grab === e.pointerId) move(e); });
+    function end(e, cancel) {
+      if (grab !== e.pointerId) return;
+      grab = null;
+      st.classList.remove('gz-stick--on');
+      knob.style.transform = '';
+      var a = aiming && aiming.aim;
+      aiming = null;
+      if (cancel || !a || a.power < 6 || !canAim()) { draw(); return; }
+      G.M.last[G.M.turn] = a;
+      throwNow(G.M.turn, a.angle, a.power);
+    }
+    st.addEventListener('pointerup', function (e) { end(e, false); });
+    st.addEventListener('pointercancel', function (e) { end(e, true); });
+    return st;
+  }
   function renderPad() {
     pad.innerHTML = '';
-    if (!G || prefs.control !== 'nums' || G.done || isBot(G.M.turn) || G.phase !== 'aim') return;
+    if (!G || G.done || isBot(G.M.turn) || G.phase !== 'aim') return;
+    if (prefs.control === 'stick') { pad.appendChild(renderStick()); return; }
+    if (prefs.control !== 'nums') return;
     pad.appendChild(dial('angle', 0, 90));
     pad.appendChild(dial('power', 1, 100));
     var go = el('button', { class: 'ch-btn ch-btn--primary', type: 'button', text: C.t('throwIt') });
@@ -782,6 +829,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GorillasEn
     if (tx < 0) angle = ty >= 0 ? 90 : 0;
     angle = Math.max(0, Math.min(90, angle));
     return { angle: Math.round(angle), power: Math.max(0, Math.min(100, Math.round(len / full * 100))) };
+  }
+  // The joystick's push, the way the banana goes: its length against the stick's
+  // radius is the power, so a full push is 100
+  function stickAim(dx, dy, r, dir) {
+    var tx = dx * dir, ty = -dy, len = Math.min(r, Math.hypot(dx, dy));
+    var angle = Math.atan2(ty, tx) * 180 / Math.PI;
+    if (tx < 0) angle = ty >= 0 ? 90 : 0;
+    return { angle: Math.round(Math.max(0, Math.min(90, angle))), power: Math.round(len / r * 100) };
   }
   cv.addEventListener('pointerdown', function (e) {
     if (!canAim() || prefs.control !== 'drag') return;
@@ -817,7 +872,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GorillasEn
     else if (k === ' ' || k === 'Enter') { e.preventDefault(); throwNow(G.M.turn, L.angle, L.power); return; }
     else return;
     e.preventDefault();
-    if (prefs.control === 'drag') aiming = { id: -1, aim: { angle: L.angle, power: L.power } };
+    if (prefs.control !== 'nums') aiming = { id: -1, aim: { angle: L.angle, power: L.power } };
     renderPad(); draw();
   });
 
