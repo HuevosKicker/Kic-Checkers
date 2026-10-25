@@ -269,6 +269,10 @@ a  { color: var(--c-accent); text-decoration: none; }
 }
 .ch-pcard[disabled] { cursor: default; }
 .ch-pcard--red { color: var(--c-bad); }
+/* In the dark theme a card's edge is light: a dark face with a dark line ran into the
+   next card in a stack, and Spider's columns read as one block (#485) */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ch-pcard { border-color: rgba(255, 255, 255, .42); } }
+:root[data-theme="dark"] .ch-pcard { border-color: rgba(255, 255, 255, .42); }
 .ch-pcard__r { position: absolute; top: 3px; left: 5px; font-weight: 800; font-size: calc(var(--pw) * .3); line-height: 1; }
 .ch-pcard__s { position: absolute; left: 0; right: 0; bottom: 8%; text-align: center; font-size: calc(var(--pw) * .5); line-height: 1; }
 .ch-pcard__mini { position: absolute; top: 3px; right: 5px; font-size: calc(var(--pw) * .24); line-height: 1; }
