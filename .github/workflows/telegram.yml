@@ -42,6 +42,7 @@ jobs:
       - name: Post
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
           MODE: ${{ inputs.mode }}
           TAG: ${{ inputs.tag }}
