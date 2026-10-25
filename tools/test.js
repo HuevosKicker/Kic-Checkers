@@ -17,10 +17,11 @@ const ROOT = path.join(__dirname, '..');
 const LOCALE_CODES = ['fa', 'en', 'zh', 'de', 'es'];
 let failures = 0;
 let checks = 0;
-// حداقل تعداد بررسی‌ای که یک اجرای کامل باید داشته باشد. قبلاً اگر یک گروه کامل
-// اجرا نمی‌شد — مثلاً با حذف یک خط testSudoku(); نود و نه بررسی از بین رفت — فقط
-// مجموع کمتر چاپ می‌شد و باز سبز بود. با اضافه کردن بررسی این عدد را بالا ببر؛
-// پایین آوردنش یعنی بررسی‌ای عمداً حذف شده و باید در PR گفته شود.
+// A floor for the whole run: if a group lost most of its checks, the total would still
+// fall below it. Every group now runs by itself (see the runner at the end), so this line
+// is no longer raised in each pull request, where it made every new-game PR conflict
+// with the last (#493); it is raised at release time. Lowering it means checks were
+// removed on purpose and must be said in the PR.
 const MIN_CHECKS = 5104;
 
 function ok(cond, msg) {
@@ -10417,148 +10418,28 @@ if (!isMainThread && workerData && workerData.cueGame) {
   return;
 }
 
-testFiles();
-testSudoku();
-testMines();
-testDots();
-testNonogram();
-testMancala();
-testFreecell();
-testPeg();
-testReversi();
-testGomoku();
-testChain();
-testLudo();
-testSnakes();
-testDarts();
-testDartsVisit();
-testHokmMotion();
-testSudokuAutoNotes();
-testPasurMotion();
-testFreecellMotion();
-testChessMotion();
-testStonesMotion();
-testCardSpeed();
-testPersianCardIndex();
-testSudokuClearNotes();
-testKlondike();
-testSpider();
-testPairs();
-testGorillas();
-testHop();
-testTanks();
-testCrazyEights();
-testCrazyEightsIran();
-testGinRummy();
-testShelem();
-testHokmFit();
-testMahjongStacked();
-testBowlingBanner();
-testCueSink();
-testBattleshipFx();
-testTowerDefenceKills();
-testBlockdropMotion();
-testBreakoutMotion();
-testJigsawGlide();
-testSlidingShimmer();
-testMastermindReveal();
-testBridgesWave();
-testNonogramMotion();
-testLudoMotion();
-testBackgammonMotion();
-testDotsChain();
-testMorrisMotion();
-testPegMotion();
-testCheckersMotion();
-testReversiMotion();
-testSudokuRipple();
-testBowling();
-testSliding();
-testJigsaw();
-testCheckers();
-testCoreLabels();
-testFitScreen();
-testKeyLayout();
-testGo();
-testBackgammon();
-testMorris();
-testBattleship();
-testBridges();
-testCodebreaker();
-testBreakout();
-testPasur();
-testCardArt();
-testMahjong();
-testChess();
-testChessBot();
-testChessPuzzles();
-testStringKeys();
-testHomeGrid();
-testAdiProof();
-testEnglishCi();
-testPepkExport();
-testPrivacyPage();
-testReadme();
-testStoreGames();
-testTdMaps();
-testMenuPins();
-testWaysToPlay();
-testPrivacyBar();
-testShortcutStandalone();
-testPersianCalendar();
-testPasurGone();
-testStoreMetadata();
-testAndroidShare();
-testNonogramPictures();
-testHokm();
-testBlockDrop();
-testWayOut();
-testWayOutPromises();
-testWayOutLook();
-testContextMenu();
-testMahjongArt();
-testMahjongClack();
-testMahjongTimed();
-testBlackjack();
-testEightBall();
-testSnooker();
-testGridlock();
-testGridlockPromises();
-testGridlockLook();
-testAwardToasts();
-testPasurLead();
-testModalButtons();
-testTdAutoWaves();
-testTdShots();
-testTd();
-testVersionStamp();
-testDeployGate();
-testWebChanged();
-testBrowserCheckExits();
-testDevScript();
-testLocales();
-testDailyResume();
-testUndoKey();
-testShortcuts();
-testMenu();
-testKeyboardNav();
-testFullscreenCarry();
-testBuildShown();
-testDarkInk();
-testDarkAccentText();
-testAnimations();
-testAndroidBars();
-testMenuSelect();
-testModalFocus();
-testTelegramPost();
-
-testSw().then(testVerifyDeploy).then(testPlayApi).then(function () {
+// Every group runs: the runner finds each `function testX()` in this file and calls it in
+// the order written, waiting for the ones that return a promise. A new group needs no line
+// in a shared list, so two pull requests that each add a game no longer conflict here
+// (#493), and a group can't be left out by a missing call. A group that runs no check at
+// all fails the run.
+const GROUPS = [...fs.readFileSync(__filename, 'utf8').matchAll(/^(?:async )?function (test[A-Za-z0-9]+)\(\) \{/gm)].map((m) => m[1]);
+(async function () {
+  const idle = [];
+  for (const name of GROUPS) {
+    const before = checks;
+    // a direct eval reaches the group by its name in this module's scope
+    await eval(name)();
+    if (checks === before) idle.push(name);
+  }
   head('کامل بودن اجرا');
+  ok(GROUPS.length >= 137, 'every test group was found and run (' + GROUPS.length + ')');
+  ok(!idle.length, 'every test group ran at least one check' + (idle.length ? ' (none in: ' + idle.join(', ') + ')' : ''));
   ok(checks >= MIN_CHECKS, 'دست‌کم ' + MIN_CHECKS + ' بررسی اجرا شد (' + checks + ' اجرا شد)');
   console.log('\n' + (failures ? ('✗ ' + failures + ' خطا از ' + checks + ' بررسی') : ('همه‌ی ' + checks + ' بررسی سبز')));
   process.exit(failures ? 1 : 0);
-}).catch(function (e) {
-  // یک گروه ناهمگام که خطا بدهد نباید مثل اجرای تمام‌شده دیده شود
+})().catch(function (e) {
+  // a group that throws must not look like a finished run
   console.log('\n✗ اجرای تست‌ها نیمه‌کاره ماند: ' + ((e && e.stack) || e));
   process.exit(1);
 });
