@@ -22,7 +22,7 @@ let checks = 0;
 // is no longer raised in each pull request, where it made every new-game PR conflict
 // with the last (#493); it is raised at release time. Lowering it means checks were
 // removed on purpose and must be said in the PR.
-const MIN_CHECKS = 5216;
+const MIN_CHECKS = 5220;
 
 function ok(cond, msg) {
   checks++;
@@ -9510,14 +9510,34 @@ function testAndroidShortcuts() {
 // and leaves shooting to the power bar, as in Miniclip's pool
 function testCueTurnControl() {
   head('Pool and Snooker: a fine "turn" aiming control (#492)');
+  // #505: a finger moving round the white ball must turn the cue the same way and by the
+  // same angle as Point mode would, whichever way the cue points and wherever the finger
+  // is; a finger crossing the ball must not spin it
+  const Cue = require(path.join(ROOT, 'www/lib/cue.js')), ts = Cue.turnStep;
+  ok(typeof ts === 'function', 'cue.js has turnStep');
+  if (typeof ts === 'function') {
+    let n = 0, wrong = 0, worst = 0;
+    for (let k = 0; k < 16; k++) for (const r of [80, 150, 300]) for (const dir of [1, -1]) {
+      const a = k * Math.PI / 8, b = a + dir * 0.02, px = r * Math.cos(a), py = r * Math.sin(a), qx = r * Math.cos(b), qy = r * Math.sin(b);
+      const got = ts(0, 0, px, py, qx, qy, 60), want = Math.atan2(qy, qx) - Math.atan2(py, px);
+      const d = Math.atan2(Math.sin(want), Math.cos(want));
+      n++;
+      if (Math.sign(got) !== Math.sign(d)) wrong++;
+      worst = Math.max(worst, Math.abs(got - d) / Math.abs(d));
+    }
+    ok(n === 96 && wrong === 0 && worst < 0.01, 'round the ball, from 16 directions, 3 distances and both ways, the cue turns as Point mode would (' + n + ' moves, ' + wrong + ' backwards, worst ' + (worst * 100).toFixed(2) + '% off)');
+    ok(Math.abs(ts(0, 0, 200, 0, 260, 0, 60)) < 1e-12 && ts(0, 0, 0, 0, 5, 5, 60) === 0, 'a move straight towards or away from the ball, or from its centre, does not turn the cue');
+    ok(Math.abs(ts(0, 0, 5, -10, 5, 10, 60)) <= 20 / 60 + 1e-9 && Math.abs(ts(0, 0, 2, -1, 2, 1, 60)) <= 2 / 60 + 1e-9, 'a finger crossing right by the ball turns the cue no more than at 60 px from it');
+  }
   for (const g of ['eightball', 'snooker']) {
     const html = fs.readFileSync(path.join(ROOT, 'www/games', g, 'index.html'), 'utf8');
     ok(/if \(prefs\.aim !== 'turn'\) prefs\.aim = 'point';/.test(html) && /\[\{ value: 'point', label: C\.t\('ctlPoint'\) \}, \{ value: 'turn', label: C\.t\('ctlTurn'\) \}\]/.test(html) && /addEventListener\('click', showSettings\)/.test(html),
       g + ': point (the default) and turn are offered behind a gear');
     ok(/else if \(prefs\.aim === 'turn'\) drag = \{ id: e\.pointerId, mode: 'turn'/.test(html) && /drag\.mode = prefs\.aim !== 'turn' && Cue\.pullsBack\(/.test(html),
       g + ': in turn mode a drag never becomes a pull-back shot, even from the white ball');
-    const rate = +((/var TURN_RATE = ([\d.]+);/.exec(html) || [])[1]);
-    ok(rate > 0 && rate * 100 * 180 / Math.PI > 10 && rate * 100 * 180 / Math.PI < 30, g + ': a 100 px drag turns the cue ' + (rate * 100 * 180 / Math.PI).toFixed(0) + ' degrees');
+    // #505: the turn followed a fixed axis, so it ran backwards for some cue directions
+    ok(/aimA \+= Cue\.turnStep\(c\.x, c\.y, drag\.last\.x, drag\.last\.y, p\.x, p\.y, TURN_NEAR \/ G\.s\);\n      drag\.last = p;/.test(html) && /mode: 'turn', a0: aimA, last: p \}/.test(html) && !/TURN_RATE/.test(html),
+      g + ': each move of a turn drag turns the cue round the white ball, from where the last move left it');
     ok(LOCALE_CODES.every((l) => { const sec = html.slice(html.indexOf('      ' + l + ': {')); return /aimCtl: '[^']+', ctlPoint: '[^']+', ctlTurn: '[^']+', ctlNote: '[^']+'/.test(sec.slice(0, sec.indexOf('\n      }'))); }), g + ': the control is named in every language');
   }
 }
