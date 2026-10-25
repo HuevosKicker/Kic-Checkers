@@ -22,7 +22,7 @@ let checks = 0;
 // is no longer raised in each pull request, where it made every new-game PR conflict
 // with the last (#493); it is raised at release time. Lowering it means checks were
 // removed on purpose and must be said in the PR.
-const MIN_CHECKS = 5230;
+const MIN_CHECKS = 5231;
 
 function ok(cond, msg) {
   checks++;
@@ -6828,9 +6828,10 @@ function testJigsaw() {
   const L96 = E.layout(...room(390, 844), 96), L150 = (W, H) => E.layout(...room(W, H), 150);
   ok(L96.cw >= 44 && L96.ch >= 39, 'on a 390×844 phone 96 pieces are ' + L96.cw.toFixed(1) + '×' + L96.ch.toFixed(1) + 'px');
   const offers = (W, H) => E.offered(...room(W, H)).join();
-  ok(offers(390, 844) === '12,24,48,96' && offers(360, 640) === '12,24,48,96' && offers(412, 915) === '12,24,48,96' && offers(1280, 800) === '12,24,48,96',
-    'phones and a 1280×800 window do not offer 150 pieces (they would be ' + Math.min(L150(390, 844).cw, L150(390, 844).ch).toFixed(1) + ' and ' + Math.min(L150(1280, 800).cw, L150(1280, 800).ch).toFixed(1) + 'px)');
-  ok(offers(768, 1024) === '12,24,48,96,150' && offers(1280, 1024) === '12,24,48,96,150' && offers(1920, 1080 - 130) === '12,24,48,96,150' && Math.min(L150(768, 1024).cw, L150(768, 1024).ch) >= E.MIN_PIECE,
+  ok(offers(390, 844) === '12,24,48,96' && offers(360, 640) === '12,24,48,96' && offers(412, 915) === '12,24,48,96' && offers(1280, 720) === '12,24,48,96' && offers(844, 390) === '12,24,48,96',
+    'phones, a phone on its side and a 1280×720 window do not offer 150 pieces (they would be ' + Math.min(L150(390, 844).cw, L150(390, 844).ch).toFixed(1) + ' and ' + Math.min(L150(1280, 720).cw, L150(1280, 720).ch).toFixed(1) + 'px)');
+  // a 1280×800 window joined them once the sizes row moved beside the frame (#516): 47px a piece
+  ok(offers(768, 1024) === '12,24,48,96,150' && offers(1280, 1024) === '12,24,48,96,150' && offers(1280, 800) === '12,24,48,96,150' && Math.min(L150(1280, 800).cw, L150(1280, 800).ch) >= E.MIN_PIECE && offers(1920, 1080 - 130) === '12,24,48,96,150' && Math.min(L150(768, 1024).cw, L150(768, 1024).ch) >= E.MIN_PIECE,
     'a tablet, a 1280×1024 window and a full-HD browser offer 150 pieces of at least 44px (' + Math.min(L150(768, 1024).cw, L150(768, 1024).ch).toFixed(1) + 'px on the tablet)');
   // #516: on a wide window the pieces go in a column beside the frame, on an upright screen under it
   const pw = (W, H) => { const r = R(W, H); return Math.min(r.w, r.h / E.ASPECT); };
@@ -6839,6 +6840,10 @@ function testJigsaw() {
     'phones and an upright tablet keep the row of pieces under the frame, with the same room as before');
   ok([[1920, 950], [1280, 739], [844, 329]].every(([W, H]) => R(W, H).side && pw(W, H) > below(W, H) && R(W, H).w + side + trayW + E.GAP <= W),
     'a full-HD window, a laptop and a phone on its side put the pieces beside the frame, and the picture grows (' + Math.round(below(1920, 950)) + ' → ' + Math.round(pw(1920, 950)) + 'px wide at 1920×950, ' + Math.round(below(844, 329)) + ' → ' + Math.round(pw(844, 329)) + ' on a turned phone)');
+  // the reporter's follow-up: the sizes row and the mistakes line go into the column too, so the
+  // frame keeps the game area's full height but its padding (889px area at 1920×950: 779 → 864px)
+  ok([[1920, 889], [1280, 659], [844, 329]].every(([W, H]) => R(W, H).side && R(W, H).h >= H - 30) && /if \(side\) \{ aside\.append\(top, tray, status\); mid\.append\(frame, aside\); \}/.test(html) && /wrap\.prepend\(top\); wrap\.append\(status\)/.test(html),
+    'beside the frame the sizes and the mistakes sit in the column and the picture takes the full height (' + R(1920, 889).h + 'px of 889); under it they go back around the frame');
   ok(/E\.room\(ctx\.main\.clientWidth[^\n]*TRAY_W, TRAY_H\)/.test(html) && /classList\.toggle\('jg-wrap--side', side\)/.test(html) && /\.jg-wrap--side \.jg-tray \{[^}]*overflow-y: auto;[^}]*touch-action: pan-y/.test(html),
     'the page lays out from the engine\'s room and scrolls the side column up and down');
   ok(/side \? Math\.abs\(dx\) < Math\.abs\(dy\) : Math\.abs\(dy\) < Math\.abs\(dx\)/.test(html) && /if \(!side && Math\.abs\(e\.deltaY\)/.test(html),
