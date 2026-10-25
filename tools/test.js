@@ -10880,8 +10880,7 @@ function testTelegramPost() {
   const tags = (spawnSync('git', ['tag', '-l', 'v*', '--sort=v:refname'], { cwd: ROOT, encoding: 'utf8' }).stdout || '').split('\n').filter((t) => t && !/-test$/.test(t));
   ok(tags.length >= 25, 'release tags are present (' + tags.length + '; CI must check out with fetch-depth: 0)');
   if (!tags.length) return;
-  // offline: contributors come from git alone, so the test needs no network (#530)
-  const env = Object.assign({}, process.env, { DRY_RUN: '1', TELEGRAM_BOT_TOKEN: '', CONTRIBUTORS_OFFLINE: '1' });
+  const env = Object.assign({}, process.env, { DRY_RUN: '1', TELEGRAM_BOT_TOKEN: '' });
   const run = (args, extra) => spawnSync('bash', [script].concat(args), { cwd: ROOT, env: Object.assign({}, env, extra || {}), encoding: 'utf8' });
   // The history is the channel's changelog: every release once, oldest first
   const hist = run(['--history']);
@@ -10904,16 +10903,38 @@ function testTelegramPost() {
   const urls = kb && Array.isArray(kb.inline_keyboard) ? [].concat(...kb.inline_keyboard).map((b) => b.text && b.url) : [];
   ok(urls.join() === ['https://choganhq.github.io/chogan/', 'https://github.com/choganhq/chogan/releases/tag/v0.5.1', 'https://f-droid.org/packages/io.github.choganhq.chogan/'].join(), 'the post has buttons for the web, this release and F-Droid');
   ok(!/https?:\/\//.test(block('v0.5.1').replace(/^\[(buttons|cover)\].*$/gm, '').replace(/<a href="https:\/\/github\.com\/[A-Za-z0-9-]+">@[A-Za-z0-9-]+<\/a>/g, '')), 'no bare links in the text; they are buttons (only a contributor\'s name links to their profile)');
-  // A contributor whose commit is in a release is thanked by name, linked to their profile (owner's wish, #530)
-  ok(/\n<b>Thanks to<\/b> <a href="https:\/\/github\.com\/lanlan3292">@lanlan3292<\/a>\n/.test(block('v0.18.0')) && !/Thanks to/.test(block('v0.17.0')) && !/margani/.test(hist.stdout || ''),
-    '0.18.0 thanks lanlan3292 for Chinese chess; a release with only the owner\'s work thanks no one, and the owner is never listed');
-  const contrib = spawnSync('bash', [path.join(ROOT, 'tools/contributors.sh'), 'v0.18.0'], { cwd: ROOT, env: Object.assign({}, process.env, { CONTRIBUTORS_OFFLINE: '1' }), encoding: 'utf8' });
-  ok(contrib.status === 0 && contrib.stdout === 'lanlan3292\n', 'tools/contributors.sh names the contributors of a release (' + JSON.stringify(contrib.stdout) + ')');
+  // A contributor is credited on the line of their change, linked to their profile (owner's wish, #530, #533)
+  ok(/\n• Chinese chess, thanks to <a href="https:\/\/github\.com\/lanlan3292">@lanlan3292<\/a>\n/.test(block('v0.18.0')) && /• Way Out: [^\n]*, thanks to <a href="https:\/\/github\.com\/ggYasin">@ggYasin<\/a>\n/.test(block('v0.5.1')) && !/<b>Thanks to<\/b>/.test(hist.stdout || '') && !/@margani/.test(hist.stdout || ''),
+    'the credit sits on the change\'s own line, linked, never as a line of its own at the end, and never the owner');
   const cl39 = path.join(clDir, '39.txt');
-  const mdT = spawnSync('python3', [path.join(ROOT, 'tools/release-notes.py'), '--md', cl39, '--thanks', 'lanlan3292,ggYasin'], { encoding: 'utf8' }).stdout;
-  ok(/\n\n\*\*Thanks to\*\* \[@lanlan3292\]\(https:\/\/github\.com\/lanlan3292\) and \[@ggYasin\]\(https:\/\/github\.com\/ggYasin\)\n$/.test(mdT), 'the GitHub notes end with the thanks line, each name linked');
-  ok(spawnSync('python3', [path.join(ROOT, 'tools/release-notes.py'), '--html', cl39, '--thanks', 'x"><b'], { encoding: 'utf8' }).status === 2, 'a name that is not a GitHub login is refused, so nothing can be injected into the link');
-  ok(/THANKS=\$\(tools\/contributors\.sh "\$GITHUB_REF_NAME"/.test(relYml) && /\$\{THANKS:\+--thanks "\$THANKS"\}/.test(relYml) && /GH_TOKEN: \$\{\{ github\.token \}\}\n[\s\S]*?tools\/telegram-post\.sh "\$GITHUB_REF_NAME"/.test(relYml), 'release.yml thanks contributors in the GitHub notes and gives the post its token');
+  const mdT = spawnSync('python3', [path.join(ROOT, 'tools/release-notes.py'), '--md', cl39], { encoding: 'utf8' }).stdout;
+  ok(/\n  - Chinese chess, thanks to \[@lanlan3292\]\(https:\/\/github\.com\/lanlan3292\)\n/.test(mdT), 'the GitHub notes link the name on the same line');
+  const tricky = path.join(os.tmpdir(), 'chogan-cl-at-' + process.pid + '.txt');
+  fs.writeFileSync(tricky, 'Improvements:\n- mail a@b.c and @x"><b and @ok-name\n');
+  const tH = spawnSync('python3', [path.join(ROOT, 'tools/release-notes.py'), '--html', tricky], { encoding: 'utf8' }).stdout;
+  fs.unlinkSync(tricky);
+  ok(/a@b\.c/.test(tH) && /<a href="https:\/\/github\.com\/x">@x<\/a>&quot;&gt;&lt;b/.test(tH) && /<a href="https:\/\/github\.com\/ok-name">@ok-name<\/a>/.test(tH) && !/"><b/.test(tH.replace(/<a href="[^"]*">/g, '')),
+    'only a login after @ becomes a link; an email stays text and nothing can break out of the link');
+  // Every contributor git can name is credited in the changelog of the release that carries their work
+  const missing = [];
+  for (const t of tags) {
+    const r = spawnSync('bash', [path.join(ROOT, 'tools/contributors.sh'), t], { cwd: ROOT, env: Object.assign({}, process.env, { CONTRIBUTORS_OFFLINE: '1' }), encoding: 'utf8' });
+    const who = (r.stdout || '').split('\n').filter(Boolean);
+    if (!who.length) continue;
+    const code = (spawnSync('git', ['show', t + ':www/version.js'], { cwd: ROOT, encoding: 'utf8' }).stdout.match(/APP_VERSION_CODE = (\d+)/) || [])[1];
+    const f = path.join(clDir, code + '.txt'), text = fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '';
+    who.filter((w) => text.indexOf('@' + w) < 0).forEach((w) => missing.push(t + ' ' + w));
+  }
+  const contrib = spawnSync('bash', [path.join(ROOT, 'tools/contributors.sh'), 'v0.18.0'], { cwd: ROOT, env: Object.assign({}, process.env, { CONTRIBUTORS_OFFLINE: '1' }), encoding: 'utf8' });
+  ok(contrib.status === 0 && contrib.stdout === 'lanlan3292\n' && !missing.length, 'tools/contributors.sh names a release\'s contributors, and each is credited in its changelog' + (missing.length ? ' (missing: ' + missing.join(', ') + ')' : ''));
+  // Older posts are rewritten in place, so the channel keeps its order and nobody gets a new notification (#533)
+  const ed = run(['--edit', '90', 'v0.18.0']);
+  const edText = (ed.stdout || '').replace(/^=== .*\n/, '');
+  ok(ed.status === 0 && /^=== edit message 90 to v0\.18\.0\n/.test(ed.stdout || '') && edText.trim() === block('v0.18.0').replace(/^=== .*\n/, '').trim(),
+    'an edit dry run rewrites the given message with exactly the release\'s post');
+  ok(run(['--edit', '90']).status === 2 && run(['--edit', '90', 'v9.9.9']).status === 2, 'an edit without a message or with an unknown tag cannot run');
+  const tgYml = fs.readFileSync(path.join(ROOT, '.github/workflows/telegram.yml'), 'utf8');
+  ok(/options: \[release, history, edit, delete, photo, bot-photo\]/.test(tgYml) && /edit\)\s+tools\/telegram-post\.sh --edit "\$MESSAGE_ID" "\$TAG"/.test(tgYml), 'telegram.yml offers the edit');
   let cover = null; try { cover = JSON.parse((block('v0.5.1').match(/^\[cover\] (.*)$/m) || [])[1]); } catch (e) { cover = null; }
   ok(!!cover && cover.url === 'https://github.com/choganhq/chogan/releases/tag/v0.5.1' && cover.prefer_large_media === true && cover.show_above_text === true, 'the cover is the release\'s GitHub card, large, above the text');
   const long = tags.filter((t) => block(t).replace(/^(===|\[buttons\]|\[cover\]).*$/gm, '').trim().length > 4096);
@@ -10958,7 +10979,7 @@ function testTelegramPost() {
   ok(job.length > 20 && /needs: apk/.test(job) && /!endsWith\(github\.ref_name, '-test'\)/.test(job), 'release.yml posts after the APK is published, never for -test tags');
   ok(/fetch-depth: 0/.test(job) && /TELEGRAM_BOT_TOKEN: \$\{\{ secrets\.TELEGRAM_BOT_TOKEN \}\}/.test(job) && /tools\/telegram-post\.sh "\$GITHUB_REF_NAME"/.test(job), 'the announce job has the tags, the secret and the tag name');
   const man = fs.readFileSync(path.join(ROOT, '.github/workflows/telegram.yml'), 'utf8');
-  ok(/options: \[release, history, delete, photo, bot-photo\]/.test(man) && /dry_run:[\s\S]*?default: true/.test(man), 'the manual workflow offers release, history, delete and photo, dry run by default');
+  ok(/options: \[release, history, edit, delete, photo, bot-photo\]/.test(man) && /dry_run:[\s\S]*?default: true/.test(man), 'the manual workflow offers release, history, edit, delete and photo, dry run by default');
 }
 
 function testModalFocus() {

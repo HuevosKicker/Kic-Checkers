@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Prints the GitHub logins of the people whose commits are in a release, other than
-# the owner and bots, one per line in the order they first appear (#530). The
-# GitHub release notes and the Telegram post thank them by name, with a link to
-# their profile (owner's wish: a contributor's merged PR deserves their name).
+# the owner and bots, one per line in the order they first appear (#530). Each one
+# is credited on the line of their change in the release's changelog, as
+# "thanks to @login" (#533); run this before writing a changelog, and the tests
+# check that no one found offline is left out.
 #
 #   tools/contributors.sh v0.18.0
 #
