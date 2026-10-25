@@ -22,7 +22,7 @@ let checks = 0;
 // is no longer raised in each pull request, where it made every new-game PR conflict
 // with the last (#493); it is raised at release time. Lowering it means checks were
 // removed on purpose and must be said in the PR.
-const MIN_CHECKS = 5226;
+const MIN_CHECKS = 5230;
 
 function ok(cond, msg) {
   checks++;
@@ -6808,9 +6808,10 @@ function testJigsaw() {
 
   // Piece size on a phone, with the page's own room for the row of pieces and the bars
   const trayH = +((html.match(/var TRAY_H = (\d+)/) || [])[1]);
-  const extra = +((html.match(/\.clientHeight \|\| window\.innerHeight\) - TRAY_H - (\d+);/) || [])[1]);
-  const side = +((html.match(/Math\.min\(ctx\.main\.clientWidth \|\| window\.innerWidth, 900\) - (\d+);/) || [])[1]);
-  ok(trayH > 0 && extra > 0 && side > 0, 'the page\'s layout numbers were found (row ' + trayH + ', bars ' + extra + ', sides ' + side + ')');
+  const trayW = +((html.match(/TRAY_W = (\d+)/) || [])[1]);
+  ok(trayH > 0 && trayW > 0 && typeof E.room === 'function', 'the page\'s layout numbers were found (row ' + trayH + ', column ' + trayW + ')');
+  const R = (W, H) => E.room(W, H, trayW, trayH);
+  const extra = 110, side = 24;
   // a game page's top bar is about 61px; the rest of the screen is the game's
   const sizes = [];
   for (const [W, H] of [[390, 844], [360, 640]]) {
@@ -6823,7 +6824,7 @@ function testJigsaw() {
   const L390 = E.layout(390 - side, 844 - 61 - trayH - extra, 48);
   ok(L390.cw >= 58, 'on a 390px phone even 48 pieces are about 60px wide (' + L390.cw.toFixed(1) + ')');
   // 96 is offered everywhere, about 45px a piece on a 390px phone; 150 only where a piece keeps 44px (#376)
-  const room = (W, H) => [Math.min(W, 900) - side, Math.max(H - 61 - trayH - extra, 200)];
+  const room = (W, H) => { const r = R(W, H - 61); return [r.w, r.h]; };
   const L96 = E.layout(...room(390, 844), 96), L150 = (W, H) => E.layout(...room(W, H), 150);
   ok(L96.cw >= 44 && L96.ch >= 39, 'on a 390×844 phone 96 pieces are ' + L96.cw.toFixed(1) + '×' + L96.ch.toFixed(1) + 'px');
   const offers = (W, H) => E.offered(...room(W, H)).join();
@@ -6831,6 +6832,17 @@ function testJigsaw() {
     'phones and a 1280×800 window do not offer 150 pieces (they would be ' + Math.min(L150(390, 844).cw, L150(390, 844).ch).toFixed(1) + ' and ' + Math.min(L150(1280, 800).cw, L150(1280, 800).ch).toFixed(1) + 'px)');
   ok(offers(768, 1024) === '12,24,48,96,150' && offers(1280, 1024) === '12,24,48,96,150' && offers(1920, 1080 - 130) === '12,24,48,96,150' && Math.min(L150(768, 1024).cw, L150(768, 1024).ch) >= E.MIN_PIECE,
     'a tablet, a 1280×1024 window and a full-HD browser offer 150 pieces of at least 44px (' + Math.min(L150(768, 1024).cw, L150(768, 1024).ch).toFixed(1) + 'px on the tablet)');
+  // #516: on a wide window the pieces go in a column beside the frame, on an upright screen under it
+  const pw = (W, H) => { const r = R(W, H); return Math.min(r.w, r.h / E.ASPECT); };
+  const below = (W, H) => Math.min(Math.min(W, 900) - side, Math.max(H - trayH - extra, 200) / E.ASPECT);
+  ok([[390, 783], [360, 579], [412, 854], [768, 963]].every(([W, H]) => !R(W, H).side && R(W, H).w === Math.min(W, 900) - side && R(W, H).h === H - trayH - extra),
+    'phones and an upright tablet keep the row of pieces under the frame, with the same room as before');
+  ok([[1920, 950], [1280, 739], [844, 329]].every(([W, H]) => R(W, H).side && pw(W, H) > below(W, H) && R(W, H).w + side + trayW + E.GAP <= W),
+    'a full-HD window, a laptop and a phone on its side put the pieces beside the frame, and the picture grows (' + Math.round(below(1920, 950)) + ' → ' + Math.round(pw(1920, 950)) + 'px wide at 1920×950, ' + Math.round(below(844, 329)) + ' → ' + Math.round(pw(844, 329)) + ' on a turned phone)');
+  ok(/E\.room\(ctx\.main\.clientWidth[^\n]*TRAY_W, TRAY_H\)/.test(html) && /classList\.toggle\('jg-wrap--side', side\)/.test(html) && /\.jg-wrap--side \.jg-tray \{[^}]*overflow-y: auto;[^}]*touch-action: pan-y/.test(html),
+    'the page lays out from the engine\'s room and scrolls the side column up and down');
+  ok(/side \? Math\.abs\(dx\) < Math\.abs\(dy\) : Math\.abs\(dy\) < Math\.abs\(dx\)/.test(html) && /if \(!side && Math\.abs\(e\.deltaY\)/.test(html),
+    'a finger lifts a piece out of the side column sideways, and the wheel scrolls it natively');
   ok(/E\.offered\(r\[0\], r\[1\]\)/.test(html) && /function room\(\) \{/.test(html), 'the page offers the counts from the same room its layout uses');
 
   // Pictures per size, and a new picture is one not finished yet at that size (#376)
