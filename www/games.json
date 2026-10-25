@@ -1104,6 +1104,30 @@
       "soft": "#FBE5E2",
       "added": "2026-10-25",
       "files": []
+    },
+    {
+      "id": "airhockey",
+      "cat": "skill",
+      "name": {
+        "fa": "ایرهاکی",
+        "en": "Air Hockey",
+        "zh": "桌上冰球",
+        "de": "Airhockey",
+        "es": "Air hockey"
+      },
+      "summary": {
+        "fa": "توپک را روی میز نئونی به دروازه‌ی حریف بزن و از دروازه‌ی خودت دور نگه دار؛ اول هفت گل.",
+        "en": "Hit the puck into the other goal on a neon table and keep it out of yours; first to seven.",
+        "zh": "在霓虹球台上把冰球打进对方球门，守住自己的球门；先进七球。",
+        "de": "Schieß den Puck auf dem Neontisch ins andere Tor und halt ihn aus deinem raus; zuerst sieben.",
+        "es": "Mete el disco en la otra portería de una mesa de neón y protege la tuya; gana quien llegue a siete."
+      },
+      "path": "games/airhockey/index.html",
+      "icon": "games/airhockey/icon.svg",
+      "color": "#C000F4",
+      "soft": "#F5E3FD",
+      "added": "2026-10-25",
+      "files": []
     }
   ]
 }

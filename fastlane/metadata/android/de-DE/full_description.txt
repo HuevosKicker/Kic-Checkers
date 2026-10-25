@@ -48,6 +48,7 @@ Die Spiele:
 * Panzer — über die Hügel feuern, mit fünf Waffen; Bot oder zu zweit
 * Chinesisches Schach — Xiangqi mit Palast, Kanonen und fliegenden Generälen
 * Pingpong — Tischtennis von oben, bis 11; Bot oder zu zweit
+* Airhockey — ein Neontisch, bis sieben Tore; Bot oder zu zweit
 
 Rund um die Spiele:
 

@@ -8243,8 +8243,9 @@ function testDarkAccentText() {
     if (t !== g.color.toUpperCase()) changed.push(g.id);
   }
   ok(!low.length, 'every accent\'s dark-theme text reads at 4.5:1 or more on the lightest dark surface' + (low.length ? ': ' + low.join(', ') : ''));
-  // the range only proves txt() ran on the list; it grows with the games (31 at Crazy Eights, #416)
-  ok(!far.length && changed.length >= 20 && changed.length <= 40, 'accents that already read keep their colour; ' + changed.length + ' are lightened' + (far.length ? ' (changed needlessly: ' + far.join(', ') + ')' : ''));
+  // the range only proves txt() ran on the list; it grows with the games (31 at Crazy Eights, #416;
+  // 41 at Air Hockey, #524)
+  ok(!far.length && changed.length >= 20 && changed.length <= 50, 'accents that already read keep their colour; ' + changed.length + ' are lightened' + (far.length ? ' (changed needlessly: ' + far.join(', ') + ')' : ''));
   const bw = txt('#3C4F9A');
   ok(cr(bw, '#342C22') < 5.5 && lum(bw) > lum('#3C4F9A') && txt('nonsense') === '', 'Bowling\'s blue is lightened only as far as needed (' + bw + ', ' + cr(bw, '#342C22').toFixed(2) + ':1), and a bad colour gives nothing');
   const rules = ['.ch-game__pin--on', '.ch-badge--accent', '.ch-btn--soft', '.ch-iconbtn[aria-pressed="true"]', '.ch-seg button[aria-selected="true"]'];
@@ -10190,6 +10191,81 @@ function testHop() {
   const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
   ok(['hop-500', 'hop-2k', 'hop-summit'].every((id) => new RegExp("\\{ id: '" + id + "',[^\\n]*dde: '[^\\n]*des: '").test(core) && html.indexOf("unlock('" + id + "')") > 0), 'the three Hop awards exist in every language and are unlocked');
   ok(Date.now() - t0 < 10000, 'the Hop tests finish in under 10 s (' + (Date.now() - t0) + ' ms)');
+}
+
+// #524: the owner asked for air hockey like Neon Hockey; physics, goals and halves are
+// tested on the engine, and a test player that plays by touch shows the levels are ordered
+function testAirHockey() {
+  head('Air Hockey (#524)');
+  const t0 = Date.now();
+  const E = loadEngine('airhockey', 'AirHockeyEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/airhockey/index.html'), 'utf8');
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+  const half = () => 0.5;
+  const fresh = () => { const S = E.match(); S.wait = 0; S.mal[0] = { x: 40, y: E.H - 40, vx: 0, vy: 0 }; S.mal[1] = { x: 40, y: 40, vx: 0, vy: 0 }; return S; };
+  const hold = (S) => [{ x: S.mal[0].x, y: S.mal[0].y }, { x: S.mal[1].x, y: S.mal[1].y }];
+
+  // A mallet stays in its own half and inside the boards
+  const c0 = E.clampMallet(0, -50, 100), c1 = E.clampMallet(1, 999, 900);
+  ok(c0.x === E.RM && c0.y === E.H / 2 + E.RM && c1.x === E.W - E.RM && c1.y === E.H / 2 - E.RM, 'a mallet cannot leave its half or the table');
+
+  // Goals: through the mouth is a goal, beside it the puck bounces off the end board
+  const shoot = (x, vy) => { const S = fresh(); S.puck = { x, y: vy < 0 ? 30 : E.H - 30, vx: 0, vy }; let ev = []; for (let i = 0; i < 60 && !ev.length; i++) ev = E.step(S, hold(S), half).filter((e) => e !== 'hit'); return { S, ev }; };
+  const g0 = shoot(E.W / 2, -600), g1 = shoot(E.W / 2 + 40, 600), post = shoot(E.W / 2 + E.GOAL / 2 + 20, -600);
+  ok(g0.ev.includes('goal0') && g0.S.score.join() === '1,0' && g1.ev.includes('goal1') && g1.S.score.join() === '0,1', 'a puck through the top mouth is a goal for the bottom player, and the other way round');
+  ok(post.ev.includes('wall') && !post.ev.some((e) => e.startsWith('goal')) && post.S.puck.vy > 0, 'beside the mouth the puck bounces off the end board');
+  ok(g0.S.puck.y < E.H / 2 && g1.S.puck.y > E.H / 2 && g0.S.puck.vx === 0 && g0.S.puck.vy === 0 && g0.S.wait > 0, 'after a goal the puck waits, still, in the half that let it in');
+  const side = fresh(); side.puck = { x: 20, y: 300, vx: -500, vy: 0 }; E.step(side, hold(side), half); E.step(side, hold(side), half);
+  ok(side.puck.vx > 0 && side.puck.vx < 500, 'the side boards return the puck a little slower');
+
+  // A moving mallet gives the puck its speed; the puck never passes the top speed
+  const hit = (mvy) => { const S = fresh(); S.puck = { x: 180, y: 400, vx: 0, vy: 0 }; S.mal[0] = { x: 180, y: 400 + E.RP + E.RM + 2, vx: 0, vy: 0 }; let v = 0;
+    for (let i = 0; i < 20; i++) { E.step(S, [{ x: 180, y: S.mal[0].y + mvy * E.DT }, hold(S)[1]], half); v = Math.hypot(S.puck.vx, S.puck.vy); } return { v, vy: S.puck.vy }; };
+  const slow = hit(-300), fast = hit(-2400);
+  ok(slow.vy < 0 && fast.vy < 0 && fast.v > slow.v * 1.6 && fast.v <= E.VMAX + 1, 'a faster hit sends the puck faster, up to ' + E.VMAX + ' (' + slow.v.toFixed(0) + ' and ' + fast.v.toFixed(0) + ')');
+
+  // A test player that plays by touch: from behind the puck it drives through it at the goal,
+  // otherwise it waits in front of its goal under the puck. Easy and medium lose to it, hard beats it.
+  const person = (S, r, st) => {
+    st.t -= E.DT;
+    if (st.t <= 0) {
+      st.t = 0.15;
+      const P = S.puck, M = S.mal[0], e = (r() * 2 - 1) * 16;
+      if (P.y > E.H / 2 && M.y < P.y + 10) st.tg = { x: P.x + (M.x < P.x ? -50 : 50), y: P.y + 60 };
+      else if (P.y > E.H / 2) { const dx = E.W / 2 - P.x, dy = -P.y, l = Math.hypot(dx, dy); st.tg = { x: P.x + dx / l * 90 + e, y: P.y + dy / l * 90 }; }
+      else st.tg = { x: P.x + e, y: E.H - 90 };
+    }
+    return st.tg;
+  };
+  const vs = (lv, n) => {
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const S = E.match(); E.setBot(S, 1, lv); const r = rng(700 + i), st = { t: 0, tg: null }; let k = 0;
+      while (S.winner < 0 && k < 120 * 60 * 10) { E.step(S, [person(S, r, st), null], r); k++; }
+      out.push({ w: S.winner, min: k / 7200 });
+    }
+    return out;
+  };
+  const ve = vs('easy', 4), vm2 = vs('medium', 4), vh = vs('hard', 4);
+  const won = (a) => a.filter((x) => x.w === 0).length;
+  ok(won(ve) === 4 && won(vm2) >= 2 && won(vh) <= 1, 'the test player beats easy, mostly beats medium and loses to hard (' + won(ve) + '/4, ' + won(vm2) + '/4, ' + won(vh) + '/4)');
+  const all = ve.concat(vm2, vh);
+  ok(all.length === 12 && all.every((x) => x.w >= 0 && x.min < 10), 'every match ends within 10 game minutes (longest ' + Math.max(...all.map((x) => x.min)).toFixed(1) + ')');
+  // and the levels in order against each other
+  let mw = 0;
+  for (let i = 0; i < 4; i++) { const S = E.match(); E.setBot(S, 0, 'medium'); E.setBot(S, 1, 'easy'); const r = rng(40 + i); let k = 0; while (S.winner < 0 && k < 120 * 60 * 10) { E.step(S, null, r); k++; } if (S.winner === 0) mw++; }
+  ok(mw >= 3, 'medium beats easy (' + mw + '/4)');
+
+  // Saves between goals
+  const R = E.restore(E.snapshot(Object.assign(E.match(), { score: [4, 6] })));
+  ok(!!R && R.score.join() === '4,6' && R.wait > 0 && R.puck.x === E.W / 2, 'a saved score comes back with the puck in the middle, waiting');
+  ok(!E.restore({ score: [7, 2] }) && !E.restore({ score: [1] }) && !E.restore(null) && !E.restore({ score: [1.5, 0] }), 'a finished, short or broken save is refused');
+
+  ok(/level: daily \? 'medium' : o\.level/.test(html) && /C\.daily\('airhockey', G\.daily \+ '\|g'/.test(html), 'the daily match is against the medium bot, seeded by the day');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok(['air-win', 'air-hard', 'air-shut'].every((id) => html.indexOf("unlock('" + id + "')") > 0 && core.indexOf("id: '" + id + "'") > 0), 'its three awards are defined in the core and unlocked by the game');
+  const ms = Date.now() - t0;
+  ok(ms < 12000, 'the group runs in ' + (ms / 1000).toFixed(1) + ' s (limit 12 s)');
 }
 
 // #512: a player asked for Ping Pong; the engine is tested on its own, with the bots
