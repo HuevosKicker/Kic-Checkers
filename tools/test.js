@@ -7003,6 +7003,11 @@ function testFitScreen() {
   const fitRule = (css.match(/\.ch-fit \{[\s\S]*?\n\}/) || [''])[0];
   ok(/grid-template: minmax\(0, 1fr\) \/ minmax\(0, 1fr\);/.test(fitRule), 'the .ch-fit cell is the slot\'s own size, not its content\'s, so a turned phone redraws the board to fit');
   ok(/@container game \(min-aspect-ratio: 5 \/ 4\) \{\n  \.ch-split \{ flex-direction: row; \}/.test(css), 'in a wide window a .ch-split game puts its other rows beside the board');
+  // #469: a bare "--fit-ar: 8 / 9" made calc(100cqw / var(--fit-ar)) mean 100cqw / 8 / 9,
+  // a board 72 times too short on an upright phone; a ratio given as a fraction needs calc()
+  const allGames = JSON.parse(fs.readFileSync(path.join(ROOT, 'www/games.json'), 'utf8')).games;
+  const bareRatio = allGames.filter((g) => /--fit-ar:\s*\d+(\.\d+)?\s*\/\s*\d/.test(fs.readFileSync(path.join(ROOT, 'www', g.path), 'utf8'))).map((g) => g.id);
+  ok(allGames.length > 0 && !bareRatio.length, 'no game gives --fit-ar as a bare fraction' + (bareRatio.length ? ' (' + bareRatio.join(', ') + ')' : ''));
   ok(FIT_GAMES.length > 0, 'the list of fitted games is not empty');
   for (const id of FIT_GAMES) {
     const html = fs.readFileSync(path.join(ROOT, 'www/games', id, 'index.html'), 'utf8');

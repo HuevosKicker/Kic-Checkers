@@ -728,7 +728,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = XiangqiEng
   var side = el('div', { class: 'ch-side' }, [topRow, statusEl, capsEl, movesEl]);
 
   /* چیدمان: تخته ۹×۱۰ و مهره‌ها روی همان شبکه */
-  var wrap = el('div', { class: 'xq-wrap ch-split', style: '--fit-ar: 8 / 9' }, [
+  // a ratio for calc(): a bare "8 / 9" turned the core's 100cqw / var(--fit-ar) into
+  // 100cqw / 8 / 9, and the board was a thin strip on an upright phone
+  var wrap = el('div', { class: 'xq-wrap ch-split', style: '--fit-ar: calc(8 / 9)' }, [
     el('div', { class: 'ch-fit' }, [board]),
     side
   ]);
@@ -739,7 +741,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = XiangqiEng
 
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
   ctx.button({ icon: 'undo', label: C.t('undoMove'), onClick: undo });
-  ctx.button({ icon: 'gear', label: C.t('settings'), onClick: showSettings });
   ctx.button({ icon: 'refresh', label: C.t('newGame'), onClick: askNew });
   ctx.main.appendChild(wrap);
   ctx.mount();
@@ -852,6 +853,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = XiangqiEng
     topRow.appendChild(badge(C.t('level') + ': ' + C.t(levelName(S.level))));
     if (S.daily) topRow.appendChild(badge(C.t('dailyXq') + ' — ' + C.num(S.daily), true));
     topRow.appendChild(badge(C.t('movesN', { n: C.num(S.hist.length) })));
+    // options behind a gear in this row: a fourth button in the game bar cut the title (#409)
+    var gear = el('button', { class: 'ch-iconbtn xq-gear', type: 'button', 'aria-label': C.t('settings'), title: C.t('settings') }, [C.icon('gear', 20)]);
+    gear.addEventListener('click', showSettings);
+    topRow.appendChild(gear);
   }
 
   function levelName(v) { return v === 1 ? 'easy' : v === 3 ? 'hard' : 'normal'; }
