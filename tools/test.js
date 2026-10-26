@@ -22,7 +22,7 @@ let checks = 0;
 // is no longer raised in each pull request, where it made every new-game PR conflict
 // with the last (#493); it is raised at release time. Lowering it means checks were
 // removed on purpose and must be said in the PR.
-const MIN_CHECKS = 5341;
+const MIN_CHECKS = 5360;
 
 function ok(cond, msg) {
   checks++;
@@ -3060,6 +3060,13 @@ function testFiles() {
   const cssSrc = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.css'), 'utf8');
   ok(!/C\.ui\.segmented\(C\.locales\(\)/.test(menuSrc.replace(/function langPicker[\s\S]*?\n  \}/, '')) && (menuSrc.match(/langPicker\(/g) || []).length === 3, 'both language pickers use the wrapping langPicker');
   ok(/\.ch-seg--wrap \{[^}]*flex-wrap: wrap;[^}]*width: 100%;/.test(cssSrc), 'the language picker wraps inside its card');
+  // On a phone turned sideways the bottom bar took 62px of a ~360px screen (#538)
+  const rail = (wcoCss.match(/@media \(orientation: landscape\) and \(max-height: (\d+)px\) \{([\s\S]*?)\n\}/) || []);
+  ok(+rail[1] >= 430 && +rail[1] <= 600, 'a short landscape window (a turned phone, not a desktop) gets its own nav rules');
+  const railCss = rail[2] || '';
+  ok(/\n  \.ch-nav \{[^}]*inset-inline-start: 0;[^}]*top: 0;[^}]*flex-direction: column;/.test(railCss) && /\.ch-nav__in \{[^}]*flex-direction: column;/.test(railCss), 'there the nav is a column on the reading side');
+  ok(/\[dir="rtl"\] body\.ch-menu \{[^}]*padding-right: calc\(var\(--nav-w\) \+ var\(--safe-r\)\)/.test(railCss) && /\[dir="ltr"\] body\.ch-menu \{[^}]*padding-left: calc\(var\(--nav-w\) \+ var\(--safe-l\)\)/.test(railCss), 'the menu makes room for the rail on its side in both directions');
+  ok(/\.ch-page \{ padding-bottom: calc\(var\(--s-7\) \+ var\(--safe-b\)\); \}/.test(railCss) && /\.ch-update \{ bottom: calc\(var\(--s-3\) \+ var\(--safe-b\)\);/.test(railCss), 'the page and update bar stop leaving room for a bottom bar');
   ok(man.name_localized.fa.dir === 'rtl', 'نام فارسی جهت راست‌به‌چپ دارد');
   ok(man.name_localized.fa.value !== man.name, 'نام فارسی با پیش‌فرض یکی نیست');
   const menuHtml = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
