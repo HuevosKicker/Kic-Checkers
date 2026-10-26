@@ -22,7 +22,7 @@ let checks = 0;
 // is no longer raised in each pull request, where it made every new-game PR conflict
 // with the last (#493); it is raised at release time. Lowering it means checks were
 // removed on purpose and must be said in the PR.
-const MIN_CHECKS = 5360;
+const MIN_CHECKS = 5370;
 
 function ok(cond, msg) {
   checks++;
@@ -3067,6 +3067,24 @@ function testFiles() {
   ok(/\n  \.ch-nav \{[^}]*inset-inline-start: 0;[^}]*top: 0;[^}]*flex-direction: column;/.test(railCss) && /\.ch-nav__in \{[^}]*flex-direction: column;/.test(railCss), 'there the nav is a column on the reading side');
   ok(/\[dir="rtl"\] body\.ch-menu \{[^}]*padding-right: calc\(var\(--nav-w\) \+ var\(--safe-r\)\)/.test(railCss) && /\[dir="ltr"\] body\.ch-menu \{[^}]*padding-left: calc\(var\(--nav-w\) \+ var\(--safe-l\)\)/.test(railCss), 'the menu makes room for the rail on its side in both directions');
   ok(/\.ch-page \{ padding-bottom: calc\(var\(--s-7\) \+ var\(--safe-b\)\); \}/.test(railCss) && /\.ch-update \{ bottom: calc\(var\(--s-3\) \+ var\(--safe-b\)\);/.test(railCss), 'the page and update bar stop leaving room for a bottom bar');
+  // spend(-5) raised the balance and spend(NaN) saved it as null (#540); run the shipped coin code
+  const coinSrc = (fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8').match(/(?:  function isPrice[^\n]*\n)?  var coinsApi = \{[\s\S]*?\n  \};/) || [])[0];
+  ok(!!coinSrc, 'the coin API is found in the core');
+  const coinRun = (start, fn) => {
+    const saved = {}, box = { saved, state: { coins: start }, appStore: { get: (k, d) => k in saved ? saved[k] : d, set: (k, v) => { saved[k] = v; } },
+      mutate() {}, bump() {}, Chogan: { achievements: { check() {} }, ui: { refreshCoins() {}, coinFly() {} } } };
+    vm.createContext(box);
+    vm.runInContext(coinSrc + '\nthis.out = (' + fn + ')(coinsApi);', box);
+    return { out: box.out, coins: box.state.coins, saved: 'coins' in saved ? saved.coins : 'unsaved' };
+  };
+  const badPrices = ['0', '-5', '1.5', 'NaN', 'Infinity', '"10"', 'undefined'];
+  ok(badPrices.length === 7, 'seven bad prices are tried');
+  badPrices.forEach((n) => {
+    const r = coinRun(100, 'function (c) { return [c.can(' + n + '), c.spend(' + n + ')]; }');
+    ok(r.out[0] === false && r.out[1] === false && r.coins === 100 && r.saved === 'unsaved', 'can and spend refuse ' + n + ' and leave 100 coins untouched (got ' + JSON.stringify(r) + ')');
+  });
+  const paid = coinRun(100, 'function (c) { return [c.can(40), c.spend(40), c.can(61), c.spend(61)]; }');
+  ok(JSON.stringify(paid.out) === '[true,true,false,false]' && paid.coins === 60 && paid.saved === 60, 'a real price is still paid, and one over the balance is still refused');
   ok(man.name_localized.fa.dir === 'rtl', 'نام فارسی جهت راست‌به‌چپ دارد');
   ok(man.name_localized.fa.value !== man.name, 'نام فارسی با پیش‌فرض یکی نیست');
   const menuHtml = fs.readFileSync(path.join(ROOT, 'www/index.html'), 'utf8');
