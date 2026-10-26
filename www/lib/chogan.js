@@ -947,9 +947,12 @@
 
   /* =========================================================== سکه */
 
+  function isPrice(n) { return typeof n === 'number' && n > 0 && Math.floor(n) === n && n < Infinity; }
   var coinsApi = {
     get: function () { return state.coins; },
-    can: function (n) { return state.coins >= n; },
+    // spend(-5) raised the balance and spend(NaN) saved it as null (#540): only a
+    // whole positive price is a price
+    can: function (n) { return isPrice(n) && state.coins >= n; },
     add: function (n, silent) {
       n = Math.max(0, Math.round(n));
       if (!n) return state.coins;
@@ -960,6 +963,7 @@
       return state.coins;
     },
     spend: function (n) {
+      if (!isPrice(n)) return false;
       var fresh = appStore.get('coins', state.coins);
       if (typeof fresh === 'number') state.coins = fresh;
       if (state.coins < n) return false;
