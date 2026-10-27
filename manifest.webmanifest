@@ -1,0 +1,165 @@
+{
+  "id": "./",
+  "name": "Chogan",
+  "short_name": "Chogan",
+  "description": "Chogan game collection: free, open source, no ads, no trackers, fully offline.",
+  "name_localized": {
+    "fa": { "value": "چوگان", "lang": "fa", "dir": "rtl" }
+  },
+  "short_name_localized": {
+    "fa": { "value": "چوگان", "lang": "fa", "dir": "rtl" }
+  },
+  "description_localized": {
+    "fa": {
+      "value": "مجموعه‌بازی چوگان: رایگان، متن‌باز، بدون تبلیغ، بدون ردیاب، کاملاً آفلاین.",
+      "lang": "fa",
+      "dir": "rtl"
+    },
+    "zh-Hans": {
+      "value": "Chogan 游戏合集：免费、开源、无广告、无追踪，完全离线。",
+      "lang": "zh-Hans",
+      "dir": "ltr"
+    },
+    "de": {
+      "value": "Spielesammlung Chogan: kostenlos, Open Source, ohne Werbung, ohne Tracker, komplett offline.",
+      "lang": "de",
+      "dir": "ltr"
+    },
+    "es": {
+      "value": "Colección de juegos Chogan: gratis, de código abierto, sin anuncios, sin rastreadores, totalmente sin conexión.",
+      "lang": "es",
+      "dir": "ltr"
+    }
+  },
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "fullscreen"],
+  "orientation": "any",
+  "background_color": "#FBF6EF",
+  "theme_color": "#FBF6EF",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Tower Defence",
+      "name_localized": {
+        "fa": { "value": "دفاع از برج", "lang": "fa", "dir": "rtl" },
+        "zh-Hans": { "value": "塔防", "lang": "zh-Hans", "dir": "ltr" },
+        "de": { "value": "Turm­verteidigung", "lang": "de", "dir": "ltr" },
+        "es": { "value": "Defensa de torres", "lang": "es", "dir": "ltr" }
+      },
+      "url": "games/tower-defence/index.html?from=shortcut",
+      "icons": [
+        { "src": "games/tower-defence/icon-192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "Sudoku",
+      "name_localized": {
+        "fa": { "value": "سودوکو", "lang": "fa", "dir": "rtl" },
+        "zh-Hans": { "value": "数独", "lang": "zh-Hans", "dir": "ltr" },
+        "de": { "value": "Sudoku", "lang": "de", "dir": "ltr" },
+        "es": { "value": "Sudoku", "lang": "es", "dir": "ltr" }
+      },
+      "url": "games/sudoku/index.html?from=shortcut",
+      "icons": [{ "src": "games/sudoku/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Minesweeper",
+      "name_localized": {
+        "fa": { "value": "مین‌روب", "lang": "fa", "dir": "rtl" },
+        "zh-Hans": { "value": "扫雷", "lang": "zh-Hans", "dir": "ltr" },
+        "de": { "value": "Minesweeper", "lang": "de", "dir": "ltr" },
+        "es": { "value": "Buscaminas", "lang": "es", "dir": "ltr" }
+      },
+      "url": "games/minesweeper/index.html?from=shortcut",
+      "icons": [
+        { "src": "games/minesweeper/icon-192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "Dots and Boxes",
+      "name_localized": {
+        "fa": { "value": "نقطه‌بازی", "lang": "fa", "dir": "rtl" },
+        "zh-Hans": { "value": "点格棋", "lang": "zh-Hans", "dir": "ltr" },
+        "de": { "value": "Käsekästchen", "lang": "de", "dir": "ltr" },
+        "es": { "value": "Puntos y cajas", "lang": "es", "dir": "ltr" }
+      },
+      "url": "games/dots/index.html?from=shortcut",
+      "icons": [{ "src": "games/dots/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Nonogram",
+      "name_localized": {
+        "fa": { "value": "نونوگرام", "lang": "fa", "dir": "rtl" },
+        "zh-Hans": { "value": "数织", "lang": "zh-Hans", "dir": "ltr" },
+        "de": { "value": "Nonogramm", "lang": "de", "dir": "ltr" },
+        "es": { "value": "Nonograma", "lang": "es", "dir": "ltr" }
+      },
+      "url": "games/nonogram/index.html?from=shortcut",
+      "icons": [{ "src": "games/nonogram/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Mancala",
+      "name_localized": {
+        "fa": { "value": "منقله", "lang": "fa", "dir": "rtl" },
+        "zh-Hans": { "value": "播棋", "lang": "zh-Hans", "dir": "ltr" },
+        "de": { "value": "Mancala", "lang": "de", "dir": "ltr" },
+        "es": { "value": "Mancala", "lang": "es", "dir": "ltr" }
+      },
+      "url": "games/mancala/index.html?from=shortcut",
+      "icons": [{ "src": "games/mancala/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "FreeCell",
+      "name_localized": {
+        "fa": { "value": "فری‌سل", "lang": "fa", "dir": "rtl" },
+        "zh-Hans": { "value": "空当接龙", "lang": "zh-Hans", "dir": "ltr" },
+        "de": { "value": "FreeCell", "lang": "de", "dir": "ltr" },
+        "es": { "value": "FreeCell", "lang": "es", "dir": "ltr" }
+      },
+      "url": "games/freecell/index.html?from=shortcut",
+      "icons": [{ "src": "games/freecell/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Peg Solitaire",
+      "name_localized": {
+        "fa": { "value": "میخ‌پران", "lang": "fa", "dir": "rtl" },
+        "zh-Hans": { "value": "孔明棋", "lang": "zh-Hans", "dir": "ltr" },
+        "de": { "value": "Solitär", "lang": "de", "dir": "ltr" },
+        "es": { "value": "Senku", "lang": "es", "dir": "ltr" }
+      },
+      "url": "games/peg/index.html?from=shortcut",
+      "icons": [{ "src": "games/peg/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Reversi",
+      "name_localized": {
+        "fa": { "value": "ریورسی", "lang": "fa", "dir": "rtl" },
+        "zh-Hans": { "value": "黑白棋", "lang": "zh-Hans", "dir": "ltr" },
+        "de": { "value": "Reversi", "lang": "de", "dir": "ltr" },
+        "es": { "value": "Reversi", "lang": "es", "dir": "ltr" }
+      },
+      "url": "games/reversi/index.html?from=shortcut",
+      "icons": [{ "src": "games/reversi/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Backgammon",
+      "name_localized": {
+        "fa": { "value": "تخته‌نرد", "lang": "fa", "dir": "rtl" },
+        "zh-Hans": { "value": "双陆棋", "lang": "zh-Hans", "dir": "ltr" },
+        "de": { "value": "Backgammon", "lang": "de", "dir": "ltr" },
+        "es": { "value": "Backgammon", "lang": "es", "dir": "ltr" }
+      },
+      "url": "games/backgammon/index.html?from=shortcut",
+      "icons": [{ "src": "games/backgammon/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

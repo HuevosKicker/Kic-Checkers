@@ -1,0 +1,1361 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#FBF6EF">
+<meta name="description" content="مجموعه‌بازی چوگان: رایگان، متن‌باز، بدون تبلیغ، بدون ردیاب، کاملاً آفلاین.">
+<title>چوگان</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="lib/chogan.css">
+</head>
+<body class="ch-menu">
+<div id="app"></div>
+<nav class="ch-nav" id="nav" aria-label="ناوبری اصلی"><div class="ch-nav__in" id="navIn"></div></nav>
+
+<script src="version.js"></script>
+<script src="lib/chogan.js"></script>
+<script>
+(function () {
+  'use strict';
+  var C = window.Chogan;
+  var el = C.el;
+
+  // Shared by the profile and the welcome screen, so both wrap the same way (#256)
+  function langPicker(value, onChange) {
+    var seg = C.ui.segmented(C.locales().map(function (L) { return { value: L.code, label: L.label }; }), value, onChange);
+    seg.classList.add('ch-seg--wrap', 'ch-langs');
+    return seg;
+  }
+
+  C.strings({
+    fa: {
+      slogan: 'بازی‌های کوچک، تمام‌شدنی، بدون مزاحمت',
+      waysToPlay: 'راه‌های بازی', news: 'خبرها', playWeb: 'وب', playAndroid: 'اندروید', playTelegram: 'تلگرام',
+      allGames: 'بازی‌ها', viewGrid: 'نمایش دو ستونه', privacy: 'حریم خصوصی', privacyNone: 'هیچ داده‌ای جمع نمی‌شود', viewList: 'نمایش یک ستونه', pickDay: 'یک روز را انتخاب کن',
+      seasonTable: 'جدول فصل', myTier: 'رده‌ی تو',
+      toNext: 'تا صعود', keepAbove: 'کف ماندن در رده',
+      unlockAsk: 'با {n} سکه باز شود؟', mascot: 'شخصیت', palette: 'پالت منو',
+      statsTitle: 'آمار تو', perGame: 'به تفکیک بازی',
+      dangerZone: 'پاک کردن داده', wipeAll: 'پاک کردن همه‌چیز',
+      wipeAllAsk: 'همه‌ی داده‌های اپ پاک شود؟ سکه‌ها، دستاوردها، لیگ و پیشرفت همه‌ی بازی‌ها.',
+      catAll: 'همه', catPuzzle: 'پازل', catBoard: 'تخته‌ای', catCards: 'کارتی', catSkill: 'مهارتی',
+      installed: 'نصب‌شده روی دستگاه', playedTimes: '{n} بار بازی کردی', pinned: 'سنجاق‌شده', recent: 'اخیراً بازی کردی', pin: 'سنجاق کن', unpin: 'برداشتن سنجاق',
+      noneYet: 'هنوز چیزی نیست', dailyOf: 'چالش‌های {d}',
+      noGames: 'هنوز بازی‌ای اضافه نشده', noGamesSub: 'به‌زودی', loadFailed: 'فهرست بازی‌ها بار نشد',
+      loadFailedSub: 'اتصال را چک کن و صفحه را دوباره باز کن',
+      wave: 'موج', wins: 'برد', solved: 'حل‌شده', cleared: 'پاک‌شده',
+      winsN: '{n} برد', solvedN: '{n} حل‌شده', clearedN: '{n} پاک‌شده',
+      defaultPalette: 'پیش‌فرض', sea: 'دریا', sunset: 'غروب', forest: 'جنگل',
+      fox: 'روباه', owl: 'جغد', cat: 'گربه', bear: 'خرس',
+      seasonResult: 'نتیجه‌ی فصل گذشته',
+      welcomeTitle: 'به چوگان خوش آمدی', welcomeSub: 'چند بازی کوچک و تمام‌شدنی. بدون تبلیغ، بدون ردیاب، بدون اینترنت.',
+      youTitle: 'خودت را معرفی کن', youSub: 'اسم اختیاری است و از این دستگاه بیرون نمی‌رود.',
+      yourName: 'اسمت', pickChar: 'یک شخصیت انتخاب کن', charFree: 'بقیه را بعداً با سکه باز می‌کنی.',
+      prefsTitle: 'دلخواه خودت تنظیمش کن', prefsSub: 'هر کدام از این‌ها را بعداً هم می‌توانی از تنظیمات عوض کنی.',
+      showWelcome: 'دیدن دوباره‌ی خوشامدگویی', showBtn: 'نمایش',
+      whyName: 'چرا چوگان؟', whyText: 'چوگان نام فارسی بازی‌ای است که امروز بیشتر با نام پولو می‌شناسند: بازی گروهی سوار بر اسب که توپ را با چوبی سرکج، که آن هم چوگان نام دارد، به دروازه می‌زنند. از کهن‌ترین بازی‌های گروهی است و قرن‌ها در ایران بازی شده؛ دروازه‌های سنگی چوگان هنوز در میدان نقش جهان اصفهان پابرجاست.', whyText2: 'این نام را برگزیدیم چون نامی ایرانی است، و چون چوگان با همه‌ی سادگی‌اش، فقط یک چوب و یک توپ، می‌تواند چالشی واقعی باشد؛ همان چیزی که بازی‌های این اپ می‌خواهند باشند.',
+      howToPlay: 'آموزش بازی', eraseGame: 'پاک کردن داده‌ی این بازی', eraseWhat: 'پیشرفت، بازی ذخیره‌شده، بهترین رکوردها، شمار بازی‌ها و تنظیمات این بازی پاک می‌شود. سکه‌ها، دستاوردها و لیگ سر جایشان می‌مانند.'
+    },
+    en: {
+      slogan: 'Small games you can actually finish',
+      waysToPlay: 'Ways to play', news: 'News', playWeb: 'Web', playAndroid: 'Android', playTelegram: 'Telegram',
+      allGames: 'Games', viewGrid: 'Two-column view', privacy: 'Privacy', privacyNone: 'No data collected', viewList: 'One-column view', pickDay: 'Pick a day',
+      seasonTable: 'Season table', myTier: 'Your tier',
+      toNext: 'to promotion', keepAbove: 'stay above',
+      unlockAsk: 'Unlock for {n} coins?', mascot: 'Character', palette: 'Menu palette',
+      statsTitle: 'Your stats', perGame: 'Per game',
+      dangerZone: 'Erase data', wipeAll: 'Erase everything',
+      wipeAllAsk: 'Erase all app data? Coins, awards, league and every game.',
+      catAll: 'All', catPuzzle: 'Puzzle', catBoard: 'Board', catCards: 'Cards', catSkill: 'Skill',
+      installed: 'Installed on device', playedTimes: 'played {n} times', pinned: 'Pinned', recent: 'Recently played', pin: 'Pin', unpin: 'Unpin',
+      noneYet: 'Nothing yet', dailyOf: 'Challenges of {d}',
+      noGames: 'No games yet', noGamesSub: 'Coming soon', loadFailed: 'Could not load the game list',
+      loadFailedSub: 'Check your connection and reopen the page',
+      wave: 'Wave', wins: 'Wins', solved: 'Solved', cleared: 'Cleared',
+      winsN: '{n} wins', solvedN: '{n} solved', clearedN: '{n} cleared',
+      defaultPalette: 'Default', sea: 'Sea', sunset: 'Sunset', forest: 'Forest',
+      fox: 'Fox', owl: 'Owl', cat: 'Cat', bear: 'Bear',
+      seasonResult: 'Last season',
+      welcomeTitle: 'Welcome to Chogan', welcomeSub: 'A few small games you can actually finish. No ads, no trackers, no internet.',
+      youTitle: 'Tell us about you', youSub: 'The name is optional and never leaves this device.',
+      yourName: 'Your name', pickChar: 'Pick a character', charFree: 'You can unlock the rest later with coins.',
+      prefsTitle: 'Set it up how you like', prefsSub: 'You can change any of this later in Settings.',
+      showWelcome: 'Show the welcome again', showBtn: 'Show',
+      whyName: 'Why Chogan?', whyText: 'Chogan (چوگان) is the Persian name of the game known today as polo: a team game on horseback, where the ball is struck towards the goal with a crooked stick, itself called a chogan. It is one of the oldest team games and was played in Iran for centuries; the stone goalposts still stand in Naqsh-e Jahan Square in Isfahan.', whyText2: 'We chose it because it is an Iranian name, and because chogan, for all its simplicity, just a stick and a ball, can be a real challenge. That is what the games in this app want to be.',
+      howToPlay: 'How to play', eraseGame: 'Erase this game\'s data', eraseWhat: 'This erases the game\'s progress, saved game, best scores, play count and settings. Your coins, achievements and league stay.'
+    },
+    zh: {
+      slogan: '小而能玩完的游戏，不打扰你',
+      waysToPlay: '游玩方式', news: '动态', playWeb: '网页', playAndroid: '安卓', playTelegram: 'Telegram',
+      allGames: '游戏', viewGrid: '双列显示', privacy: '隐私', privacyNone: '不收集任何数据', viewList: '单列显示', pickDay: '选择一天',
+      seasonTable: '赛季榜', myTier: '你的段位',
+      toNext: '距晋级', keepAbove: '保级线',
+      unlockAsk: '花 {n} 金币解锁？', mascot: '角色', palette: '菜单配色',
+      statsTitle: '你的数据', perGame: '按游戏',
+      dangerZone: '清除数据', wipeAll: '清除全部',
+      wipeAllAsk: '清除应用的全部数据？金币、成就、联赛和所有游戏进度。',
+      catAll: '全部', catPuzzle: '益智', catBoard: '棋类', catCards: '纸牌', catSkill: '技巧',
+      installed: '已安装到设备', playedTimes: '玩过 {n} 次', pinned: '已置顶', recent: '最近玩过', pin: '置顶', unpin: '取消置顶',
+      noneYet: '还没有内容', dailyOf: '{d} 的挑战',
+      noGames: '还没有游戏', noGamesSub: '敬请期待', loadFailed: '游戏列表加载失败',
+      loadFailedSub: '检查网络后重新打开页面',
+      wave: '波次', wins: '胜场', solved: '已解开', cleared: '已扫清',
+      winsN: '胜场 {n}', solvedN: '已解开 {n}', clearedN: '已扫清 {n}',
+      defaultPalette: '默认', sea: '海洋', sunset: '日落', forest: '森林',
+      fox: '狐狸', owl: '猫头鹰', cat: '猫', bear: '熊',
+      seasonResult: '上赛季',
+      welcomeTitle: '欢迎来到 Chogan', welcomeSub: '几款小而能玩完的游戏。无广告、无追踪、无需联网。',
+      youTitle: '介绍一下你自己', youSub: '名字是可选的，而且不会离开这台设备。',
+      yourName: '你的名字', pickChar: '选一个角色', charFree: '其余的以后可以用金币解锁。',
+      prefsTitle: '按你的喜好设置', prefsSub: '这些以后都可以在设置里修改。',
+      showWelcome: '再看一次欢迎页', showBtn: '查看',
+      whyName: '为什么叫 Chogan？', whyText: 'Chogan（چوگان）是波斯语中对今天所说的马球的称呼：一种骑在马上的团体运动，用一根弯头的球杆把球击向球门，这根球杆本身也叫 chogan。它是最古老的团体运动之一，在伊朗流传了几百年；伊斯法罕伊玛目广场上的石制球门至今仍在。', whyText2: '我们选择这个名字，是因为它是一个伊朗的名字，也因为马球虽然简单，只有一根球杆和一个球，却可以是真正的挑战。这正是这款应用里的游戏想要做到的。',
+      howToPlay: '玩法说明', eraseGame: '清除这个游戏的数据', eraseWhat: '将清除这个游戏的进度、存档、最佳纪录、游玩次数和设置。金币、成就和联赛不受影响。'
+    },
+    de: {
+      slogan: 'Kleine Spiele, die du wirklich zu Ende spielst',
+      waysToPlay: 'Spielen auf', news: 'Neuigkeiten', playWeb: 'Web', playAndroid: 'Android', playTelegram: 'Telegram',
+      allGames: 'Spiele', viewGrid: 'Zwei Spalten', privacy: 'Datenschutz', privacyNone: 'Keine Daten erfasst', viewList: 'Eine Spalte', pickDay: 'Tag wählen',
+      seasonTable: 'Saisontabelle', myTier: 'Deine Stufe',
+      toNext: 'bis zum Aufstieg', keepAbove: 'zum Halten',
+      unlockAsk: 'Für {n} Münzen freischalten?', mascot: 'Figur', palette: 'Menüfarben',
+      statsTitle: 'Deine Statistik', perGame: 'Pro Spiel',
+      dangerZone: 'Daten löschen', wipeAll: 'Alles löschen',
+      wipeAllAsk: 'Alle App-Daten löschen? Münzen, Erfolge, Liga und jedes Spiel.',
+      catAll: 'Alle', catPuzzle: 'Rätsel', catBoard: 'Brett', catCards: 'Karten', catSkill: 'Geschick',
+      installed: 'Auf dem Gerät installiert', playedTimes: '{n}-mal gespielt', pinned: 'Angeheftet', recent: 'Zuletzt gespielt', pin: 'Anheften', unpin: 'Lösen',
+      noneYet: 'Noch nichts', dailyOf: 'Rätsel vom {d}',
+      noGames: 'Noch keine Spiele', noGamesSub: 'Kommt bald', loadFailed: 'Spieleliste konnte nicht geladen werden',
+      loadFailedSub: 'Prüf deine Verbindung und öffne die Seite neu',
+      wave: 'Welle', wins: 'Siege', solved: 'Gelöst', cleared: 'Geschafft',
+      winsN: '{n} Siege', solvedN: '{n} gelöst', clearedN: '{n} geschafft',
+      defaultPalette: 'Standard', sea: 'Meer', sunset: 'Abendrot', forest: 'Wald',
+      fox: 'Fuchs', owl: 'Eule', cat: 'Katze', bear: 'Bär',
+      seasonResult: 'Letzte Saison',
+      welcomeTitle: 'Willkommen bei Chogan', welcomeSub: 'Ein paar kleine Spiele, die du wirklich zu Ende spielst. Ohne Werbung, ohne Tracker, ohne Internet.',
+      youTitle: 'Erzähl uns von dir', youSub: 'Der Name ist freiwillig und verlässt nie dieses Gerät.',
+      yourName: 'Dein Name', pickChar: 'Wähl eine Figur', charFree: 'Den Rest kannst du später mit Münzen freischalten.',
+      prefsTitle: 'Stell es dir ein, wie du magst', prefsSub: 'Das alles kannst du später in den Einstellungen ändern.',
+      showWelcome: 'Begrüßung nochmal zeigen', showBtn: 'Zeigen',
+      whyName: 'Warum Chogan?', whyText: 'Chogan (چوگان) ist der persische Name des Spiels, das man heute als Polo kennt: ein Mannschaftsspiel zu Pferd, bei dem der Ball mit einem gebogenen Schläger, selbst Chogan genannt, aufs Tor geschlagen wird. Es ist eines der ältesten Mannschaftsspiele und wurde jahrhundertelang im Iran gespielt; die steinernen Torpfosten stehen noch heute auf dem Naqsch-e-Dschahan-Platz in Isfahan.', whyText2: 'Wir haben den Namen gewählt, weil er ein iranischer Name ist, und weil Chogan bei aller Einfachheit, nur ein Schläger und ein Ball, eine echte Herausforderung sein kann. Genau das wollen die Spiele in dieser App sein.',
+      howToPlay: 'So wird gespielt', eraseGame: 'Daten dieses Spiels löschen', eraseWhat: 'Gelöscht werden Fortschritt, gespeichertes Spiel, Bestwerte, Spielanzahl und Einstellungen dieses Spiels. Münzen, Erfolge und Liga bleiben erhalten.'
+    },
+    es: {
+      slogan: 'Juegos pequeños que de verdad puedes terminar',
+      waysToPlay: 'Formas de jugar', news: 'Novedades', playWeb: 'Web', playAndroid: 'Android', playTelegram: 'Telegram',
+      allGames: 'Juegos', viewGrid: 'Dos columnas', privacy: 'Privacidad', privacyNone: 'No se recogen datos', viewList: 'Una columna', pickDay: 'Elige un día',
+      seasonTable: 'Tabla de la temporada', myTier: 'Tu nivel',
+      toNext: 'para ascender', keepAbove: 'para mantenerte',
+      unlockAsk: '¿Desbloquear por {n} monedas?', mascot: 'Personaje', palette: 'Colores del menú',
+      statsTitle: 'Tus estadísticas', perGame: 'Por juego',
+      dangerZone: 'Borrar datos', wipeAll: 'Borrar todo',
+      wipeAllAsk: '¿Borrar todos los datos de la app? Monedas, logros, liga y todos los juegos.',
+      catAll: 'Todos', catPuzzle: 'Puzles', catBoard: 'Tablero', catCards: 'Cartas', catSkill: 'Habilidad',
+      installed: 'Instalada en el dispositivo', playedTimes: 'jugado {n} veces', pinned: 'Fijados', recent: 'Jugados hace poco', pin: 'Fijar', unpin: 'Soltar',
+      noneYet: 'Aún nada', dailyOf: 'Retos del {d}',
+      noGames: 'Aún no hay juegos', noGamesSub: 'Muy pronto', loadFailed: 'No se pudo cargar la lista de juegos',
+      loadFailedSub: 'Revisa tu conexión y vuelve a abrir la página',
+      wave: 'Oleada', wins: 'Victorias', solved: 'Resueltos', cleared: 'Superados',
+      winsN: '{n} victorias', solvedN: '{n} resueltos', clearedN: '{n} superados',
+      defaultPalette: 'Predeterminado', sea: 'Mar', sunset: 'Atardecer', forest: 'Bosque',
+      fox: 'Zorro', owl: 'Búho', cat: 'Gato', bear: 'Oso',
+      seasonResult: 'Temporada anterior',
+      welcomeTitle: 'Bienvenido a Chogan', welcomeSub: 'Unos cuantos juegos pequeños que de verdad puedes terminar. Sin anuncios, sin rastreadores, sin internet.',
+      youTitle: 'Cuéntanos de ti', youSub: 'El nombre es opcional y nunca sale de este dispositivo.',
+      yourName: 'Tu nombre', pickChar: 'Elige un personaje', charFree: 'El resto lo puedes desbloquear luego con monedas.',
+      prefsTitle: 'Ajústalo a tu gusto', prefsSub: 'Puedes cambiar todo esto luego en Ajustes.',
+      showWelcome: 'Ver la bienvenida otra vez', showBtn: 'Ver',
+      whyName: '¿Por qué Chogan?', whyText: 'Chogan (چوگان) es el nombre persa del juego que hoy se conoce como polo: un juego de equipo a caballo en el que la bola se golpea hacia la portería con un palo curvo, que también se llama chogan. Es uno de los juegos de equipo más antiguos y se jugó en Irán durante siglos; las porterías de piedra siguen en pie en la plaza Naqsh-e Jahan de Isfahán.', whyText2: 'Lo elegimos porque es un nombre iraní, y porque el chogan, con toda su sencillez, solo un palo y una bola, puede ser un verdadero reto. Eso es lo que quieren ser los juegos de esta app.',
+      howToPlay: 'Cómo se juega', eraseGame: 'Borrar los datos de este juego', eraseWhat: 'Se borran el progreso, la partida guardada, los mejores récords, el número de partidas y los ajustes de este juego. Tus monedas, logros y liga se quedan.'
+    }
+  });
+
+  var PALETTES = {
+    default: { key: 'defaultPalette', c: '#E07A5F', cost: 0 },
+    sea:     { key: 'sea',            c: '#4E93A8', cost: 150 },
+    sunset:  { key: 'sunset',         c: '#C96A9B', cost: 250 },
+    forest:  { key: 'forest',         c: '#6E9E63', cost: 200 }
+  };
+  var MASCOTS = {
+    fox:  { key: 'fox',  cost: 0 },
+    owl:  { key: 'owl',  cost: 120 },
+    cat:  { key: 'cat',  cost: 200 },
+    bear: { key: 'bear', cost: 320 }
+  };
+
+  var app = document.getElementById('app');
+  var navIn = document.getElementById('navIn');
+  var GAMES = [];
+  // بازی‌هایی که چالش روزانه دارند. شطرنج دونفره روزانه ندارد و "daily": false
+  // در games.json آن را از کارت امروز، فهرست روز و نقطه‌های تقویم بیرون می‌برد (#131)
+  function dailyGames() { return GAMES.filter(function (g) { return g.daily !== false; }); }
+  var gamesLoaded = false;
+  var loadError = false;
+  var tab = 'home';
+
+  /* ------------------------------------------------------------ کمکی */
+
+  function lang() { return C.state.settings.lang; }
+  function gname(g) { return g.name[lang()] || g.name.en || g.name.fa; }
+  function gsum(g) { return g.summary[lang()] || g.summary.en || g.summary.fa; }
+
+  // روشن کردن رنگ بدون color-mix، برای وب‌ویوهای قدیمی
+  function lighten(hex, k) {
+    var h = String(hex).replace('#', '');
+    var n = parseInt(h, 16);
+    var r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    r = Math.round(r + (255 - r) * k);
+    g = Math.round(g + (255 - g) * k);
+    b = Math.round(b + (255 - b) * k);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  function applyPalette() {
+    var p = PALETTES[C.state.settings.palette || 'default'] || PALETTES.default;
+    document.documentElement.style.setProperty('--c-accent', p.c);
+    // رنگ نرم باید نیمه‌شفاف باشد نه یک رنگ روشن ثابت، وگرنه در تم تاریک
+    // روی زمینه‌ی تیره یک لکه‌ی کرم می‌نشیند. همان کاری که setAccent برای
+    // رنگ تأکید بازی‌ها می‌کند.
+    document.documentElement.style.setProperty('--c-accent-soft', C.alpha(p.c, 0.16));
+  }
+
+  function isNew(g) {
+    if (C.stats.get().byGame[g.id]) return false;
+    var age = (Date.now() - C.keyToDate(g.added).getTime()) / 86400000;
+    return age <= 21;
+  }
+
+  // یک خط خلاصه‌ی وضعیت هر بازی برای کارت منو
+  function bestLine(g) {
+    var s = C.stats.get().byGame[g.id];
+    if (!s || !s.plays) return null;
+    if (g.id === 'tower-defence') {
+      var w = s.best && s.best.wave;
+      return w ? C.t('best') + ' ' + C.t('wave') + ' ' + C.num(w) : null;
+    }
+    if (g.id === 'sudoku') {
+      var t = s.best && s.best['time-medium'];
+      return t ? C.t('best') + ' ' + C.time(t) : C.t('solvedN', { n: C.num(s.wins) });
+    }
+    if (g.id === 'minesweeper') {
+      var t2 = s.best && s.best['time-medium'];
+      return t2 ? C.t('best') + ' ' + C.time(t2) : C.t('clearedN', { n: C.num(s.wins) });
+    }
+    // بازی‌ای که خط مخصوص ندارد شمار بردهایش را نشان می‌دهد. قبلاً هر شناسه‌ی
+    // دیگر null می‌گرفت و کارت بازی تازه هیچ رکوردی نشان نمی‌داد (#85).
+    // The count goes where each language puts it: the label then the number read
+    // «برد ۱۳» in Persian instead of «۱۳ برد» (#352).
+    return C.t('winsN', { n: C.num(s.wins || 0) });
+  }
+
+  function goGame(g, daily) {
+    C.markNav();
+    C.feedback('tap');
+    var url = g.path + (daily ? ('?daily=' + daily) : '');
+    setTimeout(function () { location.href = url; }, 90);
+  }
+
+  function coinPill() {
+    return el('div', { class: 'ch-coin' }, [
+      C.icon('coin', 18),
+      el('b', { 'data-coin-view': '1', text: C.num(C.coins.get()) })
+    ]);
+  }
+
+  // The menu's game categories, in display order; every game in games.json names one as cat (#283)
+  var CATS = ['puzzle', 'board', 'cards', 'skill'];
+  function catKey(c) { return 'cat' + c.charAt(0).toUpperCase() + c.slice(1); }
+
+  function sectionHead(title, extra) {
+    return el('div', { class: 'ch-section__head' }, [el('h2', { text: title }), extra || null]);
+  }
+
+  /* ------------------------------------------------------------ خانه */
+
+  function viewHome() {
+    var page = el('div', { class: 'ch-page' });
+
+    var m = C.state.settings.mascot || 'fox';
+    var head = el('div', { class: 'ch-head' }, [
+      el('div', { class: 'ch-head__title' }, [
+        el('h1', { text: C.t('appName') }),
+        el('p', { text: C.t('slogan') })
+      ]),
+      coinPill()
+    ]);
+    // روی تبلت و دسکتاپ، جایگزین F11. در اپ نصب‌شده ساخته نمی‌شود.
+    var fsBtn = C.fullscreen.button();
+    if (fsBtn) head.appendChild(fsBtn);
+    page.appendChild(head);
+
+    var st = C.stats.get();
+    if (st.streak.count > 0) {
+      var streak = el('div', { class: 'ch-row', style: { 'margin-bottom': 'var(--s-4)' } }, [
+        el('span', { class: 'ch-badge ch-badge--warn' }, [C.icon('flame', 15), el('span', { text: C.num(st.streak.count) + ' ' + C.t('dayStreak') })])
+      ]);
+      page.appendChild(streak);
+    }
+
+    // بدون بازی، صفحه‌ی خانه چیزی برای نشان دادن ندارد.
+    // این حالت واقعاً پیش می‌آید: تا وقتی هیچ بازی‌ای در games.json نیست.
+    if (!GAMES.length) {
+      page.appendChild(el('div', { class: 'ch-empty' }, [
+        el('div', { html: C.mascot(C.state.settings.mascot || 'fox', 92) }),
+        el('h3', { text: loadError ? C.t('loadFailed') : C.t('noGames') }),
+        el('p', { class: 'ch-sm', text: loadError ? C.t('loadFailedSub') : C.t('noGamesSub') })
+      ]));
+      return page;
+    }
+
+    // کارت بزرگ چالش روزانه‌ی امروز
+    var today = C.dateKey();
+    var DG = dailyGames();
+    var idx = Math.abs(C.hash32(today)) % DG.length;
+    var feat = DG[idx];
+    var done = C.stats.dailyDone(feat.id, today);
+    var hero = el('div', {
+      class: 'ch-card ch-tap ch-enter ch-kbnav', tabindex: '0', role: 'link', 'aria-label': C.t('todayChallenge') + ' — ' + gname(feat),
+      style: { background: feat.color, 'background-image': 'linear-gradient(135deg, ' + C.alpha(feat.color, 1) + ' 0%, ' + lighten(feat.color, .38) + ' 100%)', color: '#fff', 'margin-bottom': 'var(--s-5)' },
+      onclick: function () { goGame(feat, today); }
+    }, [
+      el('div', { class: 'ch-row' }, [
+        el('div', { class: 'ch-grow' }, [
+          el('div', { class: 'ch-row', style: { gap: '6px' } }, [
+            C.icon('calendar', 18),
+            el('span', { class: 'ch-bold ch-sm', text: C.t('todayChallenge') })
+          ]),
+          el('h2', { style: { 'margin-top': '2px' }, text: gname(feat) }),
+          el('p', { class: 'ch-sm', style: { opacity: '.88' }, text: done ? C.t('dailyDone') : C.t('todayChallengeSub') })
+        ]),
+        el('div', { style: { width: '58px', height: '58px', 'border-radius': 'var(--r-md)', background: 'rgba(255,255,255,.22)', display: 'grid', 'place-items': 'center' } },
+          [done ? C.icon('check', 30) : C.icon('play', 28)])
+      ])
+    ]);
+    page.appendChild(hero);
+
+    // پیش‌فرض کاشی‌های دو ستونه است؛ هجده بازی یک‌ستونه روی گوشی سه صفحه اسکرول بود (#149)
+    var asList = C.state.settings.gameView === 'list';
+    var viewBtn = el('button', { class: 'ch-iconbtn', type: 'button', 'aria-label': C.t(asList ? 'viewGrid' : 'viewList'), title: C.t(asList ? 'viewGrid' : 'viewList'),
+      onclick: function () {
+        C.state.settings.gameView = asList ? 'grid' : 'list';
+        C.store.set('settings', C.state.settings);
+        C.feedback('select');
+        render();
+      } }, [C.icon(asList ? 'grid' : 'list', 20)]);
+    var sec = el('div', { class: 'ch-section' }, [sectionHead(C.t('allGames'), viewBtn)]);
+    // A pin on every card; pinned games get their own section above everything
+    // else, and the last few games opened get a compact row (#193)
+    function gameCard(g, i) {
+      var badges = el('div', { class: 'ch-game__meta' });
+      if (C.hasResume(g.id)) badges.appendChild(el('span', { class: 'ch-badge ch-badge--good', text: C.t('continueBadge') }));
+      if (isNew(g)) badges.appendChild(el('span', { class: 'ch-badge ch-badge--accent', text: C.t('newBadge') }));
+      var bl = asList && bestLine(g);
+      if (bl) badges.appendChild(el('span', { class: 'ch-badge', text: bl }));
+      var on = C.pins.has(g.id);
+      var pinBtn = el('button', { class: 'ch-game__pin' + (on ? ' ch-game__pin--on' : ''), type: 'button',
+        'aria-pressed': on ? 'true' : 'false', 'aria-label': C.t(on ? 'unpin' : 'pin') + ' — ' + gname(g), title: C.t(on ? 'unpin' : 'pin'),
+        onclick: function (e) {
+          e.stopPropagation();
+          C.pins.toggle(g.id);
+          C.feedback('select');
+          render(true);
+        } }, [C.icon('pin', 22)]);
+      return el('div', {
+        class: 'ch-card ch-game ch-tap ch-enter ch-kbnav', tabindex: '0', role: 'link', 'aria-label': gname(g),
+        style: { '--game': g.color, '--game-soft': g.soft, '--game-text-dark': C.textOnDark(g.color), 'animation-delay': (60 + i * 55) + 'ms' },
+        onclick: function () { goGame(g); }
+      }, [
+        pinBtn,
+        el('div', { class: 'ch-game__icon' }, [el('img', { src: g.icon, alt: '', width: 62, height: 62 })]),
+        el('div', { class: 'ch-game__body' }, [
+          el('div', { class: 'ch-game__name', text: gname(g) }),
+          asList ? el('div', { class: 'ch-game__sum', text: gsum(g) }) : null,
+          badges
+        ])
+      ]);
+    }
+    var byId = {};
+    GAMES.forEach(function (g) { byId[g.id] = g; });
+    var gridCls = 'ch-games' + (asList ? '' : ' ch-games--grid');
+
+    var pinnedGames = C.pins.list().map(function (id) { return byId[id]; }).filter(Boolean);
+    if (pinnedGames.length) {
+      var pgrid = el('div', { class: gridCls });
+      pinnedGames.forEach(function (g, i) { pgrid.appendChild(gameCard(g, i)); });
+      page.appendChild(el('div', { class: 'ch-section ch-section--pinned' }, [sectionHead(C.t('pinned')), pgrid]));
+    }
+
+    var recentGames = C.recent.list().map(function (id) { return byId[id]; })
+      .filter(function (g) { return g && !C.pins.has(g.id); }).slice(0, 3);
+    if (recentGames.length) {
+      var row = el('div', { class: 'ch-recent' });
+      recentGames.forEach(function (g) {
+        row.appendChild(el('button', { class: 'ch-recent__item ch-tap ch-kbnav', type: 'button', style: { '--game': g.color, '--game-soft': g.soft, '--game-text-dark': C.textOnDark(g.color) },
+          onclick: function () { goGame(g); } }, [
+          el('img', { src: g.icon, alt: '', width: 32, height: 32 }),
+          el('span', { class: 'ch-recent__name', text: gname(g) })
+        ]));
+      });
+      page.appendChild(el('div', { class: 'ch-section ch-section--recent' }, [sectionHead(C.t('recent')), row]));
+    }
+
+    // One long list stopped working at 27 games (#283): chips pick a category, and
+    // All shows every category under its own heading. The choice is remembered.
+    // A chip redraws only the games under it: a full render() scrolled the page back to the
+    // top, so the chips left the screen after every tap (#285).
+    var cat = CATS.indexOf(C.state.settings.gameCat) >= 0 ? C.state.settings.gameCat : 'all';
+    var box = el('div', { class: 'ch-cats__games' });
+    var chips = C.ui.segmented(['all'].concat(CATS).map(function (c) { return { value: c, label: C.t(catKey(c)) }; }), cat, function (v) {
+      cat = v;
+      C.state.settings.gameCat = v;
+      C.store.set('settings', C.state.settings);
+      drawGames();
+    });
+    chips.classList.add('ch-seg--wrap', 'ch-cats');
+    function drawGames() {
+      box.innerHTML = '';
+      var shown = cat === 'all' ? CATS : [cat];
+      shown.forEach(function (c) {
+        var list = GAMES.filter(function (g) { return g.cat === c; });
+        if (!list.length) return;
+        var grid = el('div', { class: gridCls });
+        list.forEach(function (g, i) { grid.appendChild(gameCard(g, i)); });
+        if (cat === 'all') box.appendChild(el('h3', { class: 'ch-cat__head', text: C.t(catKey(c)) }));
+        box.appendChild(grid);
+      });
+      // a game with no known category is still listed, never lost
+      var loose = GAMES.filter(function (g) { return CATS.indexOf(g.cat) < 0; });
+      if (loose.length && cat === 'all') {
+        var lgrid = el('div', { class: gridCls });
+        loose.forEach(function (g, i) { lgrid.appendChild(gameCard(g, i)); });
+        box.appendChild(lgrid);
+      }
+    }
+    drawGames();
+    sec.appendChild(chips);
+    sec.appendChild(box);
+    page.appendChild(sec);
+
+    page.appendChild(el('div', { class: 'ch-center', style: { opacity: '.5', 'margin-top': 'var(--s-6)' } },
+      [el('div', { html: C.mascot(m, 74) })]));
+    return page;
+  }
+
+  /* --------------------------------------------------------- روزانه */
+
+  // Month grid of the daily calendar. In Persian it follows the Persian calendar
+  // (#213); daily keys stay Gregorian (C.dateKey), so only what is drawn changes.
+  // Intl does the conversion; without its Persian calendar, the grid stays Gregorian.
+  function makeCal(persian) {
+    var fmt = null;
+    if (persian) {
+      try {
+        fmt = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', { day: 'numeric' });
+        if (fmt.resolvedOptions().calendar !== 'persian') fmt = null;
+      } catch (e) { fmt = null; }
+    }
+    function day(d) { return fmt ? +fmt.format(d) : d.getDate(); }
+    function add(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+    function start(d) { return add(d, 1 - day(d)); }
+    function length(s) { var n = 1; while (day(add(s, n)) !== 1) n++; return n; }
+    return {
+      persian: !!fmt, day: day, add: add, start: start, length: length,
+      next: function (s) { return add(s, length(s)); },
+      prev: function (s) { return start(add(s, -1)); }
+    };
+  }
+
+  function viewDaily() {
+    var page = el('div', { class: 'ch-page' });
+    page.appendChild(el('div', { class: 'ch-head' }, [
+      el('div', { class: 'ch-head__title' }, [
+        el('h1', { text: C.t('daily') }),
+        el('p', { text: C.t('todayChallengeSub') })
+      ]),
+      coinPill()
+    ]));
+
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var cal = makeCal(C.state.settings.lang === 'fa');
+    var cur = cal.start(today);
+
+    var monthLabel = el('h2');
+    var calWrap = el('div', { class: 'ch-card' });
+
+    function monthName(d) {
+      try {
+        // The name must come from the same calendar as the grid, or «مهر» would
+        // sit above September (#31). ICU writes Persian as «۱۴۰۵ مهر»; people write «مهر ۱۴۰۵».
+        if (cal.persian) {
+          var parts = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { month: 'long', year: 'numeric' }).formatToParts(d);
+          var pick = function (t) { return parts.filter(function (p) { return p.type === t; }).map(function (p) { return p.value; })[0]; };
+          return pick('month') + ' ' + pick('year');
+        }
+        return d.toLocaleDateString(C.dateLocale(), { month: 'long', year: 'numeric' });
+      } catch (e) { return (d.getMonth() + 1) + '/' + d.getFullYear(); }
+    }
+
+    function drawCal() {
+      monthLabel.textContent = monthName(cur);
+      calWrap.innerHTML = '';
+      var grid = el('div', { class: 'ch-cal' });
+      var dows = ['sat', 'sun', 'mon', 'tue', 'wed', 'thu', 'fri'];
+      dows.forEach(function (d) { grid.appendChild(el('div', { class: 'ch-cal__dow', text: C.t(d) })); });
+
+      var lead = (cur.getDay() + 1) % 7;       // شنبه ستون اول
+      for (var i = 0; i < lead; i++) grid.appendChild(el('div', { class: 'ch-day ch-day--empty' }));
+
+      var dim = cal.length(cur);
+      for (var d = 1; d <= dim; d++) {
+        (function (day) {
+          var date = cal.add(cur, day - 1);
+          var key = C.dateKey(date);
+          var future = date.getTime() > today.getTime();
+          var rec = C.stats.dailyOf(key);
+          var n = Object.keys(rec).length;
+          var cls = 'ch-day';
+          if (future) cls += ' ch-day--future';
+          if (key === C.dateKey(today)) cls += ' ch-day--today';
+          var DGs = dailyGames();
+          if (DGs.length && n >= DGs.length) cls += ' ch-day--done';
+          var dots = el('div', { class: 'ch-day__dots' });
+          DGs.forEach(function (g) {
+            dots.appendChild(el('div', { class: 'ch-day__dot' + (rec[g.id] ? ' ch-day__dot--on' : '') }));
+          });
+          var b = el('button', { class: cls, type: 'button', disabled: future }, [
+            el('span', { text: C.num(day) }), dots
+          ]);
+          if (!future) b.addEventListener('click', function () { C.feedback('select'); dayModal(key); });
+          grid.appendChild(b);
+        })(d);
+      }
+      calWrap.appendChild(grid);
+    }
+
+    var nav = el('div', { class: 'ch-row', style: { 'margin-bottom': 'var(--s-3)' } }, [
+      el('button', { class: 'ch-iconbtn', type: 'button', 'aria-label': 'قبلی', onclick: function () {
+        cur = cal.prev(cur); C.feedback('select'); drawCal();
+      } }, [C.icon(C.isRtl() ? 'forward' : 'back', 20)]),
+      el('div', { class: 'ch-grow ch-center' }, [monthLabel]),
+      el('button', { class: 'ch-iconbtn', type: 'button', 'aria-label': 'بعدی', onclick: function () {
+        var next = cal.next(cur);
+        if (next.getTime() > today.getTime()) return;
+        cur = next; C.feedback('select'); drawCal();
+      } }, [C.icon(C.isRtl() ? 'back' : 'forward', 20)])
+    ]);
+    page.appendChild(nav);
+    page.appendChild(calWrap);
+    drawCal();
+
+    var st = C.stats.get();
+    page.appendChild(el('div', { class: 'ch-stats', style: { 'margin-top': 'var(--s-5)' } }, [
+      el('div', { class: 'ch-stat' }, [el('b', { text: C.num(C.counter('dailyDone')) }), el('span', { text: C.t('daily') })]),
+      el('div', { class: 'ch-stat' }, [el('b', { text: C.num(st.streak.count) }), el('span', { text: C.t('streak') })]),
+      el('div', { class: 'ch-stat' }, [el('b', { text: C.num(st.streak.best || 0) }), el('span', { text: C.t('best') })])
+    ]));
+    return page;
+  }
+
+  function dayModal(key) {
+    var rec = C.stats.dailyOf(key);
+    var list = el('div', { class: 'ch-list' });
+    dailyGames().forEach(function (g) {
+      var r = rec[g.id];
+      list.appendChild(el('div', { class: 'ch-item' }, [
+        el('div', { style: { width: '34px', height: '34px', 'border-radius': '10px', overflow: 'hidden', flex: '0 0 34px' } },
+          [el('img', { src: g.icon, alt: '', width: 34, height: 34 })]),
+        el('div', { class: 'ch-item__label' }, [
+          el('div', { text: gname(g) }),
+          el('div', { class: 'ch-item__hint', text: r ? (r.label || C.t('dailyDone')) : C.t('dailyOpen') })
+        ]),
+        r ? C.icon('check', 22) : el('button', {
+          class: 'ch-btn ch-btn--soft ch-btn--sm', type: 'button', text: C.t('play'),
+          style: { '--game': g.color, '--game-soft': g.soft, '--game-text-dark': C.textOnDark(g.color) },
+          onclick: function () { goGame(g, key); }
+        })
+      ]));
+    });
+    var d = C.keyToDate(key);
+    var label;
+    try { label = d.toLocaleDateString(C.dateLocale(), { day: 'numeric', month: 'long' }); }
+    catch (e) { label = key; }
+    C.ui.modal({
+      title: C.t('dailyOf', { d: label }),
+      body: [list],
+      actions: [{ label: C.t('close'), kind: 'primary' }]
+    });
+  }
+
+  /* ------------------------------------------------------------ لیگ */
+
+  function tierMedal(tier, size) {
+    var t = C.league.tiers[tier - 1];
+    return '<svg viewBox="0 0 100 100" width="' + size + '" height="' + size + '" aria-hidden="true">' +
+      '<circle cx="50" cy="50" r="34" fill="rgba(255,255,255,.25)"/>' +
+      '<circle cx="50" cy="50" r="27" fill="' + t.color + '"/>' +
+      '<path d="M50 33l4.8 9.8 10.8 1.6-7.8 7.6 1.8 10.7L50 57.6l-9.6 5.1 1.8-10.7-7.8-7.6 10.8-1.6z" fill="#fff" opacity=".92"/>' +
+      '</svg>';
+  }
+
+  function viewLeague() {
+    var page = el('div', { class: 'ch-page' });
+    var lg = C.league.state();
+    var t = C.league.tier();
+
+    page.appendChild(el('div', { class: 'ch-head' }, [
+      el('div', { class: 'ch-head__title' }, [el('h1', { text: C.t('league') })]),
+      coinPill()
+    ]));
+
+    if (lg.lastResult) {
+      var lr = lg.lastResult;
+      C.ui.toast({
+        icon: lr.result === 'promoted' ? 'trophy' : (lr.result === 'demoted' ? 'info' : 'medal'),
+        title: C.t('seasonResult'),
+        sub: C.t(lr.result)
+      });
+      C.league.clearLastResult();
+    }
+
+    var ms = C.league.endsIn();
+    var dleft = Math.floor(ms / 86400000);
+    var hleft = Math.floor((ms % 86400000) / 3600000);
+
+    page.appendChild(el('div', { class: 'ch-tier ch-enter', style: { '--tier-c': t.color, 'margin-bottom': 'var(--s-4)' } }, [
+      el('div', { class: 'ch-tier__medal', html: tierMedal(lg.tier, 66) }),
+      el('div', { class: 'ch-grow' }, [
+        el('div', { class: 'ch-sm', style: { opacity: '.85' }, text: C.t('myTier') }),
+        el('h2', { text: C.t(t.key) }),
+        el('div', { class: 'ch-sm', style: { opacity: '.85' },
+          text: C.t('seasonEnds') + ' ' + C.num(dleft) + C.t('days') + ' ' + C.num(hleft) + C.t('hours') })
+      ]),
+      el('div', { class: 'ch-center' }, [
+        el('div', { class: 'ch-bold', style: { 'font-size': 'var(--fs-2xl)' }, text: C.num(lg.points) }),
+        el('div', { class: 'ch-xs', style: { opacity: '.85' }, text: C.t('points') })
+      ])
+    ]));
+
+    var goal = t.up > 0 ? t.up : Math.max(t.down * 2, lg.points);
+    var pct = Math.min(100, Math.round(lg.points / goal * 100));
+    page.appendChild(el('div', { class: 'ch-card', style: { 'margin-bottom': 'var(--s-5)' } }, [
+      el('div', { class: 'ch-row', style: { 'justify-content': 'space-between', 'margin-bottom': 'var(--s-2)' } }, [
+        el('span', { class: 'ch-sm ch-dim', text: t.up > 0 ? (C.num(Math.max(0, t.up - lg.points)) + ' ' + C.t('toNext')) : C.t('keepAbove') + ' ' + C.num(t.down) }),
+        el('span', { class: 'ch-sm ch-bold', text: C.num(pct) + '٪' })
+      ]),
+      el('div', { class: 'ch-bar' }, [el('div', { class: 'ch-bar__fill', style: { width: pct + '%' } })])
+    ]));
+
+    var rows = C.league.table();
+    var list = el('div', { class: 'ch-card' });
+    list.appendChild(el('div', { class: 'ch-section__head' }, [
+      el('h2', { style: { 'font-size': 'var(--fs-md)' }, text: C.t('seasonTable') })
+    ]));
+    rows.forEach(function (r) {
+      list.appendChild(el('div', { class: 'ch-rank' + (r.me ? ' ch-rank--me' : '') }, [
+        el('div', { class: 'ch-rank__n', text: C.num(r.rank) }),
+        el('div', { class: 'ch-rank__name', text: (r.country ? C.flag(r.country) + ' ' : '') + r.name }),
+        el('div', { class: 'ch-rank__pts', text: C.num(r.points) })
+      ]));
+    });
+    list.appendChild(el('p', { class: 'ch-xs ch-faint ch-center', style: { 'margin-top': 'var(--s-3)' }, text: C.t('offlineRivals') }));
+    page.appendChild(list);
+    return page;
+  }
+
+  /* ------------------------------------------------------ دستاوردها */
+
+  function achBadge(icon, unlocked, size) {
+    var wrap = el('div', { style: { color: unlocked ? 'var(--c-gold)' : 'var(--c-text-faint)' } }, [C.icon(icon, size || 48)]);
+    return wrap;
+  }
+
+  function viewAchievements() {
+    var page = el('div', { class: 'ch-page' });
+    var got = C.achievements.count();
+    var all = C.achievements.all.length;
+    page.appendChild(el('div', { class: 'ch-head' }, [
+      el('div', { class: 'ch-head__title' }, [
+        el('h1', { text: C.t('achievements') }),
+        el('p', { text: C.num(got) + ' / ' + C.num(all) })
+      ]),
+      coinPill()
+    ]));
+
+    var pct = Math.round(got / all * 100);
+    page.appendChild(el('div', { class: 'ch-bar', style: { 'margin-bottom': 'var(--s-5)' } },
+      [el('div', { class: 'ch-bar__fill', style: { width: pct + '%' } })]));
+
+    var grid = el('div', { class: 'ch-achs' });
+    C.achievements.all.forEach(function (a) {
+      var un = C.achievements.has(a.id);
+      grid.appendChild(el('div', {
+        class: 'ch-ach' + (un ? '' : ' ch-ach--locked'), tabindex: '0', role: 'button',
+        onclick: function () {
+          C.feedback('select');
+          C.ui.modal({
+            title: C.achText(a).title,
+            body: [
+              el('div', { class: 'ch-center', style: { margin: 'var(--s-3) 0' } }, [achBadge(a.icon, un, 72)]),
+              el('p', { class: 'ch-dim ch-center', text: C.achText(a).sub }),
+              un ? el('p', { class: 'ch-xs ch-faint ch-center', style: { 'margin-top': 'var(--s-2)' },
+                text: C.t('unlockedAt') + ' ' + new Date(C.state.achievements[a.id]).toLocaleDateString(C.dateLocale()) })
+                : el('p', { class: 'ch-xs ch-faint ch-center', style: { 'margin-top': 'var(--s-2)' }, text: C.t('locked') })
+            ],
+            actions: [{ label: C.t('close'), kind: 'primary' }]
+          });
+        }
+      }, [
+        achBadge(a.icon, un),
+        el('div', { class: 'ch-ach__n', text: C.achText(a).title })
+      ]));
+    });
+    page.appendChild(grid);
+    return page;
+  }
+
+  /* ------------------------------------------------- پروفایل و تنظیمات */
+
+  function viewProfile() {
+    var page = el('div', { class: 'ch-page' });
+    var st = C.stats.get();
+
+    page.appendChild(el('div', { class: 'ch-head' }, [
+      el('div', { class: 'ch-head__title' }, [el('h1', { text: C.t('profile') })]),
+      coinPill()
+    ]));
+
+    // شناسنامه
+    var nameInput = el('input', {
+      type: 'text', value: C.state.profile.name, maxlength: '24',
+      placeholder: C.t('name') + ' (' + C.t('optional') + ')',
+      style: { flex: '1', 'min-width': '0', font: 'inherit', padding: '10px 14px', 'border-radius': 'var(--r-md)',
+        border: '1px solid var(--c-line)', background: 'var(--c-surface-2)', color: 'var(--c-text)' }
+    });
+    // A list of countries named in the app's language, not a two-letter code box (#293)
+    var cur = (C.state.profile.country || '').toUpperCase();
+    var countries = C.countries();
+    // A code typed into the old text box that is not in the list stays selectable, so it is not lost
+    if (cur && !countries.some(function (c) { return c.code === cur; })) countries.unshift({ code: cur, name: cur });
+    var countryInput = el('select', {
+      'aria-label': C.t('country'), title: C.t('country'),
+      style: { width: '100%', 'min-width': '0', font: 'inherit', padding: '10px 14px', 'border-radius': 'var(--r-md)',
+        border: '1px solid var(--c-line)', background: 'var(--c-surface-2)', color: 'var(--c-text)' }
+    }, [el('option', { value: '', text: C.t('country') + ' (' + C.t('optional') + ')' })].concat(countries.map(function (c) {
+      return el('option', { value: c.code, text: C.flag(c.code) + ' ' + c.name });
+    })));
+    countryInput.value = cur;
+    function saveProfile() {
+      C.state.profile.name = nameInput.value.trim().slice(0, 24);
+      C.state.profile.country = countryInput.value;
+      C.store.set('profile', C.state.profile);
+    }
+    nameInput.addEventListener('change', saveProfile);
+    countryInput.addEventListener('change', saveProfile);
+
+    page.appendChild(el('div', { class: 'ch-card', style: { 'margin-bottom': 'var(--s-4)' } }, [
+      el('div', { class: 'ch-row', style: { 'margin-bottom': 'var(--s-3)' } }, [
+        el('div', { style: { width: '56px', height: '56px', flex: '0 0 56px' }, html: C.mascot(C.state.settings.mascot || 'fox', 56) }),
+        el('div', { class: 'ch-grow' }, [
+          el('div', { class: 'ch-bold', text: C.state.profile.name || C.t('you') }),
+          el('div', { class: 'ch-xs ch-faint', text: C.state.profile.uid })
+        ])
+      ]),
+      // Stacked: beside the name, a long country name was cut off («Vereinig…», #293)
+      el('div', { class: 'ch-col', style: { gap: 'var(--s-2)' } }, [nameInput, countryInput])
+    ]));
+
+    // Characters and palettes right under the profile card that shows the character (#253):
+    // below a list with a row for every game, the owner had to scroll a long way to find them.
+    page.appendChild(el('div', { class: 'ch-section' }, [sectionHead(C.t('unlocks')), unlockShop()]));
+
+    // آمار
+    page.appendChild(el('div', { class: 'ch-section' }, [
+      sectionHead(C.t('statsTitle')),
+      el('div', { class: 'ch-stats' }, [
+        el('div', { class: 'ch-stat' }, [el('b', { text: C.num(st.plays) }), el('span', { text: C.t('totalPlays') })]),
+        el('div', { class: 'ch-stat' }, [el('b', { text: C.duration(st.timeMs) }), el('span', { text: C.t('playTime') })]),
+        el('div', { class: 'ch-stat' }, [el('b', { text: C.num(st.streak.count) }), el('span', { text: C.t('streak') })]),
+        el('div', { class: 'ch-stat' }, [el('b', { text: C.num(C.achievements.count()) }), el('span', { text: C.t('achievements') })])
+      ])
+    ]));
+
+    // One list of games, not two (#292): "Per game" and "Erase data" each listed all
+    // 28 games. The list scrolls inside a box of limited height, and a tap opens the
+    // game's sheet with its stats, its tutorial and its own erase button.
+    var per = el('div', { class: 'ch-card ch-pergame' });
+    GAMES.forEach(function (g) {
+      var s = st.byGame[g.id];
+      per.appendChild(el('button', {
+        class: 'ch-item ch-pergame__row', type: 'button', 'aria-haspopup': 'dialog',
+        onclick: function () { C.feedback('tap'); gameSheet(g); }
+      }, [
+        el('div', { class: 'ch-pergame__icon' }, [el('img', { src: g.icon, alt: '', width: 30, height: 30 })]),
+        el('div', { class: 'ch-item__label' }, [
+          el('div', { text: gname(g) }),
+          el('div', { class: 'ch-item__hint', text: s ? C.t('playedTimes', { n: C.num(s.plays) }) : C.t('noneYet') })
+        ]),
+        el('span', { class: 'ch-badge', text: bestLine(g) || '—' }),
+        C.icon(C.isRtl() ? 'back' : 'forward', 18, 'ch-faint')
+      ]));
+    });
+    // Settings before the long per-game list, for the same reason (#253)
+    page.appendChild(el('div', { class: 'ch-section' }, [sectionHead(C.t('settings')), settingsCard()]));
+    page.appendChild(el('div', { class: 'ch-section' }, [sectionHead(C.t('perGame')), per]));
+
+    // پاک کردن داده — one game at a time is in its sheet now (#292)
+    var danger = el('div', { class: 'ch-card' });
+    danger.appendChild(el('div', { class: 'ch-item' }, [
+      el('div', { class: 'ch-item__label', text: C.t('wipeAll') }),
+      el('button', {
+        class: 'ch-btn ch-btn--danger ch-btn--sm', type: 'button', text: C.t('wipeAll'),
+        onclick: function () {
+          C.ui.confirm({
+            title: C.t('wipeAllAsk'), body: C.t('resetWarn'), danger: true,
+            onOk: function () {
+              GAMES.forEach(function (g) { C.storage(g.id).wipe(); });
+              C.store.wipe();
+              location.reload();
+            }
+          });
+        }
+      })
+    ]));
+    page.appendChild(el('div', { class: 'ch-section' }, [sectionHead(C.t('dangerZone')), danger]));
+
+    // درباره
+    page.appendChild(el('div', { class: 'ch-card ch-card--tint' }, [
+      el('div', { class: 'ch-row', style: { 'margin-bottom': 'var(--s-2)' } }, [
+        C.icon('info', 20), el('b', { text: C.t('about') })
+      ]),
+      el('p', { class: 'ch-sm ch-dim', text: C.t('aboutText') }),
+      // What the name means and why it was chosen, in the owner's words (#311)
+      el('div', { class: 'ch-item' }, [
+        el('div', { class: 'ch-item__label', text: C.t('whyName') }),
+        el('button', {
+          class: 'ch-btn ch-btn--soft ch-btn--sm', type: 'button', text: C.t('showBtn'),
+          onclick: function () {
+            C.feedback('tap');
+            C.ui.modal({
+              title: C.t('whyName'), closeButton: true,
+              body: [el('p', { text: C.t('whyText') }), el('p', { class: 'ch-dim', text: C.t('whyText2') })],
+              actions: [{ label: C.t('done'), kind: 'primary' }]
+            });
+          }
+        })
+      ]),
+      el('div', { class: 'ch-item' }, [
+        el('div', { class: 'ch-item__label', text: C.t('version') }),
+        el('div', { class: 'ch-version' }, [
+          // Both lead to GitHub, so a reporter can see what is in the build (#399):
+          // the version to its release notes, the commit to its change.
+          /^\d+\.\d+\.\d+$/.test(C.version)
+            ? el('a', { class: 'ch-badge ch-version__link', href: 'https://github.com/choganhq/chogan/releases/tag/v' + C.version, target: '_blank', rel: 'noopener', text: C.num(C.version) })
+            : el('span', { class: 'ch-badge', text: C.num(C.version) }),
+          // The word says what the code is; the hash itself is Latin hex in every
+          // language, so it sits in its own left-to-right run.
+          C.build ? el('span', { class: 'ch-version__build ch-dim' }, [
+            C.t('commitHash') + ' ', el('a', { class: 'ch-version__hash', dir: 'ltr', href: 'https://github.com/choganhq/chogan/commit/' + C.commit, target: '_blank', rel: 'noopener', text: C.build })
+          ]) : null
+        ])
+      ]),
+      // The same game runs on the web, as the Android app and as a Telegram Mini App
+      // (@chogangamebot opens the web build; no Telegram script is loaded here) (#203)
+      el('div', { class: 'ch-item' }, [
+        el('div', { class: 'ch-item__label', text: C.t('waysToPlay') }),
+        el('div', { class: 'ch-row ch-wrap' }, [
+          ['playWeb', 'https://choganhq.github.io/chogan/'],
+          ['playAndroid', 'https://f-droid.org/packages/io.github.choganhq.chogan/'],
+          ['playTelegram', 'https://t.me/chogangamebot']
+        ].map(function (w) {
+          return el('a', { href: w[1], target: '_blank', rel: 'noopener', text: C.t(w[0]) });
+        }))
+      ]),
+      // Release notes are posted to this channel by release.yml (#258, #261)
+      el('div', { class: 'ch-item' }, [
+        el('div', { class: 'ch-item__label', text: C.t('news') }),
+        el('a', { href: 'https://t.me/chogan_games', target: '_blank', rel: 'noopener', dir: 'ltr', text: '@chogan_games' })
+      ]),
+      el('div', { class: 'ch-item' }, [
+        el('div', { class: 'ch-item__label', text: C.t('source') }),
+        el('a', { href: 'https://github.com/choganhq/chogan', target: '_blank', rel: 'noopener', text: 'choganhq/chogan' })
+      ]),
+      // Play needs a public privacy policy URL (#161); the same page is linked here
+      el('div', { class: 'ch-item' }, [
+        el('div', { class: 'ch-item__label', text: C.t('privacy') }),
+        el('a', { href: 'privacy.html', text: C.t('privacyNone') })
+      ]),
+      el('div', { class: 'ch-item' }, [
+        el('div', { class: 'ch-item__label', text: C.t('license') }),
+        el('span', { class: 'ch-badge', text: 'MIT' })
+      ]),
+      el('div', { class: 'ch-item' }, [
+        el('div', { class: 'ch-item__label', text: C.t('showWelcome') }),
+        el('button', {
+          // It used the 'play' label, so the row read "Show the welcome again — Play" (#295)
+          class: 'ch-btn ch-btn--soft ch-btn--sm', type: 'button', text: C.t('showBtn'),
+          onclick: function () { C.feedback('tap'); openWelcome(); }
+        })
+      ])
+    ]));
+    return page;
+  }
+
+  // A game's sheet from the profile list (#292): what it is, how far you got, how to
+  // play it, and erasing it with a plain list of what goes and what stays.
+  function gameSheet(g) {
+    var s = C.stats.get().byGame[g.id];
+    // bestLine() starts with "Best" for most games; the tile carries that as its label,
+    // otherwise it read «بهترین ۵:۱۲ / بهترین».
+    var bl = bestLine(g), bp = C.t('best') + ' ';
+    var top = bl && bl.indexOf(bp) === 0 ? { v: bl.slice(bp.length), l: C.t('best') } : { v: C.num(s ? s.wins : 0), l: C.t('wins') };
+    var rows = el('div', { class: 'ch-sheet__stats' }, [
+      el('div', { class: 'ch-stat' }, [el('b', { text: C.num(s ? s.plays : 0) }), el('span', { text: C.t('totalPlays') })]),
+      el('div', { class: 'ch-stat' }, [el('b', { text: C.duration(s ? s.timeMs : 0) }), el('span', { text: C.t('playTime') })]),
+      el('div', { class: 'ch-stat' }, [el('b', { text: top.v }), el('span', { text: top.l })])
+    ]);
+    var m;
+    var erase = el('div', { class: 'ch-sheet__erase' }, [
+      el('p', { class: 'ch-xs ch-dim', text: C.t('eraseWhat') }),
+      el('button', {
+        class: 'ch-btn ch-btn--danger ch-btn--sm', type: 'button', text: C.t('eraseGame'),
+        onclick: function () {
+          C.ui.confirm({
+            title: C.t('resetAsk'), body: gname(g) + ' — ' + C.t('resetWarn'), danger: true,
+            onOk: function () {
+              C.storage(g.id).wipe();
+              var s2 = C.stats.get();
+              delete s2.byGame[g.id];
+              C.store.set('stats', s2);
+              if (m) m.close();
+              C.ui.toast({ icon: 'check', title: C.t('resetDone') });
+              render(true);
+            }
+          });
+        }
+      })
+    ]);
+    m = C.ui.modal({
+      title: gname(g), closeButton: true,
+      body: [
+        el('div', { class: 'ch-row ch-sheet__head', style: { '--game': g.color, '--game-soft': g.soft, '--game-text-dark': C.textOnDark(g.color) } }, [
+          el('div', { class: 'ch-game__icon' }, [el('img', { src: g.icon, alt: '', width: 56, height: 56 })]),
+          el('p', { class: 'ch-dim', text: gsum(g) })
+        ]),
+        rows,
+        erase
+      ],
+      actions: [
+        // Every game shows its tutorial while tutSeen is unset, so clearing it opens the
+        // game on its tutorial, as on a first visit, with no flag in the address
+        { label: C.t('howToPlay'), onClick: function () { C.storage(g.id).remove('tutSeen'); goGame(g); } },
+        { label: C.t('play'), kind: 'primary', onClick: function () { goGame(g); } }
+      ]
+    });
+  }
+
+  function unlockShop() {
+    var card = el('div', { class: 'ch-card' });
+    // Four to a row on every width (#253): fixed 84px tiles wrapped three and one on a
+    // phone, leaving one tile alone under the others
+    var row = el('div', { style: { display: 'grid', 'grid-template-columns': 'repeat(4, minmax(0, 1fr))', gap: 'var(--s-2)', 'margin-bottom': 'var(--s-4)' } });
+    Object.keys(MASCOTS).forEach(function (k) {
+      var m = MASCOTS[k];
+      var owned = m.cost === 0 || C.state.unlocks.indexOf('mascot.' + k) >= 0;
+      var active = (C.state.settings.mascot || 'fox') === k;
+      var b = el('button', {
+        class: 'ch-card ch-card--tint ch-tap', type: 'button',
+        style: { padding: 'var(--s-2) 2px', 'text-align': 'center', 'min-width': '0',
+          'border-color': active ? 'var(--c-accent)' : 'var(--c-line)', 'border-width': '2px' }
+      }, [
+        el('div', { html: C.mascot(k, 52), style: { 'max-width': '52px', margin: '0 auto', filter: owned ? 'none' : 'grayscale(1)', opacity: owned ? '1' : '.45' } }),
+        el('div', { class: 'ch-xs ch-bold', text: C.t(m.key) }),
+        owned ? el('div', { class: 'ch-xs ch-faint', text: active ? C.t('apply') : C.t('owned') })
+          : el('div', { class: 'ch-xs', style: { color: 'var(--c-gold)' }, text: C.num(m.cost) })
+      ]);
+      b.addEventListener('click', function () { pickUnlock('mascot', k, m, owned); });
+      row.appendChild(b);
+    });
+    card.appendChild(el('div', { class: 'ch-xs ch-faint', text: C.t('mascot') }));
+    card.appendChild(row);
+
+    var row2 = el('div', { style: { display: 'grid', 'grid-template-columns': 'repeat(4, minmax(0, 1fr))', gap: 'var(--s-2)' } });
+    Object.keys(PALETTES).forEach(function (k) {
+      var p = PALETTES[k];
+      var owned = p.cost === 0 || C.state.unlocks.indexOf('palette.' + k) >= 0;
+      var active = (C.state.settings.palette || 'default') === k;
+      var b = el('button', {
+        class: 'ch-card ch-card--tint ch-tap', type: 'button',
+        style: { padding: 'var(--s-2) 2px', 'text-align': 'center', 'min-width': '0',
+          'border-color': active ? 'var(--c-accent)' : 'var(--c-line)', 'border-width': '2px' }
+      }, [
+        el('div', { style: { width: '34px', height: '34px', 'border-radius': '50%', margin: '0 auto 4px',
+          background: p.c, opacity: owned ? '1' : '.35' } }),
+        el('div', { class: 'ch-xs ch-bold', text: C.t(p.key) }),
+        owned ? el('div', { class: 'ch-xs ch-faint', text: active ? C.t('apply') : C.t('owned') })
+          : el('div', { class: 'ch-xs', style: { color: 'var(--c-gold)' }, text: C.num(p.cost) })
+      ]);
+      b.addEventListener('click', function () { pickUnlock('palette', k, p, owned); });
+      row2.appendChild(b);
+    });
+    card.appendChild(el('div', { class: 'ch-xs ch-faint', text: C.t('palette') }));
+    card.appendChild(row2);
+    return card;
+  }
+
+  function pickUnlock(kind, key, def, owned) {
+    if (owned) {
+      C.state.settings[kind === 'mascot' ? 'mascot' : 'palette'] = key;
+      C.store.set('settings', C.state.settings);
+      applyPalette();
+      C.feedback('select');
+      render();
+      return;
+    }
+    if (!C.coins.can(def.cost)) {
+      C.ui.toast({ icon: 'coin', title: C.t('notEnoughCoins'), sub: C.t('playToEarn') });
+      C.feedback('bad');
+      return;
+    }
+    C.ui.confirm({
+      title: C.t('unlockAsk', { n: C.num(def.cost) }),
+      okLabel: C.t('unlockCost'),
+      onOk: function () {
+        if (!C.coins.spend(def.cost)) return;
+        // خریده‌شده دیگر هدیه نیست و با انتخاب شخصیت دیگر پس گرفته نمی‌شود
+        if (kind === 'mascot' && C.store.get('mascotGift', null) === key) C.store.remove('mascotGift');
+        if (C.state.unlocks.indexOf(kind + '.' + key) < 0) C.state.unlocks.push(kind + '.' + key);
+        C.store.set('unlocks', C.state.unlocks);
+        C.state.settings[kind === 'mascot' ? 'mascot' : 'palette'] = key;
+        C.store.set('settings', C.state.settings);
+        applyPalette();
+        C.feedback('coin');
+        render();
+      }
+    });
+  }
+
+  function settingsCard() {
+    var card = el('div', { class: 'ch-card' });
+    var s = C.state.settings;
+
+    card.appendChild(el('div', { class: 'ch-item' }, [
+      C.icon('globe', 20),
+      el('div', { class: 'ch-item__label', text: C.t('language') }),
+      langPicker(s.lang, function (v) { C.setLang(v); render(); })
+    ]));
+
+    card.appendChild(el('div', { class: 'ch-item' }, [
+      C.icon(s.theme === 'dark' ? 'moon' : 'sun', 20),
+      el('div', { class: 'ch-item__label', text: C.t('theme') }),
+      C.ui.segmented([
+        { value: 'auto', label: C.t('themeAuto') },
+        { value: 'light', label: C.t('themeLight') },
+        { value: 'dark', label: C.t('themeDark') }
+      ], s.theme, function (v) { C.setTheme(v); render(); })
+    ]));
+
+    [
+      { icon: 'sound', label: C.t('sfx'), get: function () { return s.sfx; }, set: function (v) { C.audio.setSfx(v); } },
+      { icon: 'music', label: C.t('music'), get: function () { return s.music; }, set: function (v) { C.audio.setMusic(v); } },
+      { icon: 'vibrate', label: C.t('haptics'), get: function () { return s.haptics; }, set: function (v) { s.haptics = v; C.store.set('settings', s); C.haptic('tap'); } }
+    ].forEach(function (o) {
+      card.appendChild(el('div', { class: 'ch-item' }, [
+        C.icon(o.icon, 20),
+        el('div', { class: 'ch-item__label', text: o.label }),
+        C.ui.switch(o.get(), o.set)
+      ]));
+    });
+    return card;
+  }
+
+  /* ----------------------------------------------------- خوشامدگویی اول */
+  /* گام‌ها عمداً یک آرایه‌اند تا اضافه کردن صفحه‌ی تازه — مثلاً معرفی
+     چالش روزانه یا لیگ — فقط یک ورودی باشد، نه دست بردن در جریان کار. */
+
+  function stepHello() {
+    var box = el('div', { class: 'ch-welcome__in ch-enter' }, [
+      el('div', { class: 'ch-welcome__art', html: C.mascot(C.state.settings.mascot || 'fox', 148) }),
+      el('h1', { text: C.t('welcomeTitle') }),
+      el('p', { class: 'ch-welcome__sub', text: C.t('welcomeSub') })
+    ]);
+    // زبان همین اول، تا بقیه‌ی گام‌ها به زبان خودش باشد
+    box.appendChild(el('div', { class: 'ch-row', style: { 'justify-content': 'center' } }, [
+      langPicker(C.state.settings.lang, function (v) { C.setLang(v); applyPalette(); drawWelcome(); })
+    ]));
+    return box;
+  }
+
+  function stepYou() {
+    var input = el('input', {
+      class: 'ch-field', type: 'text', maxlength: '24',
+      value: C.state.profile.name, placeholder: C.t('yourName'),
+      'aria-label': C.t('yourName')
+    });
+    var save = function () {
+      C.state.profile.name = input.value.trim().slice(0, 24);
+      C.store.set('profile', C.state.profile);
+    };
+    input.addEventListener('input', save);
+    input.addEventListener('change', save);
+
+    var chars = el('div', { class: 'ch-chars' });
+    C.mascotNames.forEach(function (k) {
+      var b = el('button', {
+        class: 'ch-char', type: 'button',
+        'aria-pressed': (C.state.settings.mascot || 'fox') === k ? 'true' : 'false'
+      }, [
+        el('div', { html: C.mascot(k, 56) }),
+        el('span', { text: C.t(MASCOTS[k] ? MASCOTS[k].key : k) })
+      ]);
+      b.addEventListener('click', function () {
+        // فقط یک شخصیت رایگان است. انتخاب تازه، رایگانِ قبلی را پس می‌گیرد،
+        // وگرنه با چند ضربه — چه بار اول چه با باز کردن دوباره‌ی خوشامدگویی —
+        // هر چهار شخصیت مجانی به دست می‌آمد.
+        // شخصیتی که با سکه خریده شده هرگز پس گرفته نمی‌شود.
+        var gifted = C.store.get('mascotGift', null);
+        if (gifted && gifted !== k) {
+          var at = C.state.unlocks.indexOf('mascot.' + gifted);
+          if (at >= 0) { C.state.unlocks.splice(at, 1); C.store.set('unlocks', C.state.unlocks); }
+        }
+        if (MASCOTS[k] && MASCOTS[k].cost > 0 && C.state.unlocks.indexOf('mascot.' + k) < 0) {
+          C.state.unlocks.push('mascot.' + k);
+          C.store.set('unlocks', C.state.unlocks);
+          C.store.set('mascotGift', k);
+        }
+        C.state.settings.mascot = k;
+        C.store.set('settings', C.state.settings);
+        C.feedback('select');
+        drawWelcome();
+      });
+      chars.appendChild(b);
+    });
+
+    return el('div', { class: 'ch-welcome__in ch-enter' }, [
+      el('h1', { text: C.t('youTitle') }),
+      el('p', { class: 'ch-welcome__sub', text: C.t('youSub') }),
+      input,
+      el('div', { class: 'ch-xs ch-faint', style: { 'margin-top': 'var(--s-2)' }, text: C.t('pickChar') }),
+      chars,
+      el('p', { class: 'ch-xs ch-faint ch-center', text: C.t('charFree') })
+    ]);
+  }
+
+  function stepPrefs() {
+    var s = C.state.settings;
+    var list = el('div', { class: 'ch-card' }, [
+      el('div', { class: 'ch-item' }, [
+        C.icon(s.theme === 'dark' ? 'moon' : 'sun', 20),
+        el('div', { class: 'ch-item__label', text: C.t('theme') }),
+        C.ui.segmented([
+          { value: 'auto', label: C.t('themeAuto') },
+          { value: 'light', label: C.t('themeLight') },
+          { value: 'dark', label: C.t('themeDark') }
+        ], s.theme, function (v) { C.setTheme(v); drawWelcome(); })
+      ])
+    ]);
+    [
+      { icon: 'sound', label: C.t('sfx'), get: function () { return s.sfx; }, set: function (v) { C.audio.setSfx(v); } },
+      { icon: 'music', label: C.t('music'), get: function () { return s.music; }, set: function (v) { C.audio.setMusic(v); } },
+      { icon: 'vibrate', label: C.t('haptics'), get: function () { return s.haptics; },
+        set: function (v) { s.haptics = v; C.store.set('settings', s); C.haptic('tap'); } }
+    ].forEach(function (o) {
+      list.appendChild(el('div', { class: 'ch-item' }, [
+        C.icon(o.icon, 20),
+        el('div', { class: 'ch-item__label', text: o.label }),
+        C.ui.switch(o.get(), o.set)
+      ]));
+    });
+
+    return el('div', { class: 'ch-welcome__in ch-enter' }, [
+      el('h1', { text: C.t('prefsTitle') }),
+      el('p', { class: 'ch-welcome__sub', text: C.t('prefsSub') }),
+      list
+    ]);
+  }
+
+  var WELCOME_STEPS = [stepHello, stepYou, stepPrefs];
+  var wStep = 0;
+  var wHost = null;
+
+  function drawWelcome() {
+    if (!wHost) return;
+    wHost.innerHTML = '';
+    wHost.appendChild(WELCOME_STEPS[wStep]());
+
+    var last = wStep === WELCOME_STEPS.length - 1;
+    var dots = el('div', { class: 'ch-tut__dots' });
+    for (var i = 0; i < WELCOME_STEPS.length; i++) {
+      dots.appendChild(el('div', { class: 'ch-tut__dot' + (i === wStep ? ' ch-tut__dot--on' : '') }));
+    }
+    var next = el('button', {
+      class: 'ch-btn ch-btn--primary', type: 'button',
+      text: last ? C.t('start') : C.t('next')
+    });
+    next.addEventListener('click', function () {
+      C.feedback('tap');
+      if (last) { closeWelcome(); return; }
+      wStep++;
+      drawWelcome();
+    });
+    var foot = el('div', { class: 'ch-welcome__foot' }, [
+      wStep > 0 ? el('button', {
+        class: 'ch-btn ch-btn--ghost', type: 'button', text: C.t('back'),
+        onclick: function () { C.feedback('tap'); wStep--; drawWelcome(); }
+      }) : null,
+      next
+    ]);
+    var inner = wHost.querySelector('.ch-welcome__in');
+    inner.appendChild(dots);
+    inner.appendChild(foot);
+  }
+
+  function openWelcome() {
+    if (wHost && wHost.parentNode) wHost.parentNode.removeChild(wHost);
+    wStep = 0;
+    wHost = el('div', { class: 'ch-welcome', role: 'dialog', 'aria-modal': 'true' });
+    document.body.appendChild(wHost);
+    // aria-modal تنها کافی نیست: بدون این، صفحه‌خوان و کلید Tab همچنان به
+    // منو و نوار ناوبری پشت صفحه می‌رسند.
+    app.setAttribute('aria-hidden', 'true');
+    document.getElementById('nav').setAttribute('aria-hidden', 'true');
+    drawWelcome();
+    // بدون این، Tab به منوی پشت صفحه می‌رسید
+    wHost.addEventListener('keydown', function (e) {
+      if (e.key !== 'Tab' || !wHost) return;
+      var f = wHost.querySelectorAll('button, input, [tabindex]:not([tabindex="-1"])');
+      if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
+      else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+    });
+  }
+
+  function closeWelcome() {
+    C.store.set('welcomeSeen', true);
+    if (wHost && wHost.parentNode) wHost.parentNode.removeChild(wHost);
+    wHost = null;
+    app.removeAttribute('aria-hidden');
+    document.getElementById('nav').removeAttribute('aria-hidden');
+    // اگر فهرست بازی‌ها هنوز نیامده، رسم را به خود fetch بسپار وگرنه یک لحظه
+    // حالت «هنوز بازی‌ای نیست» می‌پرد و بعد جایش را به فهرست می‌دهد.
+    if (gamesLoaded) render();
+    C.afterUnlock(function () { C.audio.music('menu'); });
+  }
+
+  /* ------------------------------------------------------------ ناوبری */
+
+  var TABS = [
+    { id: 'home', icon: 'home', label: 'home', view: viewHome },
+    { id: 'daily', icon: 'calendar', label: 'daily', view: viewDaily },
+    { id: 'league', icon: 'trophy', label: 'league', view: viewLeague },
+    { id: 'ach', icon: 'medal', label: 'achievements', view: viewAchievements },
+    { id: 'profile', icon: 'user', label: 'profile', view: viewProfile }
+  ];
+
+  function drawNav() {
+    navIn.innerHTML = '';
+    TABS.forEach(function (t) {
+      var b = el('button', {
+        class: 'ch-nav__item', type: 'button', role: 'tab',
+        'aria-selected': tab === t.id ? 'true' : 'false'
+      }, [C.icon(t.icon, 24), el('span', { text: C.t(t.label) })]);
+      b.addEventListener('click', function () {
+        if (tab === t.id) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+        tab = t.id;
+        C.feedback('select');
+        render();
+      });
+      navIn.appendChild(b);
+    });
+  }
+
+  // keep: stay where the user is (a pin tap, #285); a new tab starts at the top
+  function render(keep) {
+    var t = TABS.filter(function (x) { return x.id === tab; })[0] || TABS[0];
+    var y = window.scrollY;
+    app.innerHTML = '';
+    app.appendChild(t.view());
+    drawNav();
+    C.ui.refreshCoins();
+    window.scrollTo(0, keep ? y : 0);
+  }
+
+  // The game cards were plain divs, so a keyboard could not reach them at all,
+  // not even with Tab (#206). They take focus now; Enter or Space opens one and
+  // the arrow keys move to the nearest card on screen in that direction, which
+  // works the same for the grid, the list, the recent row and right-to-left.
+  function kbStep(from, key) {
+    var dir = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[key];
+    var a = from.getBoundingClientRect();
+    var ax = a.left + a.width / 2, ay = a.top + a.height / 2;
+    var best = null, bestScore = Infinity;
+    Array.prototype.forEach.call(app.querySelectorAll('.ch-kbnav'), function (n) {
+      if (n === from) return;
+      var b = n.getBoundingClientRect();
+      var dx = b.left + b.width / 2 - ax, dy = b.top + b.height / 2 - ay;
+      var along = dx * dir[0] + dy * dir[1];
+      if (along < 2) return;
+      var score = along + 2 * Math.abs(dx * dir[1] + dy * dir[0]);
+      if (score < bestScore) { bestScore = score; best = n; }
+    });
+    return best;
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey || document.querySelector('.ch-scrim')) return;
+    var cur = document.activeElement;
+    var onItem = cur && cur.classList && cur.classList.contains('ch-kbnav') && app.contains(cur);
+    if ((e.key === 'Enter' || e.key === ' ') && onItem && cur.tagName !== 'BUTTON') {
+      e.preventDefault();
+      cur.click();
+      return;
+    }
+    if (!/^Arrow(Left|Right|Up|Down)$/.test(e.key)) return;
+    if (!onItem) {
+      // Nothing chosen yet: the first arrow press lands on the first card
+      if (cur && cur !== document.body) return;
+      var first = app.querySelector('.ch-kbnav');
+      if (first) { e.preventDefault(); first.focus(); }
+      return;
+    }
+    var next = kbStep(cur, e.key);
+    e.preventDefault();
+    if (next) { next.focus(); next.scrollIntoView({ block: 'nearest' }); }
+  });
+
+  /* --------------------------------------------------------- شروع */
+
+  C.boot({ sw: true });
+  applyPalette();
+  C.onLangChange = function () { applyPalette(); };
+  // برگشت از bfcache: سکه و رکوردی که داخل بازی عوض شده باید دیده شود
+  C.onRestore = function () { applyPalette(); if (gamesLoaded) render(); };
+
+  if (!C.store.get('welcomeSeen', false)) openWelcome();
+
+  fetch('games.json', { cache: 'no-store' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      GAMES = d.games || [];
+      gamesLoaded = true;
+      render();
+      C.afterUnlock(function () { C.audio.music('menu'); });
+    })
+    .catch(function (err) {
+      // اگر واقعاً فایل نیامد، این را بگو. خطای رندر را قورت نده.
+      if (window.console && console.error) console.error(err);
+      gamesLoaded = true;
+      loadError = true;
+      // از مسیر عادی رندر کن، وگرنه نوار پایین هیچ‌وقت پر نمی‌شود و کاربر
+      // هیچ راهی به تنظیمات و پروفایل ندارد.
+      try { render(); } catch (e2) {
+        if (window.console && console.error) console.error(e2);
+      }
+    });
+})();
+</script>
+</body>
+</html>
