@@ -5501,6 +5501,31 @@ function testMahjong() {
 }
 
 /* ------------------------------------------------------------- شطرنج */
+// #545: two players facing each other across the phone saw Black's pieces upside down
+// for the player who had them; a face-to-face view turns them and keeps the board still
+function testChessFaceToFace() {
+  head('Chess and Chinese chess: a face-to-face view for two players (#545)');
+  const cs = fs.readFileSync(path.join(ROOT, 'www/games/chess/index.html'), 'utf8');
+  const shapes = (/^  var SHAPES = \{[\s\S]*?^  \};$/m.exec(cs) || [''])[0];
+  const fn = (/^  function pieceSvg\(p, up\) \{[\s\S]*?^  \}$/m.exec(cs) || [''])[0];
+  ok(!!shapes && !!fn, 'pieceSvg takes the face-to-face turn');
+  if (shapes && fn) {
+    const sb = {};
+    vm.runInNewContext(shapes + fn + ';this.f = pieceSvg;', sb);
+    ok(/<g transform="rotate\(180 22\.5 22\.5\)"/.test(sb.f('k', true)) && !/rotate/.test(sb.f('k', false)) && !/rotate/.test(sb.f('K')), 'a turned piece is turned inside its drawing, an upright one is not');
+  }
+  ok(/function faceUp\(p\) \{ return !isAi\(\) && !isPz\(\) && !!prefs\.face && !!p && p !== p\.toUpperCase\(\); \}/.test(cs), 'only Black turns, only with two players');
+  ok(/return prefs\.flip && !prefs\.face && S && S\.turn === 'b'/.test(cs), 'face to face never turns the board');
+  ok(/var html = p \? pieceSvg\(p, faceUp\(p\)\) : '';/.test(cs) && /html: pieceSvg\(gone\.p, faceUp\(gone\.p\)\)/.test(cs), 'the board and a taken piece both use the turn');
+  ok(/if \(prefs\.face\) prefs\.flip = false;/.test(cs) && /if \(prefs\.flip\) prefs\.face = false;/.test(cs), 'turning the board and face to face exclude each other');
+  ok(/@container game \(max-aspect-ratio: 5 \/ 4\) \{ \.cs-player--face \{ transform: rotate\(180deg\); \} \}/.test(cs), 'the row above the board turns too, only while it is above the board');
+  const xq = fs.readFileSync(path.join(ROOT, 'www/games/xiangqi/index.html'), 'utf8');
+  ok(/\.xq-face \.xq-piece--b \.xq-glyph \{ display: inline-block; transform: rotate\(180deg\); \}/.test(xq) && /board\.classList\.toggle\('xq-face', S\.mode === 'two' && prefs\.face\);/.test(xq), 'Chinese chess turns Black\'s characters face to face, with two players only');
+  ok((xq.match(/face: prefs\.face \}/g) || []).length >= 3 && /face: !!prefs\.face \}/.test(xq), 'Chinese chess remembers the choice wherever it saves its settings');
+  const keys = ['faceToFace'].every((k) => (cs.match(new RegExp('\\b' + k + ': \'', 'g')) || []).length === 5 && (xq.match(new RegExp('\\b' + k + ': \'', 'g')) || []).length === 5);
+  ok(keys, 'the option is named in all five languages in both games');
+}
+
 function testChess() {
   head('شطرنج');
   const E = loadEngine('chess', 'ChessEngineFactory');
