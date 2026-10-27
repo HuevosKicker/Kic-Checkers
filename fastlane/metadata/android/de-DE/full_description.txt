@@ -36,7 +36,7 @@ Die Spiele:
 * Bowling — zehn Frames, wischen zum Werfen
 * Schiebepuzzle — nummerierte Plättchen ordnen, 3×3 bis 5×5
 * Puzzle — 12 bis 150 Teile, im Code gezeichnet
-* Dame — klassisch oder spanisch, gegen die KI oder zu zweit
+* Dame — klassisch, spanisch oder Huevo Style, gegen die KI oder zu zweit
 * Klondike — Patience, eine oder drei Karten ziehen, das Tagesspiel ist immer lösbar
 * Verrückte Acht — Farbe oder Wert bedienen, iranische oder internationale Regeln
 * Gin Rommé — Kombinationen gegen einen Bot, bis 100
