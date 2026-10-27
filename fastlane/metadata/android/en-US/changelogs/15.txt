@@ -1,0 +1,4 @@
+New games:
+- Pasur, the Persian fishing card game, against three levels of AI
+Bug fixes:
+- A half-finished daily in Sudoku, Dots and Boxes, Minesweeper or Tower Defence is no longer lost when you leave; it picks up where you left off, even days later

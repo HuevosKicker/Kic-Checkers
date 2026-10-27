@@ -1,0 +1,26 @@
+# گریدل و اندروید
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/captures/
+.cxx/
+
+# کلید امضا و هر شکل کدشده‌اش هیچ‌وقت داخل ریپو نمی‌آید
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.b64
+keystore.properties
+key.properties
+
+# صفحه‌ی موقت اسکریپت تصویربرداری؛ نباید هیچ‌وقت کامیت شود
+www/_shot.html
+
+# سیستم و ویرایشگر
+.DS_Store
+Thumbs.db
+.idea/
+*.iml

@@ -1,0 +1,2 @@
+Bug fixes:
+- Sudoku: the board corners are properly curved and follow the border instead of being cut flat

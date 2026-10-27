@@ -1,0 +1,56 @@
+Chogan es una colección de juegos pequeños que se pueden terminar, en una sola app. Trae treinta y cinco juegos, y los nuevos llegan como actualizaciones de la misma app.
+
+Los juegos:
+
+* Defensa de torres — cuatro torres, seis mapas fijos y un mapa diario, veinte oleadas y un modo infinito
+* Sudoku — cuatro dificultades con solución única garantizada, notas, pistas y un reto diario
+* Buscaminas — generación sin adivinar, cuatro tamaños, despeje rápido y banderas
+* Puntos y cajas — dos jugadores en un mismo móvil, o tres niveles de IA
+* Backgammon — dos jugadores o tres niveles de IA, dados que deshacer nunca vuelve a tirar, los gammons cuentan doble
+* Mancala — reglas de Kalah, dos jugadores o tres niveles de IA
+* Nonograma — tres tamaños, cada puzle se resuelve solo con lógica
+* FreeCell — las partidas numeradas clásicas, nunca la única imposible, deshacer ilimitado
+* Reversi — dos jugadores o tres niveles de IA
+* Molino — dos jugadores o tres niveles de IA
+* Senku — deja una sola ficha, en el centro para una partida perfecta
+* Batalla naval — contra una IA que solo sabe lo que sabrías tú
+* Puentes — tres tamaños, cada puzle con exactamente una solución
+* Descifra el código — tres niveles, apto para daltónicos
+* Rompeladrillos — doce niveles fijos, tres bolas en cada uno
+* Pasur — el juego de cartas persa de pesca contra tres niveles de IA, con surs y la puntuación clásica
+* Mahjong — tres disposiciones, entre ellas la tortuga clásica, todas las partidas con solución, con pistas y mezclas
+* Ajedrez — contra la IA en tres niveles o para dos en un mismo móvil, y además problemas de Lichess
+* Hokm — el juego de cartas persa para cuatro: tú y tu compañero contra dos rivales de la IA
+* Lluvia de bloques — bloques que caen: un sprint de 40 líneas o un maratón de 100
+* Gomoku — cinco en línea en tablero de 9, 13 o 15, contra tres niveles de IA o para dos
+* Go — Go de 9×9 con recuento automático, contra tres niveles de IA o para dos
+* Salida — saca todas las flechas del tablero en un orden que funcione, tres corazones por nivel, niveles sin fin
+* Blackjack — acércate más a 21 que la banca, partidas de diez manos sin apuestas
+* Bola 8 — mete tu grupo y al final la 8, con física de mesa real, contra la IA en tres niveles o para dos
+* Snooker — roja, luego color y al final los colores en orden; 6, 10 o 15 rojas, contra la IA o para dos
+* Atasco — aparta los coches y saca el tuyo del aparcamiento, un arrastre es un movimiento, niveles sin fin
+* Reacción en cadena — añade orbes hasta que las casillas estallen en cadena; de 2 a 4 en un móvil o contra bots
+* Ludo — tira, sal con un seis, come y lleva tus fichas a casa; de 2 a 4 jugadores o contra bots
+* Serpientes y escaleras — tira, sube por las escaleras, baja por las serpientes y llega primero a 100; de 2 a 4 jugadores o contra bots
+* Dardos — 501 o 301, tres dardos por turno y cierre en doble; contra un bot o a dos
+* Bolos — diez juegos, desliza para lanzar y curva para dar efecto; solo, contra un bot o a dos
+* Puzle deslizante — ordena las fichas numeradas, de 3×3 a 5×5, con pocos movimientos
+* Rompecabezas — de 12 a 150 piezas al marco; motivos persas y paisajes dibujados con código
+* Damas — 8×8 con captura obligatoria, reglas clásicas o españolas, contra la IA o para dos
+
+Alrededor de los juegos:
+
+* Un reto diario idéntico en todos los dispositivos, sin ningún servidor
+* Una liga semanal sin conexión con cinco niveles
+* Más de ochenta logros
+* Estadísticas y un perfil
+* Interfaz en persa, inglés, chino simplificado, alemán y español, con temas claro y oscuro
+
+Sobre la privacidad:
+
+* El único permiso que declara la app es la vibración. Ni siquiera acceso a internet
+* Sin anuncios, sin compras dentro de la app, sin analíticas, sin rastreo
+* Todo va dentro del paquete, hasta el sonido se genera con código
+* El progreso se guarda solo en el dispositivo, y la copia de seguridad automática de Google está desactivada
+
+Gratis y de código abierto con la licencia MIT.

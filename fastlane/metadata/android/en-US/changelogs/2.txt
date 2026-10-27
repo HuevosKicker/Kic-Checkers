@@ -1,0 +1,4 @@
+Bug fixes:
+- The soft accent colour in the dark theme
+Improvements:
+- A first-run welcome: pick your language, name and character, theme, and sound, music and vibration. See it again any time from your profile

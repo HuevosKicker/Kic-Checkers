@@ -1,0 +1,20 @@
+# Automatic dependency updates. It only opens PRs; nothing merges by itself,
+# because bumping the Gradle plugin or Gradle itself can break F-Droid's
+# reproducible build and needs a human look. Monthly, so the PR queue stays short.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "chore"
+    labels: [dependencies]
+
+  - package-ecosystem: gradle
+    directory: /android
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "chore"
+    labels: [dependencies]

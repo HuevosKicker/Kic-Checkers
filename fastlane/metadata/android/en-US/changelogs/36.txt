@@ -1,0 +1,9 @@
+Bug fixes:
+- The navigation bar follows the app's dark theme
+- Darts: the third dart and the opponent's throws stay readable, and every dart shows its score
+- Dark theme: buttons and selected options are easier to read
+Improvements:
+- Blackjack: cards are dealt from a shoe and turn over
+- Minesweeper: flags drop in, mines go off one by one, and a cleared board waves
+- Checkers: optional capture
+- Profile: the version and commit link to GitHub

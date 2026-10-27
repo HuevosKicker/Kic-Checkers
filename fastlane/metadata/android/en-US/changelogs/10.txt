@@ -1,0 +1,15 @@
+New games:
+- Backgammon
+- Mancala
+- Nonogram
+- FreeCell
+- Reversi
+- Nine Men's Morris
+- Peg Solitaire
+- Battleship
+- Bridges
+- Code Breaker
+- Breakout
+Improvements:
+- Every new game has a daily challenge and its own awards; board games play two players on one phone or against the computer at three levels
+- Two-player Dots and Boxes calls the first player Player 1 instead of You

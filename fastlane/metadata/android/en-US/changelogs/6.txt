@@ -1,0 +1,8 @@
+Bug fixes:
+- Thirty-five fixes across all four games
+Improvements:
+- The app follows your phone's language instead of always starting in Persian
+- Sharing a result sends a picture of the finished board
+- The result panel can be closed to look at the board
+- Minesweeper: the board sits in a real frame
+- Tower Defence: towers are built from a permanent bar instead of a popup

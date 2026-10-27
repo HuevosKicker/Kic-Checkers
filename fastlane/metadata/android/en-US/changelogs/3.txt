@@ -1,0 +1,2 @@
+Bug fixes:
+- Android builds are reproducible again for F-Droid: the APK no longer embeds a dependency block that differs between build machines. No gameplay changes

@@ -1,0 +1,7 @@
+New games:
+- Mahjong Solitaire: three layouts, every deal solvable
+- Chess for two players on one phone
+Bug fixes:
+- Tower Defence: "not enough gold" no longer covers your gold
+Improvements:
+- Tower Defence: each tower has its own icon, and towers you can't afford show your gold against their price

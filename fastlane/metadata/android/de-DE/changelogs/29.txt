@@ -1,0 +1,6 @@
+Menü: Spiele nach Rätsel, Brett, Karten und Geschick sortiert; ein Tipp auf Kategorie oder Pin springt nicht mehr nach oben.
+Menü: größerer, klarerer Pin auf jedem Spiel.
+Schach: zufällige Farbwahl gegen den Bot.
+Profil: eine Spieleliste; ein Tipp zeigt Statistik, Anleitung und Löschen der Daten.
+Profil: Land aus einer Liste in deiner Sprache wählen.
+Einstellungen: alle fünf Sprachen in einer Reihe.

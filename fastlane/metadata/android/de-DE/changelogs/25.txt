@@ -1,0 +1,4 @@
+Turmverteidigung: zwei weitere Ausbaustufen mit Vorschau, was jede bringt, ein Auto-Schalter, der die nächste Welle selbst startet, sichtbar fliegende Schüsse, klarere Turmsymbole und kleine Kartenvorschauen in der Auswahl.
+Profil: Figuren und Farben stehen zuerst, vier pro Reihe.
+Ausweg: Ein getroffener Pfeil wird auf ganzer Länge rot.
+Dialogknöpfe behalten ihre Beschriftung in einer Zeile.

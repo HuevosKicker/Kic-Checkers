@@ -1,0 +1,7 @@
+New games:
+- Chain Reaction: add orbs until cells burst and chain across the board, 2 to 4 players on one phone or against bots
+- Ludo: roll, capture and race your tokens home, a quick or a full game, 2 to 4 players or against bots
+Bug fixes:
+- Closing a result with X no longer leaves an empty board: a bar offers the result and the next level
+Improvements:
+- Battleship: a hit gives another shot (you can switch it off)

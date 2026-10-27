@@ -1,0 +1,3 @@
+Bug fixes:
+- Tower Defence: towers placed before wave 1 were lost when you left the screen; the game is now saved from the first tower on
+- Restarting in that state asks first instead of silently clearing the board

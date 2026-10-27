@@ -1,0 +1,7 @@
+La barra de navegación sigue el tema oscuro de la app.
+Dardos: el tercer dardo y los tiros del rival se ven bien, y cada dardo muestra su puntuación.
+Tema oscuro: botones y opciones elegidas más legibles.
+Blackjack: las cartas salen del zapato y se dan la vuelta.
+Buscaminas: las banderas caen, las minas estallan una a una y el tablero limpio hace una ola.
+Damas: captura opcional.
+Perfil: la versión y el commit enlazan a GitHub.

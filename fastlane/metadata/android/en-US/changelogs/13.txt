@@ -1,0 +1,2 @@
+Bug fixes:
+- Sudoku: a puzzle with an empty row (like the daily of 9 October) squeezed that row to a thin strip; all nine rows are now the same size

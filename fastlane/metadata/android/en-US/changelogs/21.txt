@@ -1,0 +1,4 @@
+New games:
+- Block Drop: falling blocks in a 40-line sprint and a 100-line marathon, with hold, three next pieces, a landing guide, swipe controls and a daily sprint
+Bug fixes:
+- Hokm: as hakem, the trump choice sits above your cards instead of in a window that could be closed by mistake and leave the hand stuck

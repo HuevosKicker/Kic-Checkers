@@ -1,0 +1,5 @@
+Bug fixes:
+- Chess: promoting a pawn works again on Android
+- Chess: the board stays still while the move list grows
+Improvements:
+- Pasur: you see the card your rival plays, and the cards it takes are highlighted before they leave the table

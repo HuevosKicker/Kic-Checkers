@@ -1,0 +1,12 @@
+New games:
+- Darts: 501 or 301, double out, vs a bot or a friend
+- Bowling: ten frames, swipe to bowl, bend it for spin
+- Sliding Puzzle: numbered tiles back in order, 3×3 to 5×5
+- Jigsaw: 12 to 48 pieces on pictures drawn in code
+Bug fixes:
+- Minesweeper: medium and large fit the screen or scroll
+- Minesweeper: arrows stop at the edge, Tab follows them
+- Gomoku, Go, Chain Reaction: arrows follow the board
+Improvements:
+- Letter shortcuts work on any keyboard
+- Block Drop: a new-round button

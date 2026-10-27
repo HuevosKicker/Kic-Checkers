@@ -1,0 +1,4 @@
+Bug fixes:
+- The language and theme pickers no longer overflow their card on narrow screens
+Improvements:
+- New language: Simplified Chinese, for the whole app, all four games, the awards and the league. A phone set to Chinese starts in Chinese

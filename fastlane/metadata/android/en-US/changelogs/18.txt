@@ -1,0 +1,2 @@
+Bug fixes:
+- Android: Save image and Share on the result card work, to your gallery (Pictures/Chogan) or the share sheet. No new permission

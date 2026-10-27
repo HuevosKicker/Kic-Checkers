@@ -1,0 +1,4 @@
+New games:
+- Hokm, the Persian trick-taking card game: you and a partner against two bots, three levels, matches to 3 or 7, and a daily challenge
+Improvements:
+- New card art for every card game: Qajar-style Shah, Bibi and Sarbaz, and two Persian card backs, carpet or termeh

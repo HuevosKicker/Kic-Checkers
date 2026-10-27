@@ -1,0 +1,3 @@
+Bug fixes:
+- Minesweeper: on narrow phones the last columns were hidden with nothing showing it; the hidden side now fades out with an arrow until you scroll to it
+- FreeCell: dragged cards are no longer cut off on wide screens

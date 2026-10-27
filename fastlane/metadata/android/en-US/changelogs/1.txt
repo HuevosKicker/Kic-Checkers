@@ -1,0 +1,7 @@
+New games:
+- Tower Defence
+- Sudoku
+- Minesweeper
+- Dots and Boxes
+Improvements:
+- A daily challenge, a weekly league, awards and a profile

@@ -1,0 +1,5 @@
+Bug fixes:
+- Persian layout: the back button points the right way
+- Backgammon: the opening message says "You start", not "You starts"
+Improvements:
+- Ctrl+Z (Cmd+Z on a Mac) undoes a move in every game with an undo button, on any keyboard layout

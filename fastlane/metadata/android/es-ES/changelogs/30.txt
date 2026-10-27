@@ -1,0 +1,4 @@
+Juego nuevo: Reacción en cadena; añade orbes hasta que las casillas estallen en cadena, de 2 a 4 o contra bots.
+Juego nuevo: Ludo; tira, come y lleva tus fichas a casa, partida rápida o completa, de 2 a 4 o contra bots.
+Cerrar un resultado con la X ya no deja un tablero vacío: abajo quedan el resultado y el siguiente nivel.
+Batalla naval: cada acierto da otro disparo (se puede desactivar).

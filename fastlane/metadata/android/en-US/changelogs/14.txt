@@ -1,0 +1,6 @@
+Bug fixes:
+- The daily calendar fits phone screens again
+- Sudoku: the counter under each number counts every number you place, not only the correct ones
+- Game titles no longer fall back to Persian when a language is missing
+Improvements:
+- New language: German

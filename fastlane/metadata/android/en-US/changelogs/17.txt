@@ -1,0 +1,3 @@
+Improvements:
+- Chess: play against the AI on three levels, as white or black, without the screen freezing; undo takes back your move and its reply
+- Chess: 600 puzzles from the open Lichess database in three levels, with hints, and a daily challenge of three puzzles
