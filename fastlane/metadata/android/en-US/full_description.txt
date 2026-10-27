@@ -36,7 +36,7 @@ The games:
 * Bowling — ten frames, swipe to bowl
 * Sliding Puzzle — slide the numbered tiles back into order, from 3×3 to 5×5
 * Jigsaw — 12 to 150 pieces, on Persian patterns and scenes drawn in code
-* Checkers — classic or Spanish rules, against the AI or two players
+* Checkers — classic, Spanish or Huevo Style rules, AI or two players
 * Klondike — classic solitaire, draw one or three
 * Crazy Eights — match the suit or rank, Iranian or international rules
 * Gin Rummy — melds and deadwood against a bot, a match to 100

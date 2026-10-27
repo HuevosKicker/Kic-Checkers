@@ -6784,9 +6784,10 @@ function testCheckers() {
   ok(fw.every((w) => w === 1), 'with optional capture medium still beats easy in 6 of 6 games, from both sides (' + fw.join(',') + ')');
   const tfh = Date.now(); E.aiMove(E.initial(), 1, 'hard', frng(5), 'classic', true); const tFree = Date.now() - tfh;
   ok(tFree < 1500, 'a hard move from the start with optional capture takes under 1.5 s here (' + tFree + ' ms)');
-  ok(/prefs\.free = v === 'free';/.test(html) && /free = !daily && prefs\.free === true;/.test(html) && /E\.aiMove\(S\.board, 2, S\.level, rnd, S\.rules, S\.free\)/.test(html) &&
-    (html.match(/E\.moves\(S\.board, S\.turn, S\.rules, S\.free\)/g) || []).length === 4 && !/E\.moves\(S\.board, S\.turn, S\.rules\)/.test(html) &&
-    /var jump = !S\.done && !busy\(\) && !S\.free && /.test(html) && /free: !v\.daily && v\.free === true,/.test(html),
+  // (#391 Huevo: every move list also gets the state, for the Queen's edge clock, and Huevo is always optional)
+  ok(/prefs\.free = v === 'free';/.test(html) && /free = !daily && \(prefs\.free === true \|\| rules === 'huevo'\);/.test(html) && /E\.aiMove\(S\.board, 2, S\.level, rnd, S\.rules, S\.free, S\)/.test(html) &&
+    (html.match(/E\.moves\(S\.board, S\.turn, S\.rules, S\.free, S\)/g) || []).length === 3 && !/E\.moves\(S\.board, S\.turn, S\.rules\)/.test(html) && !/E\.moves\(S\.board, S\.turn, S\.rules, S\.free\)/.test(html) &&
+    /var jump = !S\.done && !busy\(\) && !S\.free && /.test(html) && /free: !v\.daily && \(v\.free === true \|\| v\.rules === 'huevo'\),/.test(html),
     'the page offers the choice, keeps the daily game forced, saves it, gives it to the AI and every move list, and drops the "must jump" note');
   ok(/prefs\.rules = v;/.test(html) && /var rules = daily \? 'classic' : prefRules\(\),/.test(html) && /E\.aiMove\(S\.board, 2, S\.level, rnd, S\.rules[,)]/.test(html), 'the page offers both rule sets, keeps the daily game classic and gives the AI the rules in play');
 
@@ -8713,6 +8714,117 @@ function testReversiMotion() {
   const long = { i: 0, flips: [9, 18, 27, 36, 45, 54, 63], t0: 0 };
   ok(sb.animEnd(long) <= 1000, 'the longest ripple stays within a second (' + sb.animEnd(long) + ' ms)');
   ok(/if \(C\.ui\.reduceMotion\(\)\) \{ anim = null; draw\(\); return; \}/.test(src), 'reduced motion draws the move still');
+}
+
+// #391: Huevo Style, a third rule set designed by HuevosKicker, rule by rule as the
+// gist states them (H1–H6, Q1–Q14)
+function testCheckersHuevo() {
+  head('Checkers: Huevo Style (#391)');
+  const t0 = Date.now();
+  const E = loadEngine('checkers', 'CheckersEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/checkers/index.html'), 'utf8');
+  const sq = (r, c) => r * 8 + c;
+  const B = (rows) => { const map = { '.': 0, x: 1, o: 2, X: 3, O: 4, q: 5, Q: 6, e: 7, E: 8 }; const b = []; rows.forEach((r) => r.split('').forEach((ch) => b.push(map[ch]))); return b; };
+  const st = (board, turn) => Object.assign(E.newState('2p', 'huevo'), { board, turn: turn || 1 });
+  const ms = (b, p, S) => E.moves(b, p, 'huevo', true, S);
+  const key = (m) => m.from + '>' + m.path.join('>');
+  const S0 = E.newState('2p', 'huevo');
+  ok(S0.board[53] === 5 && S0.board[10] === 6 && S0.free && S0.qt.join() === '0,15,15' && S0.board.filter((v) => v).length === 24, 'each side starts with a Queen in place of a man, on squares 53 and 10 (Q1), capture optional (H4)');
+  // H1, H2: a king flies to its first victim and lands right behind it; the second hop is short
+  let b = B(['........', '........', '........', '....o...', '........', '..o.....', '........', 'X.......']);
+  let k = ms(b, 1).filter((m) => m.caps.length).map(key);
+  const far = ms(B(['........', '........', '.....o..', '........', '........', '..o.....', '........', 'X.......']), 1).filter((m) => m.caps.length).map(key);
+  ok(k.join() === '56>35,56>35>21' && far.join() === '56>35', 'a king flies on the first hop only and lands right behind each piece taken (H1, H2) (' + k.join(' ') + ' | ' + far.join(' ') + ')');
+  // H3, H4: a chain may stop after any landing, and a quiet step stays legal beside a jump
+  b = B(['........', '........', '........', '....o...', '........', '..o.....', '.x......', '........']);
+  k = ms(b, 1).map(key);
+  ok(k.indexOf('49>35') >= 0 && k.indexOf('49>35>21') >= 0 && k.indexOf('49>40') >= 0, 'a chain may stop after any landing and capturing is optional (H3, H4)');
+  // Q3: the Queen steps one square any way and captures backwards like a man
+  b = B(['........', '........', '........', '........', '...q....', '..o.....', '........', '........']);
+  k = ms(b, 1).map(key);
+  ok(k.sort().join() === ['35>26', '35>28', '35>44', '35>49'].sort().join(), 'the Queen steps one square any way and captures backwards (Q3)');
+  // Q4, Q5: on the far row she becomes an Empress, who flies on every hop
+  b = B(['........', '..q.....', '........', '........', '........', '........', '........', '.......o']);
+  const promo = ms(b, 1).filter((m) => m.crown);
+  const S1 = st(b.slice()); S1.board[sq(7, 7)] = 2; E.applyMove(S1, promo[0]);
+  ok(promo.length === 2 && S1.board[promo[0].path[0]] === 7, 'a Queen on the far row becomes an Empress (Q4)');
+  b = B(['........', '........', '.....o..', '........', '........', '..o.....', '........', 'e.......']);
+  k = ms(b, 1).filter((m) => m.caps.length).map(key);
+  ok(k.indexOf('56>35') >= 0 && k.indexOf('56>35>21') < 0, 'an Empress flies on every hop: from 35 she reaches the piece two squares away (Q5)');
+  const fly2 = ms(B(['........', '........', '........', '....o...', '........', '..o.....', '........', 'e.......']), 1).filter((m) => m.caps.length).map(key);
+  ok(fly2.indexOf('56>35>21') >= 0, 'and chains on, landing right behind each piece');
+  // Q2: taking the Queen wins at once
+  let S = st(B(['........', '........', '........', '...Q....', '..x.....', '........', '........', '......q.']), 1);
+  E.applyMove(S, { from: sq(4, 2), path: [sq(2, 4)] });
+  ok(S.winner === 1 && S.reason === 'queen', 'capturing the Queen wins the game (Q2)');
+  // H5, Q8: stuck, or only the Queen can move: the count decides
+  S = st(B(['........', '........', '........', 'o.o.....', '.o.o....', '..x.....', '........', 'q.....Q.']), 1);
+  S.board[sq(6, 1)] = 0; S.board[sq(6, 3)] = 0;
+  ms(S.board, 1, S).length;
+  S.board[sq(3, 0)] = 2; S.board[sq(3, 4)] = 2;
+  E.settle(S);
+  ok(S.winner === 2 && S.reason === 'count', 'a side whose only moves are the Queen\'s is judged on the count of pieces (H5, Q8)');
+  // Q6, Q7, Q11: the edge clock
+  S = st(B(['.Q......', '......O.', '........', '....X...', '........', '........', '........', 'q.......']), 1);
+  const clock = [];
+  for (let t = 0; t < 40 && S.winner < 0; t++) {
+    const m = ms(S.board, S.turn, S);
+    if (S.turn === 1) clock.push(S.qt[1]);
+    E.applyMove(S, m.find((x) => E.isKing(S.board[x.from]) && !x.caps.length) || m[0]);
+  }
+  ok(clock.slice(0, 17).join() === '15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0,15', 'a Queen on the edge has fifteen turns, then must step off, and the clock winds back (Q6, Q7) (' + clock.join(',') + ')');
+  S = st(B(['.Q......', '......O.', '........', '....X...', '........', '..o.....', '.o......', 'q.......']), 1);
+  S.qt[1] = 0; E.settle(S);
+  ok(S.winner === 2 && S.reason === 'timer', 'a Queen who cannot step off when her clock runs out loses the game (Q7)');
+  const SA = st(B(['........', '........', '........', '...q....', '....X...', '........', '......O.', '........']), 1);
+  SA.board[sq(0, 1)] = 6;
+  E.applyMove(SA, { from: sq(3, 3), path: [sq(2, 2)] });
+  E.applyMove(SA, { from: sq(6, 6), path: [sq(7, 7)] });
+  E.applyMove(SA, { from: sq(2, 2), path: [sq(1, 1)] });
+  ok(SA.qt[1] === 15, 'arriving on an edge does not start the clock (Q11)');
+  // Q9, Q10: the lone Queen's last move; two lone Queens draw
+  S = st(B(['........', '........', '........', '........', '........', '..o.....', '...O....', 'q......Q']), 1);
+  S.board[sq(6, 3)] = 0; S.board[sq(5, 2)] = 2;
+  E.settle(S);
+  const lone = S.lone === 1 && S.winner < 0;
+  E.applyMove(S, ms(S.board, 1, S).find((m) => !m.caps.length));
+  ok(lone && S.winner === 2 && S.reason === 'lone', 'a side left with only its Queen gets one last move, then loses (Q9)');
+  S = st(B(['q.......', '........', '........', '........', '........', '........', '........', '......Q.']), 1);
+  E.settle(S);
+  ok(S.winner === 0 && S.reason === 'lone', 'two lone Queens draw (Q10)');
+  // H6, Q12: sixty quiet plies draw, and a Queen's step is not progress
+  S = st(B(['.O......', '........', '.....Q..', '..q.....', '........', '........', '........', '......X.']), 1);
+  for (let i = 0; i < 70 && S.winner < 0; i++) { const m = ms(S.board, S.turn, S); E.applyMove(S, m.find((x) => !x.caps.length && !E.isRoyal(S.board[x.from])) || m.find((x) => !x.caps.length) || m[0]); }
+  ok(S.winner === 0 && S.reason === 'quiet' && S.history.length === 60, 'sixty plies without a capture or a man moving draw (H6, Q12) (' + S.history.length + ')');
+  // Undo brings back the clock
+  const SU = st(B(['.Q......', '......O.', '........', '....X...', '........', '........', '........', 'q.......']), 1);
+  // quiet king moves only: a capture here would leave Black a lone Queen and end the game
+  const quietKing = (p) => ms(SU.board, p, SU).find((x) => E.isKing(SU.board[x.from]) && !x.caps.length);
+  E.applyMove(SU, quietKing(1));
+  E.applyMove(SU, quietKing(2));
+  E.applyMove(SU, quietKing(1));
+  const before = SU.qt[1]; SU.mode = '2p'; E.takeBack(SU);
+  ok(before === 13 && SU.qt[1] === 14, 'undo winds the edge clock back (' + before + ' → ' + SU.qt[1] + ')');
+  // The bots play it: medium beats easy from either side, hard beats medium, fast enough
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+  const game = (a, c, seed) => { const G = E.newState('ai', 'huevo'); const r = rng(seed); let n = 0, slow = 0;
+    while (G.winner < 0 && n < 300) { const t = Date.now(); const mv = E.aiMove(G.board, G.turn, G.turn === 1 ? a : c, r, 'huevo', true, G); slow = Math.max(slow, Date.now() - t); if (!mv) break; E.applyMove(G, mv); n++; }
+    return { w: G.winner, slow }; };
+  // a Huevo game can end in a draw on the count or the quiet rule, so the bar is wins
+  // against losses over several games, from both sides
+  const me = [0, 1, 2].map((i) => game('medium', 'easy', 100 + i)), em = [0, 1, 2].map((i) => game('easy', 'medium', 100 + i));
+  const mWin = me.filter((g) => g.w === 1).length + em.filter((g) => g.w === 2).length, mLoss = me.filter((g) => g.w === 2).length + em.filter((g) => g.w === 1).length;
+  ok(mWin >= 4 && mLoss === 0, 'medium beats easy from either side (' + mWin + ' wins, ' + mLoss + ' losses in 6)');
+  const hm = [0, 1].map((i) => game('hard', 'medium', 100 + i)), mh = [0, 1].map((i) => game('medium', 'hard', 102 + i));
+  const hWin = hm.filter((g) => g.w === 1).length + mh.filter((g) => g.w === 2).length, hLoss = hm.filter((g) => g.w === 2).length + mh.filter((g) => g.w === 1).length;
+  const slow = Math.max(...me.concat(em, hm, mh).map((g) => g.slow));
+  ok(hWin >= 3 && hWin > hLoss && slow < 1500, 'hard beats medium (' + hWin + ' wins, ' + hLoss + ' losses in 4), and no move takes 1.5 s (slowest ' + slow + ' ms)');
+  // The page: a third choice, always optional, the daily stays classic, and the rules are explained
+  ok(/\{ value: 'huevo', label: C\.t\('huevo'\) \}/.test(html) && /if \(S\.rules !== 'huevo'\) top\.appendChild/.test(html) && /var rules = daily \? 'classic' : prefRules\(\)/.test(html), 'the page offers Huevo, hides the capture choice for it, and keeps the daily game classic');
+  ok(['huevo', 'huevoNote', 'qEdge', 'qMust', 'endQueen', 'endCount', 'endTimer', 'endLone'].every((k) => (html.match(new RegExp('\\b' + k + ': \'', 'g')) || []).length === 5), 'its texts are in all five languages');
+  ok(/HuevosKicker/.test(html), 'the rules text names its designer');
+  const ms0 = Date.now() - t0;
+  ok(ms0 < 15000, 'the group runs in ' + (ms0 / 1000).toFixed(1) + ' s (limit 15 s)');
 }
 
 function testCheckersMotion() {

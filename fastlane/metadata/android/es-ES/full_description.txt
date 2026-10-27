@@ -36,7 +36,7 @@ Los juegos:
 * Bolos — diez juegos, desliza para lanzar
 * Puzle deslizante — ordena las fichas numeradas, de 3×3 a 5×5
 * Rompecabezas — de 12 a 150 piezas dibujadas con código
-* Damas — reglas clásicas o españolas, contra la IA o para dos
+* Damas — reglas clásicas, españolas o Huevo Style, contra la IA o para dos
 * Solitario — robo de una o de tres cartas
 * Ocho loco — sigue el palo o el número, reglas iraníes o internacionales
 * Gin Rummy — combinaciones contra un bot, hasta 100
