@@ -1,4 +1,57 @@
 <!doctype html>
+<!--
+  CHECKERS WITH HUEVO STYLE
+  =========================
+  Based on the checkers game from Chogan (https://github.com/choganhq/chogan),
+  which is open source under the MIT License.
+
+  LICENSE NOTICE (required by MIT; do not delete):
+    The original game code in this file is Copyright (c) its Chogan authors.
+    TODO: paste the exact copyright line and the full MIT license text from the
+    LICENSE file of the original repository here, or ship that LICENSE file next
+    to this one. The MIT terms say the notice must stay with copies of the code.
+
+  WHAT IS WHO'S
+    Original Chogan: Classic and Spanish rules, the AI, the board and the UI.
+    Huevo Style (designed by the owner of this fork): everything tagged [HUEVO]
+    in the comments. Search for "[HUEVO]" to find every piece of it.
+    The queens, the Empress and the edge timer (also designed by the owner):
+    everything tagged [QUEEN]. To play Huevo without them, set HUEVO_QUEENS to
+    false in the engine.
+    The AI knows its queen matters: evaluate() adds royalTrouble() for each queen
+    (threats, the edge timer, boxed in, friendly cover). Weights are in QW.
+
+  HUEVO STYLE RULES (the design)
+    1. Kings fly along a diagonal to reach a piece to capture (like Spanish).
+    2. After a capture the king lands on the square right behind the piece it
+       took, never farther (the "short landing").
+    3. A chain may be stopped after ANY landing, not only at its end.
+    4. Capture is always optional. There is no forced-capture toggle.
+    5. A player who cannot move does not simply lose: the side with more pieces
+       wins and equal pieces is a draw. A king counts as one piece.
+    6. No capture or man move for 60 plies is a draw.
+    QUEENS (Huevo only)
+    7. Each side has a queen, the paler piece, starting on the second row. Her
+       capture wins the game at once.
+    8. She steps one square in any diagonal direction and captures like a man
+       in every direction. On the far row she becomes an Empress, who flies like
+       a king, takes flying chains, lands right behind each piece she takes and
+       may stop after any landing.
+    9. A queen or Empress on an edge square runs a 15-turn timer, reset when she
+       leaves the edge. At 0 she must leave; if she cannot, her side loses.
+   10. If the only legal moves are the queen's, the side counts as stuck (rule 5
+       decides). A side left with only its queen gets one last move: capturing
+       the last other enemy piece gives a draw, capturing the enemy queen wins,
+       anything else loses.
+    History note: this mode was first called "Thai". Thai lets kings chain
+    several flying captures, which was not the vision, so it became Huevo.
+
+  FILE MAP
+    ENGINE START..END  rules, move generation, AI (pure logic, no screen code)
+    the script after it  screen, taps, animation, settings, saving, help text
+  Tests of the original project cut the engine out between the ENGINE markers,
+  so keep those two marker lines exactly as they are.
+-->
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
@@ -13,6 +66,8 @@
   :root {
     --ck-light: #EAD7B7; --ck-dark: #8A5A3B; --ck-frame: #5C3B26;
     --ck-p1: #2A2522; --ck-p1-rim: #4A423D; --ck-p2: #C23A3A; --ck-p2-rim: #E26A5E;
+    /* [QUEEN] the queens are the paler piece of each colour */
+    --ck-q1: #8D8782; --ck-q1-rim: #BDB6B0; --ck-q2: #E8928A; --ck-q2-rim: #F7C9C4;
   }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ck-light: #CDB794; --ck-dark: #6E4630; } }
   :root[data-theme="dark"] { --ck-light: #CDB794; --ck-dark: #6E4630; }
@@ -30,6 +85,19 @@
   .ck-player__disc { width: 18px; height: 18px; border-radius: 50%; flex: 0 0 18px; box-shadow: 0 0 0 1.5px var(--c-text-faint); }
   .ck-player__name { flex: 1; min-width: 0; font-weight: 700; font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ck-player__score { font-weight: 800; font-size: var(--fs-lg); font-variant-numeric: tabular-nums; }
+  /* [QUEEN] the edge timers, always on display while queens are in play */
+  .ck-timers { display: flex; gap: var(--s-2); width: 100%; max-width: 520px; justify-content: center; }
+  .ck-timer {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0;
+    background: var(--c-surface); border-radius: var(--r-md); padding: 6px 10px; box-shadow: var(--sh-1);
+    border: 2px solid transparent; font-size: var(--fs-sm); font-weight: 700;
+    transition: border-color var(--t-mid) var(--ease);
+  }
+  .ck-timer__disc { width: 14px; height: 14px; border-radius: 50%; flex: 0 0 14px; box-shadow: 0 0 0 1.5px var(--c-text-faint); }
+  .ck-timer__num { font-weight: 800; font-variant-numeric: tabular-nums; }
+  .ck-timer--calm .ck-timer__num { opacity: .55; }
+  .ck-timer--edge { border-color: var(--c-gold, #D9A441); }
+  .ck-timer--low { border-color: #E26A5E; color: #E26A5E; }
   .ck-note { min-height: 1.4em; font-weight: 700; font-size: var(--fs-sm); color: var(--game); text-align: center; }
   .ck-boardbox { aspect-ratio: 1; }
   .ck-canvas { width: 100%; height: 100%; display: block; touch-action: manipulation; cursor: pointer; border-radius: var(--r-md); box-shadow: var(--sh-2); }
@@ -47,7 +115,12 @@ function CheckersEngineFactory() {
   'use strict';
 
   // Draughts on the 32 dark squares of an 8×8 board, stored as 64 cells: 0
-  // empty, 1 and 2 the men of players 1 and 2, 3 and 4 their kings. Player 1
+  // empty, 1 and 2 the men of players 1 and 2, 3 and 4 their kings.
+  // [QUEEN] Huevo with queens adds 5 and 6 (the queens of players 1 and 2) and
+  // 7 and 8 (their Empresses), and four more cells after the 64: 64 and 65 are
+  // the edge timers of players 1 and 2, 66 and 67 the square of each side's
+  // queen or Empress (-1 once captured). A board of 64 cells has no queens at
+  // all, which is how Classic, Spanish and old saved Huevo games still play. Player 1
   // starts at the bottom (rows 5-7) and moves first. Two rule sets (#357):
   // classic checkers (English draughts), where a king steps one square, and
   // Spanish draughts, which the issue asked for: kings fly along a whole
@@ -55,26 +128,50 @@ function CheckersEngineFactory() {
   // kings as possible. Either can be played with capturing optional (#391), as
   // many people play at home: a jump is then one more choice, never a duty.
   var N = 8;
+  // [QUEEN] Set to false to play Huevo without queens (and without the timer).
+  var HUEVO_QUEENS = true;
+  // [QUEEN] Turns a queen may stand on an edge square before she must leave it
+  var EDGE_TURNS = 15;
   var ALL = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
   var UP = [[-1, -1], [-1, 1]], DOWN = [[1, -1], [1, 1]];
   // Plies without a capture or a man moving before the game is drawn, so two
   // kings cannot chase each other forever: forty moves each in classic, forty
   // king moves in all in Spanish
-  var DRAW_PLIES = { classic: 80, spanish: 40 };
-  function flying(rules, v) { return rules === 'spanish' && isKing(v); }
+  // [HUEVO] huevo: 60 added
+  var DRAW_PLIES = { classic: 80, spanish: 40, huevo: 60 };
 
-  function owner(v) { return v === 1 || v === 3 ? 1 : v === 2 || v === 4 ? 2 : 0; }
-  function isKing(v) { return v > 2; }
+  // [HUEVO] Huevo kings fly like Spanish kings (rule 1)
+  function flying(rules, v) { return (rules === 'spanish' || rules === 'huevo') && (isKing(v) || isEmpress(v)); }
+
+  function owner(v) { return v === 1 || v === 3 || v === 5 || v === 7 ? 1 : v === 2 || v === 4 || v === 6 || v === 8 ? 2 : 0; }
+  function isKing(v) { return v === 3 || v === 4; }
+  // [QUEEN] royal pieces: the queen (5, 6) and the Empress she becomes (7, 8)
+  function isQueen(v) { return v === 5 || v === 6; }
+  function isEmpress(v) { return v === 7 || v === 8; }
+  function isRoyal(v) { return v >= 5; }
+  function isEdge(i) { var r = (i / N) | 0, c = i % N; return r === 0 || r === N - 1 || c === 0 || c === N - 1; }
+  // pieces of p that are not queens or Empresses
+  function nonRoyal(b, p) {
+    var n = 0;
+    for (var i = 0; i < 64; i++) { var v = b[i]; if (v && v < 5 && owner(v) === p) n++; }
+    return n;
+  }
   function dark(i) { return (((i / N) | 0) + i % N) % 2 === 1; }
-  function dirs(v) { return isKing(v) ? ALL : owner(v) === 1 ? UP : DOWN; }
-  function lastRow(v, r) { return !isKing(v) && (owner(v) === 1 ? r === 0 : r === N - 1); }
-
-  function initial() {
+  function dirs(v) { return isKing(v) || isRoyal(v) ? ALL : owner(v) === 1 ? UP : DOWN; }
+  // [QUEEN] a queen that reaches the far row is crowned an Empress, like a man a king
+  function lastRow(v, r) { return (v <= 2 || isQueen(v)) && (owner(v) === 1 ? r === 0 : r === N - 1); }
+  // [HUEVO] rule 2: after a capture the king lands right behind the piece
+  function shortLand(rules) { return rules === 'huevo'; }
+  // [HUEVO] rule 3: a chain may stop after any landing
+  function midStop(rules) { return rules === 'huevo'; }
+  function initial(rules) {
     var b = [];
     for (var i = 0; i < 64; i++) {
       var r = (i / N) | 0;
       b.push(!dark(i) ? 0 : r <= 2 ? 2 : r >= 5 ? 1 : 0);
     }
+    // [QUEEN] one queen each, on the second row: red on square 10, black on 53
+    if (rules === 'huevo' && HUEVO_QUEENS) { b[10] = 6; b[53] = 5; b.push(EDGE_TURNS, EDGE_TURNS, 53, 10); }
     return b;
   }
 
@@ -85,20 +182,22 @@ function CheckersEngineFactory() {
   // A flying king may cross empty squares before the piece it takes and land on
   // any empty square after it.
   function jumps(b, i, v, from, path, caps, out, rules) {
-    var r = (i / N) | 0, c = i % N, p = owner(v), any = false, ds = dirs(v), fly = flying(rules, v);
+    var r = (i / N) | 0, c = i % N, p = owner(v), any = false, ds = dirs(v), fly = flying(rules, v), sl = shortLand(rules), ms = midStop(rules);
     for (var k = 0; k < ds.length; k++) {
       var dr = ds[k][0], dc = ds[k][1], r1 = r + dr, c1 = c + dc;
-      if (fly) while (r1 >= 0 && r1 < N && c1 >= 0 && c1 < N && b[r1 * N + c1] === 0) { r1 += dr; c1 += dc; }
+      // [QUEEN] an Empress flies on every hop of a chain, a king only on the first
+      if (fly && (!sl || !path.length || isEmpress(v))) while (r1 >= 0 && r1 < N && c1 >= 0 && c1 < N && b[r1 * N + c1] === 0) { r1 += dr; c1 += dc; }
       if (r1 < 0 || r1 >= N || c1 < 0 || c1 >= N) continue;
-      var over = r1 * N + c1;
-      if (owner(b[over]) !== 3 - p || caps.indexOf(over) >= 0) continue;
+        var over = r1 * N + c1;
+        if (owner(b[over]) !== 3 - p || caps.indexOf(over) >= 0) continue;
       for (var r2 = r1 + dr, c2 = c1 + dc; r2 >= 0 && r2 < N && c2 >= 0 && c2 < N && b[r2 * N + c2] === 0; r2 += dr, c2 += dc) {
         var land = r2 * N + c2;
         any = true;
         var np = path.concat([land]), nc = caps.concat([over]);
-        if (lastRow(v, r2)) out.push({ from: from, path: np, caps: nc, crown: true });
-        else jumps(b, land, v, from, np, nc, out, rules);
-        if (!fly) break;
+        // [HUEVO] may stop after any landing, so every landing is a move of its own
+        if (ms || lastRow(v, r2)) out.push({ from: from, path: np, caps: nc, crown: lastRow(v, r2) });
+        if (!lastRow(v, r2)) jumps(b, land, v, from, np, nc, out, rules);
+        if (!fly || sl) break;
       }
     }
     if (!any && path.length) out.push({ from: from, path: path, caps: caps, crown: false });
@@ -110,7 +209,7 @@ function CheckersEngineFactory() {
   // With free set, every jump and every step is legal, and so is any jump of
   // the Spanish ones: a capture still runs to its end once started. Jumps come
   // first, so moves(...)[0].caps says whether one is open.
-  function moves(b, p, rules, free) {
+  function movesRaw(b, p, rules, free) {
     var caps = [], steps = [];
     for (var i = 0; i < 64; i++) {
       var v = b[i];
@@ -127,8 +226,18 @@ function CheckersEngineFactory() {
         }
       }
     }
+    // [HUEVO] partial-chain emission can produce the same move twice, so remove repeats
+    if (midStop(rules)) {
+      var seen = {}, uniq = [];
+      for (var d = 0; d < caps.length; d++) {
+        var key = caps[d].from + ':' + caps[d].path.join(',');
+        if (!seen[key]) { seen[key] = 1; uniq.push(caps[d]); }
+      }
+      caps = uniq;
+    }
     if (!caps.length) return steps;
     if (free) return caps.concat(steps);
+    // Only Spanish makes you take the most. Classic and Huevo take what they like.
     if (rules !== 'spanish') return caps;
     var most = 0, kings = function (m) { return m.caps.filter(function (j) { return isKing(b[j]); }).length; };
     caps.forEach(function (m) { most = Math.max(most, m.caps.length); });
@@ -136,6 +245,25 @@ function CheckersEngineFactory() {
     var mk = 0;
     caps.forEach(function (m) { mk = Math.max(mk, kings(m)); });
     return caps.filter(function (m) { return kings(m) === mk; });
+  }
+
+  // [QUEEN] Rules on top of the plain generator, only on a board with queens:
+  //  - at 0 on the edge timer the queen must step off the edge; if she cannot,
+  //    there is no legal move and her player loses (see stuckWinner)
+  //  - if the only legal moves are the queen's (or the Empress's) and there are
+  //    other pieces, the player counts as stuck
+  //  - a lone queen keeps her moves: it is her one last turn
+  function timerDead(b, p) { var q = b[65 + p]; return q >= 0 && b[63 + p] <= 0 && isEdge(q); }
+  function moves(b, p, rules, free) {
+    var ms = movesRaw(b, p, rules, free);
+    if (b.length <= 64 || !ms.length) return ms;
+    var q = b[65 + p];
+    if (q >= 0 && b[63 + p] <= 0 && isEdge(q)) {
+      var off = ms.filter(function (m) { return m.from === q && !isEdge(m.path[m.path.length - 1]); });
+      return off;
+    }
+    if (nonRoyal(b, p) > 0 && ms.every(function (m) { return isRoyal(b[m.from]); })) return [];
+    return ms;
   }
 
   function same(a, m) {
@@ -146,16 +274,30 @@ function CheckersEngineFactory() {
 
   // Plays m on board b in place and returns what undo needs
   function play(b, m) {
-    var v = b[m.from], took = [];
+    var v = b[m.from], took = [], last = m.path[m.path.length - 1];
+    var saved = b.length > 64 ? [b[64], b[65], b[66], b[67]] : null;
     b[m.from] = 0;
     for (var k = 0; k < m.caps.length; k++) { took.push(b[m.caps[k]]); b[m.caps[k]] = 0; }
-    b[m.path[m.path.length - 1]] = m.crown ? v + 2 : v;
-    return { v: v, took: took };
+    b[last] = m.crown ? v + 2 : v;
+    if (saved) {
+      // [QUEEN] follow the queen, drop a captured one, and run the edge timer:
+      // it counts down each turn she stays on the edge and resets off it
+      var p = owner(v), o = 3 - p, q0 = b[65 + p];
+      if (q0 === m.from) b[65 + p] = last;
+      if (b[65 + o] >= 0 && m.caps.indexOf(b[65 + o]) >= 0) b[65 + o] = -1;
+      var q1 = b[65 + p];
+      if (q1 >= 0) {
+        if (isEdge(q1)) { if (q0 >= 0 && isEdge(q0)) b[63 + p]--; }
+        else b[63 + p] = EDGE_TURNS;
+      }
+    }
+    return { v: v, took: took, saved: saved };
   }
   function unplay(b, m, u) {
     b[m.path[m.path.length - 1]] = 0;
     for (var k = 0; k < m.caps.length; k++) b[m.caps[k]] = u.took[k];
     b[m.from] = u.v;
+    if (u.saved) { b[64] = u.saved[0]; b[65] = u.saved[1]; b[66] = u.saved[2]; b[67] = u.saved[3]; }
   }
 
   function count(b) {
@@ -165,7 +307,50 @@ function CheckersEngineFactory() {
   }
 
   function newState(mode, rules, free) {
-    return { mode: mode || 'ai', rules: rules === 'spanish' ? 'spanish' : 'classic', free: !!free, board: initial(), turn: 1, quiet: 0, history: [], winner: -1 };
+    return { mode: mode || 'ai', rules: rules || 'classic', free: !!free, board: initial(rules || 'classic'), turn: 1, quiet: 0, history: [], winner: -1 };
+  }
+
+  // [HUEVO] rule 5 (stuck player decided by piece count)
+  function pieceCount(b, p) {
+    var n = 0;
+    for (var i = 0; i < 64; i++) if (owner(b[i]) === p) n++;
+    return n;
+  }
+  // The player to move has no legal move. Returns the winner (0 is a draw).
+  // Classic and Spanish: the player who cannot move loses. Huevo: the side
+  // with more pieces wins, and equal pieces is a draw.
+  function stuckWinner(b, stuck, rules) {
+    if (rules !== 'huevo') return 3 - stuck;
+    if (b.length > 64) {
+      // [QUEEN] a queen out of time on the edge loses; a side left with only
+      // its queen loses; two lone queens draw
+      if (timerDead(b, stuck)) return 3 - stuck;
+      var a = nonRoyal(b, stuck), c = nonRoyal(b, 3 - stuck);
+      if (a === 0 && c === 0) return 0;
+      if (a === 0) return 3 - stuck;
+    }
+    var mine = pieceCount(b, stuck), theirs = pieceCount(b, 3 - stuck);
+    return mine > theirs ? stuck : mine < theirs ? 3 - stuck : 0;
+  }
+
+  // After player p has moved (S.turn is already the other side), decides
+  // whether the game is over and why: S.winner (0 is a draw) and S.cause.
+  // The page calls it too, to settle a game that was saved on its last move.
+  function settle(S, p, tookRoyal) {
+    var n = 3 - p, b = S.board;
+    if (b.length > 64) {
+      // [QUEEN] capturing the queen (or the Empress) wins at once
+      if (tookRoyal || b[65 + n] < 0) { S.winner = p; S.cause = 'queen'; return; }
+      // [QUEEN] the last move of a side left with only its queen: it must leave
+      // the other side with only a queen too (a draw), else it has lost
+      var a = nonRoyal(b, n), c = nonRoyal(b, p);
+      if (a === 0 && c === 0) { S.winner = 0; S.cause = 'twoLone'; return; }
+      if (c === 0) { S.winner = n; S.cause = 'graceFail'; return; }
+    }
+    if (!moves(b, n, S.rules, S.free).length) {
+      S.winner = stuckWinner(b, n, S.rules);
+      S.cause = b.length > 64 && timerDead(b, n) ? 'timer' : 'stuck';
+    } else if (S.quiet >= DRAW_PLIES[S.rules]) S.winner = 0;
   }
 
   // A move on the full state, as the page and the tests play it. Returns null
@@ -176,13 +361,15 @@ function CheckersEngineFactory() {
     for (var k = 0; k < legal.length; k++) if (same(legal[k], m)) mv = legal[k];
     if (!mv) return null;
     var u = play(S.board, mv);
-    S.history.push({ m: mv, v: u.v, took: u.took, t: S.turn, quiet: S.quiet });
-    S.quiet = mv.caps.length || !isKing(u.v) ? 0 : S.quiet + 1;
+    S.history.push({ m: mv, v: u.v, took: u.took, saved: u.saved, t: S.turn, quiet: S.quiet });
+    // only a man or a capture counts as progress ([QUEEN] a queen's step does not)
+    S.quiet = mv.caps.length || u.v <= 2 ? 0 : S.quiet + 1;
     var p = S.turn;
     S.turn = 3 - p;
-    // a player who cannot move, with no pieces or all of them blocked, has lost
-    if (!moves(S.board, S.turn, S.rules, S.free).length) S.winner = p;
-    else if (S.quiet >= DRAW_PLIES[S.rules === 'spanish' ? 'spanish' : 'classic']) S.winner = 0;
+    // a player who cannot move, with no pieces or all of them blocked
+    // ([HUEVO] decides this by piece count, see stuckWinner), and the queen
+    // endings, see settle
+    settle(S, p, u.took.some(isRoyal));
     return { over: S.winner >= 0, winner: S.winner, move: mv };
   }
 
@@ -192,10 +379,11 @@ function CheckersEngineFactory() {
     do {
       var h = S.history.pop();
       if (!h) break;
-      unplay(S.board, h.m, { v: h.v, took: h.took });
+      unplay(S.board, h.m, { v: h.v, took: h.took, saved: h.saved });
       S.turn = h.t;
       S.quiet = h.quiet;
       S.winner = -1;
+      S.cause = null;
       n++;
     } while (S.mode === 'ai' && S.turn !== 1 && n < 400);
     return n;
@@ -205,6 +393,66 @@ function CheckersEngineFactory() {
 
   // Material first (a king is worth well over a man), then men moving up,
   // the centre, and men left on the home row, where they stop enemy kings
+  // [QUEEN] Weights of the queen-aware evaluation, in hundredths of a man.
+  // They were tuned by playing the AI against its older self (80 games at
+  // medium: 48 wins to 27); without the guard term it only tied.
+  //   hit      an enemy could jump her next move and she is the side to move
+  //   hitSoon  the same, but the enemy is to move (so it is nearly a win for them)
+  //   from     the edge timer value where the pressure starts
+  //   tick     cost per step of that pressure, squared as the timer runs out
+  //   boxed    extra cost per step when she has no square to step off to
+  //   guard    credit for each friendly piece (or board edge) beside her, up to guardMax
+  var QW = { hit: 70, hitSoon: 150, from: 9, tick: 0.6, boxed: 20, guard: 4, guardMax: 16 };
+  // [QUEEN] How much trouble the queen (or Empress) of side s is in, as a cost in
+  // hundredths of a man. The search only sees a few moves ahead, so these
+  // are the things it cannot see in time:
+  //  - an enemy piece that could jump her next move (she needs an empty square
+  //    behind her, so a queen on an edge cannot be jumped)
+  //  - her edge timer running down, much worse when she has nowhere to step to
+  //  - a little credit for friendly pieces (or the board edge) around her
+  function royalTrouble(b, s, toMove) {
+    var q = b[65 + s];
+    if (q < 0) return 0;
+    var r = (q / N) | 0, c = q % N, o = 3 - s, pen = 0, k, guard = 0, esc = 0;
+    for (k = 0; k < 4; k++) {
+      var dr = ALL[k][0], dc = ALL[k][1];
+      var nr = r + dr, nc = c + dc, br = r - dr, bc = c - dc;
+      var nOn = nr >= 0 && nr < N && nc >= 0 && nc < N;
+      // protection and escape squares around her
+      if (!nOn) guard++;
+      else {
+        var nv = b[nr * N + nc];
+        if (nv && owner(nv) === s) guard++;
+        if (!nv && !isEdge(nr * N + nc)) esc++;
+      }
+      // can an enemy jump her in this direction? the square behind her must be empty
+      if (br < 0 || br >= N || bc < 0 || bc >= N || b[br * N + bc] !== 0 || !nOn) continue;
+      var ar = nr, ac = nc, first = true;
+      while (ar >= 0 && ar < N && ac >= 0 && ac < N) {
+        var x = b[ar * N + ac];
+        if (x) {
+          if (owner(x) === o && (first || isKing(x) || isEmpress(x))) {
+            var ds = dirs(x), ok = false;
+            for (var d = 0; d < ds.length; d++) if (ds[d][0] === -dr && ds[d][1] === -dc) ok = true;
+            if (ok) pen += toMove ? QW.hit : QW.hitSoon;
+          }
+          break;
+        }
+        first = false; ar += dr; ac += dc;
+      }
+    }
+    if (isEdge(q)) {
+      var t = b[63 + s];
+      if (t <= QW.from) {
+        var left = QW.from + 1 - t;                 // 1 when the pressure starts, bigger as it runs out
+        pen += left * left * QW.tick;
+        if (esc === 0) pen += left * QW.boxed;     // and worse with no square to step off to
+      }
+    }
+    pen -= Math.min(QW.guardMax, guard * QW.guard);
+    return pen;
+  }
+
   function evaluate(b, p) {
     var s = 0;
     for (var i = 0; i < 64; i++) {
@@ -212,6 +460,7 @@ function CheckersEngineFactory() {
       if (!v) continue;
       var r = (i / N) | 0, c = i % N, o = owner(v), x;
       if (isKing(v)) x = 165;
+      else if (isEmpress(v)) x = 190;
       else {
         var adv = o === 1 ? 7 - r : r;
         x = 100 + adv * 4 + (adv === 0 ? 8 : 0);
@@ -219,15 +468,28 @@ function CheckersEngineFactory() {
       if (c >= 2 && c <= 5 && r >= 2 && r <= 5) x += 5;
       s += o === p ? x : -x;
     }
+    // [QUEEN] each side's queen: her trouble is her owner's loss
+    if (b.length > 64) s += royalTrouble(b, 3 - p, false) - royalTrouble(b, p, true);
     return s;
   }
 
   var WIN = 100000;
   function negamax(b, p, depth, alpha, beta, ply, rules, free) {
+    if (b.length > 64) {
+      // [QUEEN] the same endings as settle, seen from the search
+      if (b[65 + p] < 0) return -WIN + ply;
+      var qa = nonRoyal(b, p), qb = nonRoyal(b, 3 - p);
+      if (qa === 0 && qb === 0) return 0;
+      if (qb === 0 && qa > 0) return WIN - ply;
+    }
     var ms = moves(b, p, rules, free);
-    if (!ms.length) return -WIN + ply;
+    if (!ms.length) {
+      var w = stuckWinner(b, p, rules);
+      return w === 0 ? 0 : w === p ? WIN - ply : -WIN + ply;
+    }
     // a jump is never left half-seen: forced captures extend the search
-    if (depth <= 0 && !ms[0].caps.length) return evaluate(b, p);
+    var hasCap = ms.some(function (m) { return m.caps.length; });
+    if (depth <= 0 && !hasCap) return evaluate(b, p); // search ends only when no jump is hanging (all modes)
     var best = -Infinity;
     // When capturing is optional, extending every quiet move as well would
     // never end while a jump stays open, so past the horizon only the jumps
@@ -283,10 +545,11 @@ function CheckersEngineFactory() {
   }
 
   var api = {
-    N: N, DRAW_PLIES: DRAW_PLIES, LEVELS: LEVELS,
-    owner: owner, isKing: isKing, dark: dark, initial: initial, moves: moves, same: same,
-    count: count, newState: newState, applyMove: applyMove, takeBack: takeBack,
-    evaluate: evaluate, aiMove: aiMove, dailyOpening: dailyOpening
+    N: N, stuckWinner: stuckWinner, DRAW_PLIES: DRAW_PLIES, LEVELS: LEVELS,
+    owner: owner, isKing: isKing, dark: dark, initial: initial, moves: moves, same: same, midStop: midStop, count: count, newState: newState, applyMove: applyMove, takeBack: takeBack,
+    evaluate: evaluate, aiMove: aiMove, dailyOpening: dailyOpening,
+    // [QUEEN]
+    isQueen: isQueen, isEmpress: isEmpress, isRoyal: isRoyal, isEdge: isEdge, settle: settle, EDGE_TURNS: EDGE_TURNS
   };
   if (typeof self !== 'undefined') self.CheckersEngine = api;
   return api;
@@ -314,11 +577,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         draw: 'مساوی', playerWon: '{n} برد', move: 'جابه‌جایی', pieces: 'مهره',
         newMatch: 'دست تازه', undoMove: 'برگرداندن حرکت', cancelPick: 'لغو انتخاب',
         dailyCheckers: 'چکرز روزانه', vsHard: 'مقابل حریف سخت',
-        classic: 'کلاسیک', spanish: 'اسپانیایی',
+        classic: 'کلاسیک', spanish: 'اسپانیایی', huevo: 'سبک هوئوو',
         capForced: 'زدن اجباری', capFree: 'زدن اختیاری',
         freeNote: 'با زدن اختیاری، زدن فقط یک انتخاب است و می‌توانی به جایش حرکت دیگری بکنی؛ ولی زدنی که شروع شد تا آخر می‌رود.',
         rulesNote: 'در قانون اسپانیایی شاه در کل قطر می‌رود و از دور می‌زند، و باید بیشترین مهره را بزنی، بعد بیشترین شاه را.',
+        rulesNotehuevo: 'در سبک هوئوو، شاه می‌تواند از دور بزند اما بعد از هر زدن باید بلافاصله متوقف شود و می‌توانی زدن‌های بیشتر را انتخاب کنی. اگر بازیکنی نتواند حرکت کند، کسی که مهره‌ی بیشتری دارد برنده است و تعداد مساوی مساوی است.',
+        queenWord: "ملکه", empressWord: "شهبانو", mustLeaveEdge: "ملکه‌ی تو باید همین حالا از لبه‌ی تخته برود", queenNote: "هر طرف یک ملکه دارد: مهره‌ی کم‌رنگ‌تر در ردیف دوم. اگر ملکه را بزنی همان لحظه برنده‌ای. ملکه در هر جهت قطری یک خانه می‌رود، مثل مهره‌ی عادی در همه‌ی جهت‌ها می‌زند و در ردیف آخر شهبانو می‌شود. شهبانو مثل شاه از دور می‌رود، زنجیره‌ی زدنش هم از دور است و بعد از هر مهره‌ی زده‌شده درست پشت آن می‌نشیند؛ می‌تواند بعد از هر فرود بایستد. ملکه‌ای که روی لبه‌ی تخته است شمارش ۱۵ نوبتی را شروع می‌کند که با رفتن از لبه دوباره ۱۵ می‌شود. وقتی به صفر برسد باید از لبه برود و اگر نتواند، بازیکنش می‌بازد. اگر تنها حرکت‌های ممکنت حرکت ملکه باشد، گیر کرده حساب می‌شوی. اگر فقط ملکه‌ات مانده باشد، یک حرکت آخر داری: آخرین مهره‌ی حریف جز ملکه را بزن تا مساوی شود، یا ملکه‌اش را بزن تا ببری. هر کار دیگری باخت است.", causeQueen: "ملکه زده شد", causeTimer: "زمان ملکه روی لبه تمام شد", causeGrace: "فقط ملکه مانده بود و نتوانست بازی را برگرداند", causeLone: "فقط دو ملکه مانده‌اند: مساوی",
         mustJump: 'باید بزنی', drawNote: 'حرکت‌های زیادی بی‌زدن: مساوی',
+        chooseMove: 'کدام را می‌خواهی؟', takeChain: 'زدن ({n})', justLand: 'فقط برو آنجا',
         boardLabel: 'تخته‌ی چکرز',
         tutTitle1: 'حرکت', tutText1: 'مهره‌ها فقط روی خانه‌های تیره و مورب جلو می‌روند، هر بار یک خانه. مهره‌ات را بزن و بعد خانه‌ی مقصد را.',
         tutTitle2: 'زدن', tutText2: 'اگر مهره‌ی حریف کنارت باشد و پشتش خالی، از رویش می‌پری و برش می‌داری. زدن اجباری است و اگر بشود پشت سر هم زد، باید ادامه بدهی.',
@@ -330,11 +596,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         draw: 'Draw', playerWon: '{n} wins', move: 'Move', pieces: 'Pieces',
         newMatch: 'New match', undoMove: 'Undo move', cancelPick: 'Cancel the pick',
         dailyCheckers: 'Daily checkers', vsHard: 'against the hard AI',
-        classic: 'Classic', spanish: 'Spanish',
+        classic: 'Classic', spanish: 'Spanish', huevo: 'Huevo Style',
         capForced: 'Forced capture', capFree: 'Optional capture',
         freeNote: 'With optional capture, jumping is only a choice and you may make another move instead; a jump once started still runs to its end.',
         rulesNote: 'In Spanish rules a king flies along the whole diagonal and captures from a distance, and you must take the most pieces, then the most kings.',
+        rulesNotehuevo: 'In Huevo Style, a king flies to capture but may stop after any landing. Tap any yellow dot to complete the chain at that point. If a player cannot move, whoever has more pieces wins; equal pieces is a draw.',
+        queenWord: "Queen", empressWord: "Empress", mustLeaveEdge: "Your queen must leave the edge now", queenNote: "Each side has a queen, the paler piece on the second row. Capture it and you win at once. She steps one square in any diagonal direction, captures like a man in every direction, and becomes an Empress on the far row. The Empress flies like a king, and her chains fly too, landing right behind each captured piece; she may stop after any landing. A queen standing on an edge square starts a 15-turn timer, which resets when she steps off the edge. At 0 she must leave the edge, and if she cannot, her player loses. If your only legal moves are queen moves, you count as stuck. If only your queen is left, you get one last move: capture their last piece other than the queen for a draw, or capture their queen to win. Anything else loses.", causeQueen: "The queen was captured", causeTimer: "The queen ran out of time on the edge", causeGrace: "Only the queen was left and she could not turn it around", causeLone: "Only the two queens are left: a draw",
         mustJump: 'You must jump', drawNote: 'Too many moves without a capture: a draw',
+        chooseMove: 'What do you want to do?', takeChain: 'Capture ({n})', justLand: 'Just land here',
         boardLabel: 'Checkers board',
         tutTitle1: 'Moving', tutText1: 'Pieces move one square diagonally forward, on the dark squares only. Tap your piece, then the square to go to.',
         tutTitle2: 'Jumping', tutText2: 'If an enemy piece is next to yours with an empty square behind it, jump over it to take it. Jumping is compulsory, and if you can jump again you must keep going.',
@@ -346,11 +615,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         draw: '平局', playerWon: '{n} 获胜', move: '移动', pieces: '棋子',
         newMatch: '新一局', undoMove: '撤销一步', cancelPick: '取消选择',
         dailyCheckers: '每日跳棋', vsHard: '对战困难电脑',
-        classic: '经典', spanish: '西班牙',
+        classic: '经典', spanish: '西班牙', huevo: '蛋式风格',
         capForced: '强制吃子', capFree: '自由吃子',
         freeNote: '自由吃子时，吃子只是一种选择，你可以改走别的棋；但一旦开始吃子，就要连跳到底。',
         rulesNote: '西班牙规则下，王棋可沿整条斜线飞行并隔空吃子；必须吃最多的子，数量相同时吃最多的王。',
+        rulesNotehuevo: '在蛋式风格中，王棋可以远距离吃子，但可以在任何落脚点停止。点击任意黄点完成链跳。如果一方无法走棋，棋子多的一方获胜；数量相同则为平局。',
+        queenWord: "王后", empressWord: "女皇", mustLeaveEdge: "你的王后必须立刻离开边缘", queenNote: "每方有一个王后，是第二排颜色较浅的棋子。吃掉她就立即获胜。她可向任意斜向走一格，像普通棋子一样可向各个方向吃子，走到对方底线后升为女皇。女皇像王棋一样飞行，连跳也可以飞行，每次落在被吃棋子的正后方，并可在任意落点停下。王后站在边线格上时开始15回合倒计时，离开边线后重置。倒计时归零时她必须离开边线，若无法离开，该方判负。如果你唯一能走的棋是王后，则视为无子可走。如果只剩王后，你还有最后一步：吃掉对方除王后外的最后一子则平局，吃掉对方王后则获胜，其他情况判负。", causeQueen: "王后被吃", causeTimer: "王后在边线上超时", causeGrace: "只剩王后，未能扭转局面", causeLone: "只剩两个王后：平局",
         mustJump: '必须吃子', drawNote: '太多步没有吃子：平局',
+        chooseMove: '你想怎么走？', takeChain: '吃子（{n}）', justLand: '只走到这里',
         boardLabel: '西洋跳棋棋盘',
         tutTitle1: '走子', tutText1: '棋子只在深色格上沿斜线向前走一格。先点你的棋子，再点要去的格子。',
         tutTitle2: '吃子', tutText2: '对方棋子在你旁边且后面是空格时，跳过去把它吃掉。有子可吃就必须吃，能连跳就必须继续跳。',
@@ -362,11 +634,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         draw: 'Unentschieden', playerWon: 'Sieg: {n}', move: 'Bewegen', pieces: 'Steine',
         newMatch: 'Neue Partie', undoMove: 'Zug zurück', cancelPick: 'Auswahl aufheben',
         dailyCheckers: 'Tägliche Dame', vsHard: 'gegen die starke KI',
-        classic: 'Klassisch', spanish: 'Spanisch',
+        classic: 'Klassisch', spanish: 'Spanisch', huevo: 'Huevo-Stil',
         capForced: 'Schlagzwang', capFree: 'Schlagen frei',
         freeNote: 'Ohne Schlagzwang ist Schlagen nur eine Wahl, und du darfst stattdessen anders ziehen; ein begonnener Sprung läuft aber bis zum Ende.',
         rulesNote: 'Nach spanischen Regeln fliegt eine Dame über die ganze Diagonale und schlägt aus der Ferne, und du musst die meisten Steine schlagen, dann die meisten Damen.',
+        rulesNotehuevo: 'Im Huevo-Stil fliegt eine Dame zum Schlagen, kann aber nach jedem Landen stoppen. Tippe auf einen gelben Punkt, um die Kette dort zu beenden. Kann ein Spieler nicht ziehen, gewinnt, wer mehr Steine hat; bei Gleichstand ist es ein Remis.',
+        queenWord: "Königin", empressWord: "Kaiserin", mustLeaveEdge: "Deine Königin muss jetzt den Rand verlassen", queenNote: "Jede Seite hat eine Königin, den helleren Stein in der zweiten Reihe. Wer sie schlägt, gewinnt sofort. Sie zieht ein Feld in jede diagonale Richtung, schlägt wie ein Stein in alle Richtungen und wird auf der letzten Reihe zur Kaiserin. Die Kaiserin fliegt wie eine Dame, ihre Ketten fliegen ebenfalls, und sie landet direkt hinter jedem geschlagenen Stein; nach jeder Landung darf sie anhalten. Steht eine Königin auf einem Randfeld, läuft ein Timer von 15 Zügen, der zurückgesetzt wird, sobald sie den Rand verlässt. Bei 0 muss sie den Rand verlassen; kann sie es nicht, verliert ihre Seite. Wenn nur noch die Königin ziehen kann, giltst du als blockiert. Bleibt dir nur noch die Königin, hast du einen letzten Zug: Schlägst du den letzten anderen Stein des Gegners, ist es Remis, schlägst du seine Königin, gewinnst du. Alles andere verliert.", causeQueen: "Die Königin wurde geschlagen", causeTimer: "Die Königin hat am Rand die Zeit überschritten", causeGrace: "Nur die Königin war übrig und konnte es nicht mehr wenden", causeLone: "Nur die beiden Königinnen sind übrig: Remis",
         mustJump: 'Schlagen ist Pflicht', drawNote: 'Zu viele Züge ohne Schlagen: unentschieden',
+        chooseMove: 'Was möchtest du tun?', takeChain: 'Schlagen ({n})', justLand: 'Nur hinziehen',
         boardLabel: 'Dame-Brett',
         tutTitle1: 'Ziehen', tutText1: 'Steine ziehen ein Feld schräg vorwärts, nur auf den dunklen Feldern. Tipp deinen Stein an, dann das Zielfeld.',
         tutTitle2: 'Schlagen', tutText2: 'Steht ein gegnerischer Stein neben deinem und dahinter ist frei, springst du darüber und nimmst ihn. Schlagen ist Pflicht, und wenn du weiter schlagen kannst, musst du weitermachen.',
@@ -378,11 +653,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         draw: 'Empate', playerWon: 'Victoria: {n}', move: 'Mover', pieces: 'Fichas',
         newMatch: 'Nueva partida', undoMove: 'Deshacer', cancelPick: 'Cancelar la selección',
         dailyCheckers: 'Damas del día', vsHard: 'contra la IA difícil',
-        classic: 'Clásicas', spanish: 'Españolas',
+        classic: 'Clásicas', spanish: 'Españolas', huevo: 'Estilo Huevo',
         capForced: 'Captura obligatoria', capFree: 'Captura libre',
         freeNote: 'Con captura libre, capturar es solo una opción y puedes hacer otra jugada; pero una captura empezada sigue hasta el final.',
         rulesNote: 'Con reglas españolas la dama vuela por toda la diagonal y captura a distancia, y debes capturar el mayor número de piezas y, a igualdad, de damas.',
+        rulesNotehuevo: 'En Estilo Huevo, la dama vuela para capturar pero puede detenerse tras cualquier aterrizaje. Toca cualquier punto amarillo para terminar la cadena allí. Si un jugador no puede mover, gana quien tenga más fichas; con igual número es empate.',
+        queenWord: "Reina", empressWord: "Emperatriz", mustLeaveEdge: "Tu reina debe salir del borde ahora", queenNote: "Cada bando tiene una reina, la ficha más clara de la segunda fila. Si la capturas, ganas al instante. Avanza una casilla en cualquier diagonal, captura como una ficha en todas las direcciones y se convierte en emperatriz en la última fila. La emperatriz vuela como la dama, sus cadenas también vuelan y aterriza justo detrás de cada pieza capturada; puede detenerse tras cualquier aterrizaje. Una reina en una casilla del borde inicia un temporizador de 15 turnos que se reinicia cuando sale del borde. Al llegar a 0 debe salir del borde y, si no puede, su jugador pierde. Si tus únicos movimientos posibles son los de la reina, cuentas como bloqueado. Si solo te queda la reina, tienes un último movimiento: captura la última ficha del rival que no sea la reina para empatar, o captura su reina para ganar. Cualquier otra cosa pierde.", causeQueen: "Capturaron a la reina", causeTimer: "La reina agotó el tiempo en el borde", causeGrace: "Solo quedaba la reina y no pudo darle la vuelta", causeLone: "Solo quedan las dos reinas: empate",
         mustJump: 'Tienes que capturar', drawNote: 'Demasiadas jugadas sin captura: empate',
+        chooseMove: '¿Qué quieres hacer?', takeChain: 'Capturar ({n})', justLand: 'Solo mover aquí',
         boardLabel: 'Tablero de damas',
         tutTitle1: 'Mover', tutText1: 'Las fichas avanzan una casilla en diagonal, solo por las casillas oscuras. Toca tu ficha y luego la casilla de destino.',
         tutTitle2: 'Capturar', tutText2: 'Si una ficha rival está junto a la tuya y detrás hay hueco, salta por encima y te la llevas. Capturar es obligatorio y, si puedes seguir saltando, debes continuar.',
@@ -394,16 +672,30 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
   var params = new URLSearchParams(location.search);
   var dailyDate = params.get('daily');
   var prefs = ctx.store.get('prefs', { mode: 'ai', level: 'medium', rules: 'classic', free: false, p2name: '' });
-  function prefRules() { return prefs.rules === 'spanish' ? 'spanish' : 'classic'; }
+  function prefRules() { return prefs.rules || 'classic'; }
 
   // the daily game reaches the player after four opening moves; even, so it is
   // always player 1's turn
   var DAILY_PLIES = 4;
   var HOP_MS = 170;
+  // #407: a taken piece used to vanish the moment the mover landed beyond it,
+  // and a new king simply had its crown. Now the taken piece fades and shrinks
+  // where it stood, and the crown drops onto the new king with a bounce. Both
+  // run after the slide, so the next tap is never held for them.
+  var FADE_MS = 240, CROWN_MS = 420;
+  function capFade(el, k) { var s = (k + 1) * HOP_MS; return el < s ? 0 : Math.min(1, (el - s) / FADE_MS); }
+  function crownDrop(el, hops) { return Math.max(0, Math.min(1, (el - hops * HOP_MS) / CROWN_MS)); }
+  function trailEnd(m) { return m.path.length * HOP_MS + Math.max(m.caps.length ? FADE_MS : 0, m.crown ? CROWN_MS : 0); }
+  function bounce(t) {
+    if (t < 1 / 2.75) return 7.5625 * t * t;
+    if (t < 2 / 2.75) { t -= 1.5 / 2.75; return 7.5625 * t * t + 0.75; }
+    if (t < 2.5 / 2.75) { t -= 2.25 / 2.75; return 7.5625 * t * t + 0.9375; }
+    t -= 2.625 / 2.75; return 7.5625 * t * t + 0.984375;
+  }
 
   // S: the game. sel: the picked piece and the squares tapped so far on a
   // multiple jump.
-  var S = null, aiTimer = null, anim = null, rafOn = false, sel = null;
+  var S = null, aiTimer = null, anim = null, trail = null, rafOn = false, sel = null;
   var kbOn = false, cur = { r: 5, c: 0 };
 
   var cv = document.createElement('canvas');
@@ -414,6 +706,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
   var top = el('div', { class: 'ck-top ch-above' });
   var playersRow = el('div', { class: 'ck-players ch-above' });
   var note = el('div', { class: 'ck-note', 'aria-live': 'polite' });
+  // [QUEEN] one timer chip per side, in the area where the capture toggle sits
+  var timersRow = el('div', { class: 'ck-timers' });
   var wrap = el('div', { class: 'ck-wrap ch-split' }, [el('div', { class: 'ch-fit' }, [boardBox]), el('div', { class: 'ch-side' }, [top, playersRow, note])]);
 
   ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
@@ -426,10 +720,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
 
   function newGame(mode, level, daily) {
     stopAi();
-    anim = null; sel = null;
+    anim = null; trail = null; sel = null;
     // the daily game is always classic with forced capture, so everyone plays
     // the same rules
-    var rules = daily ? 'classic' : prefRules(), free = !daily && prefs.free === true;
+    // [HUEVO] always plays with optional capture
+    var rules = daily ? 'classic' : prefRules(), free = !daily && (rules === 'huevo' || prefs.free === true);
     var st = E.newState(mode, rules, free);
     S = {
       mode: mode, level: level, daily: daily || null, rules: rules, free: free,
@@ -456,25 +751,28 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
       light: v('--ck-light', '#EAD7B7'), dark: v('--ck-dark', '#8A5A3B'), frame: v('--ck-frame', '#5C3B26'),
       p1: v('--ck-p1', '#2A2522'), p1rim: v('--ck-p1-rim', '#4A423D'),
       p2: v('--ck-p2', '#C23A3A'), p2rim: v('--ck-p2-rim', '#E26A5E'),
+      q1: v('--ck-q1', '#8D8782'), q1rim: v('--ck-q1-rim', '#BDB6B0'), q2: v('--ck-q2', '#E8928A'), q2rim: v('--ck-q2-rim', '#F7C9C4'),
       mark: v('--c-gold', '#D9A441'), hint: 'rgba(255, 255, 255, .55)'
     };
   }
 
-  function piece(g, cx, cy, R, v, col, alpha) {
-    var p1 = E.owner(v) === 1;
+  // crownK: how far the crown has dropped, 0..1 (#407); undefined draws it in place
+  function piece(g, cx, cy, R, v, col, alpha, crownK) {
+    var p1 = E.owner(v) === 1, royal = E.isRoyal(v);
     g.save();
     g.globalAlpha = alpha === undefined ? 1 : alpha;
     g.beginPath(); g.arc(cx, cy + R * 0.12, R, 0, Math.PI * 2);
     g.fillStyle = 'rgba(0,0,0,.35)'; g.fill();
     g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2);
-    g.fillStyle = p1 ? col.p1 : col.p2; g.fill();
+    g.fillStyle = royal ? (p1 ? col.q1 : col.q2) : (p1 ? col.p1 : col.p2); g.fill();
     // the raised rim of a real draughtsman
     g.lineWidth = Math.max(1.5, R * 0.14);
-    g.strokeStyle = p1 ? col.p1rim : col.p2rim;
+    g.strokeStyle = royal ? (p1 ? col.q1rim : col.q2rim) : (p1 ? col.p1rim : col.p2rim);
     g.beginPath(); g.arc(cx, cy, R * 0.66, 0, Math.PI * 2); g.stroke();
-    if (E.isKing(v)) {
+    if (E.isKing(v) || E.isEmpress(v)) {
       // a small crown, drawn the same in both colours so it reads on either
       var w = R * 0.95, h = R * 0.6, y = cy + h * 0.45;
+      if (crownK !== undefined) { y -= (1 - bounce(crownK)) * R * 1.6; g.globalAlpha = Math.min(1, crownK * 4); }
       g.beginPath();
       g.moveTo(cx - w / 2, y);
       g.lineTo(cx - w / 2, y - h * 0.75);
@@ -487,11 +785,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
       g.fillStyle = col.mark; g.fill();
       g.lineWidth = Math.max(1, R * 0.06); g.strokeStyle = 'rgba(0,0,0,.45)'; g.stroke();
     }
+    if (E.isQueen(v)) {
+      // [QUEEN] a gold pearl marks the queen; the Empress she becomes wears the crown
+      g.beginPath(); g.arc(cx, cy, R * 0.26, 0, Math.PI * 2);
+      g.fillStyle = col.mark; g.fill();
+      g.lineWidth = Math.max(1, R * 0.06); g.strokeStyle = 'rgba(0,0,0,.45)'; g.stroke();
+    }
     g.restore();
   }
 
   // Draws the board for the page and for the result card, from its arguments only.
-  // o: { board, last, movable, targets, picked, anim, now, cursor }
+  // o: { board, last, movable, targets, picked, anim, trail, now, cursor }
   function paintBoard(g, W, o, col) {
     var pad = Math.round(W * 0.03), cell = (W - pad * 2) / 8;
     g.fillStyle = col.frame;
@@ -508,17 +812,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
       [o.last.from].concat(o.last.path).forEach(function (j) { g.fillRect(pad + (j % 8) * cell, pad + ((j / 8) | 0) * cell, cell, cell); });
     }
     var R = cell * 0.38;
-    var a = o.anim, hidden = {}, gone = {};
-    if (a) {
-      hidden[a.m.path[a.m.path.length - 1]] = 1;
-      var hop = Math.floor(((o.now || 0) - a.t0) / HOP_MS);
-      for (var k = 0; k < a.m.caps.length; k++) if (k >= hop) gone[a.m.caps[k]] = a.took[k];
+    var a = o.anim, tr = o.trail, hidden = {}, gone = {}, crownAt = -1, crownK;
+    if (a) hidden[a.m.path[a.m.path.length - 1]] = 1;
+    if (tr) {
+      var el = (o.now || 0) - tr.t0;
+      for (var k = 0; k < tr.m.caps.length; k++) {
+        var fk = capFade(el, k);
+        if (fk < 1) gone[tr.m.caps[k]] = { v: tr.took[k], k: fk };
+      }
+      if (tr.m.crown && !a) { crownAt = tr.m.path[tr.m.path.length - 1]; crownK = crownDrop(el, tr.m.path.length); }
     }
     for (var q = 0; q < 64; q++) {
-      if (gone[q]) { var p0 = at(q); piece(g, p0[0], p0[1], R, gone[q], col, 0.85); continue; }
+      if (gone[q]) {
+        var p0 = at(q), gk = gone[q].k;
+        piece(g, p0[0], p0[1], R * (1 - 0.45 * gk), gone[q].v, col, 0.85 * (1 - gk));
+        continue;
+      }
       if (!o.board[q] || hidden[q]) continue;
       var p = at(q);
-      piece(g, p[0], p[1], R, o.board[q], col);
+      piece(g, p[0], p[1], R, o.board[q], col, 1, q === crownAt && crownK < 1 ? crownK : undefined);
     }
     if (a) {
       // the moving piece slides hop by hop along its path
@@ -557,8 +869,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
       for (var k = 0; k < sel.steps.length; k++) if (m.path[k] !== sel.steps[k]) return false;
       return true;
     });
+    // Squares to dot. Classic and Spanish show only the next hop of a chain.
+    // [HUEVO] shows every landing along every chain (tapping one ends the move there)
     var targets = [];
-    cands.forEach(function (m) { var t = m.path[sel.steps.length]; if (t !== undefined && targets.indexOf(t) < 0) targets.push(t); });
+    cands.forEach(function (m) {
+      var endIdx = E.midStop(S.rules) ? m.path.length : sel.steps.length + 1;
+      for (var k = sel.steps.length; k < endIdx; k++) {
+        var t = m.path[k]; if (t !== undefined && targets.indexOf(t) < 0) targets.push(t);
+      }
+    });
+
     return { cands: cands, targets: targets };
   }
 
@@ -580,7 +900,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
     var mine = !S.done && !busy() && !anim;
     var ps = mine ? pickState() : null;
     paintBoard(g, W, {
-      board: S.board, last: anim ? null : S.last, anim: anim, now: now || performance.now(),
+      board: S.board, last: anim ? null : S.last, anim: anim, trail: anim || trail, now: now || performance.now(),
       movable: mine && !sel ? movable() : null,
       picked: mine && sel ? (sel.steps.length ? sel.steps[sel.steps.length - 1] : sel.from) : -1,
       targets: ps ? ps.targets : null,
@@ -595,8 +915,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
   }
   function tick(now) {
     if (anim && now - anim.t0 < HOP_MS * anim.m.path.length) { draw(now); requestAnimationFrame(tick); return; }
-    anim = null; rafOn = false; draw();
-    afterMove();
+    if (anim) { trail = anim; anim = null; afterMove(); }
+    if (trail && now - trail.t0 < trailEnd(trail.m)) { draw(now); requestAnimationFrame(tick); return; }
+    trail = null; rafOn = false; draw();
   }
 
   /* ------------------------------------------- the board on the result card */
@@ -637,14 +958,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         });
       }));
       top.appendChild(C.ui.segmented([
-        { value: 'classic', label: C.t('classic') }, { value: 'spanish', label: C.t('spanish') }
+        { value: 'classic', label: C.t('classic') }, { value: 'spanish', label: C.t('spanish') },
+   { value: 'huevo', label: C.t('huevo') }
       ], S.rules, function (v) {
         guard(v === S.rules, function () {
           prefs.rules = v; ctx.store.set('prefs', prefs);
           newGame(S.mode, S.level);
         });
       }));
-      top.appendChild(C.ui.segmented([
+      // [HUEVO] rule 4: always optional capture, so no toggle
+      if (S.rules !== 'huevo') top.appendChild(C.ui.segmented([
         { value: 'forced', label: C.t('capForced') }, { value: 'free', label: C.t('capFree') }
       ], S.free ? 'free' : 'forced', function (v) {
         guard(v === (S.free ? 'free' : 'forced'), function () {
@@ -652,6 +975,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
           newGame(S.mode, S.level);
         });
       }));
+      if (S.board.length > 64) top.appendChild(timersRow);
       if (S.mode === 'ai') {
         top.appendChild(C.ui.segmented([
           { value: 'easy', label: C.t('easy') }, { value: 'medium', label: C.t('medium') }, { value: 'hard', label: C.t('hard') }
@@ -692,7 +1016,35 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
       })(i);
     }
     var jump = !S.done && !busy() && !S.free && E.moves(S.board, S.turn, S.rules, S.free).some(function (m) { return m.caps.length; });
-    note.textContent = jump ? C.t('mustJump') : '';
+    var leave = !S.done && !busy() && forcedOffEdge(S.turn);
+    note.textContent = jump ? C.t('mustJump') : leave ? C.t('mustLeaveEdge') : '';
+    paintTimers();
+  }
+
+  // [QUEEN] the queen of p is on an edge square with her timer at 0
+  function forcedOffEdge(p) {
+    return S.board.length > 64 && S.board[65 + p] >= 0 && S.board[63 + p] <= 0 && E.isEdge(S.board[65 + p]);
+  }
+  // [QUEEN] each side's timer: it counts only while her queen stands on an edge
+  function paintTimers() {
+    timersRow.innerHTML = '';
+    if (!S || S.board.length <= 64) return;
+    for (var p = 1; p <= 2; p++) {
+      var q = S.board[65 + p], cd = S.board[63 + p], gone = q < 0;
+      var onEdge = !gone && E.isEdge(q);
+      var name = gone ? C.t('queenWord') : (E.isEmpress(S.board[q]) ? C.t('empressWord') : C.t('queenWord'));
+      var cls = 'ck-timer' + (!gone && !onEdge ? ' ck-timer--calm' : '') + (onEdge ? ' ck-timer--edge' : '') + (onEdge && cd <= 3 ? ' ck-timer--low' : '');
+      timersRow.appendChild(el('div', { class: cls, 'aria-label': name + ' ' + (gone ? '' : C.num(cd)) }, [
+        el('div', { class: 'ck-timer__disc', style: { background: p === 1 ? 'var(--ck-q1)' : 'var(--ck-q2)' } }),
+        el('span', { text: name }),
+        el('span', { class: 'ck-timer__num', text: gone ? '—' : C.num(Math.max(0, cd)) })
+      ]));
+    }
+  }
+  // [QUEEN] why the game ended, for the result card
+  function causeNote() {
+    var k = { queen: 'causeQueen', timer: 'causeTimer', graceFail: 'causeGrace', twoLone: 'causeLone' }[S.cause];
+    return k ? C.t(k) : null;
   }
 
   /* ---------------------------------------------------------- moves */
@@ -718,6 +1070,34 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
     if (!S || S.done || busy() || anim) return;
     var ps = pickState();
     if (sel && ps.targets.indexOf(i) >= 0) {
+      if (E.midStop(S.rules)) {
+        // [HUEVO] any dot ends the move there: the move that stops on it is already in the list
+        var hits = ps.cands.filter(function (m) { return m.path.length > sel.steps.length && m.path[m.path.length - 1] === i; });
+        // distinct outcomes for this square: a slide, or captures taking different pieces
+        var opts = [], seenCaps = {};
+        hits.forEach(function (m) {
+          var key = m.caps.slice().sort().join(',');
+          if (!seenCaps[key]) { seenCaps[key] = 1; opts.push(m); }
+        });
+        opts.sort(function (x, y) { return x.caps.length - y.caps.length; });
+        if (opts.length > 1) {
+          // the square can be reached in more than one way: ask which
+          var labelOf = function (m, idx) {
+            var same = opts.filter(function (o) { return o.caps.length === m.caps.length; });
+            var base = m.caps.length ? C.t('takeChain', { n: C.num(m.caps.length) }) : C.t('justLand');
+            return same.length > 1 ? base + ' · ' + String.fromCharCode(65 + same.indexOf(m)) : base;
+          };
+          var acts = [{ label: C.t('cancel') }];
+          opts.forEach(function (m, idx) {
+            acts.push({ label: labelOf(m, idx), kind: idx === opts.length - 1 ? 'primary' : undefined,
+              onClick: function () { sel = null; doMove(m, true); } });
+          });
+          C.ui.modal({ title: C.t('chooseMove'), body: [], actions: acts });
+          return;
+        }
+        var hit = opts[0];
+        if (hit) { sel = null; doMove(hit, true); return; }
+      }
       sel.steps.push(i);
       var done = pickState().cands.filter(function (m) { return m.path.length === sel.steps.length; });
       if (done.length) { var m = done[0]; sel = null; doMove(m, true); return; }
@@ -778,6 +1158,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
     if (sel) { sel = null; draw(); return; }
     if (!S.history.length) { C.feedback('bad'); return; }
     stopAi();
+    trail = null;
     E.takeBack(S);
     S.last = S.history.length ? S.history[S.history.length - 1].m : null;
     C.feedback('tap');
@@ -823,7 +1204,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
       title: tie ? C.t('draw')
         : (S.mode === '2p' ? C.t('playerWon', { n: pname(S.winner) })
           : (won ? C.t('won') : C.t('lost'))),
-      note: tie ? C.t('drawNote') : null,
+      note: causeNote() || (tie ? C.t('drawNote') : null),
       timeMs: S.elapsed, coins: coins, points: points,
       lines: [
         { label: pname(1), value: C.num(left[1]) },
@@ -854,17 +1235,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
 
   function restore(v) {
     S = {
-      mode: v.mode, level: v.level, daily: v.daily || null, rules: v.rules === 'spanish' ? 'spanish' : 'classic',
-      free: !v.daily && v.free === true,
+      mode: v.mode, level: v.level, daily: v.daily || null, rules: v.rules || 'classic',
+      free: !v.daily && ((v.rules || 'classic') === 'huevo' || v.free === true),
       board: v.board, turn: v.turn, quiet: v.quiet || 0, history: v.history, last: v.last || null, winner: -1,
       done: false, startedAt: Date.now() - (v.elapsed || 0)
     };
     render();
     // closed right after the last move: the finished game gets its result
-    if (!E.moves(S.board, S.turn, S.rules, S.free).length) { S.winner = 3 - S.turn; finish(); } else maybeAi();
+    E.settle(S, 3 - S.turn, false);
+    if (S.winner >= 0) finish(); else maybeAi();
   }
   function validSave(sv) {
-    return !!(sv && sv.s && Array.isArray(sv.s.board) && sv.s.board.length === 64 &&
+    return !!(sv && sv.s && Array.isArray(sv.s.board) && (sv.s.board.length === 64 || sv.s.board.length === 68) &&
       Array.isArray(sv.s.history) && sv.s.history.length && (sv.s.turn === 1 || sv.s.turn === 2));
   }
 
@@ -902,8 +1284,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         el('p', { class: 'ch-dim', text: C.t('tutText1') }),
         el('p', { class: 'ch-dim', text: C.t('tutText2') }),
         el('p', { class: 'ch-dim', text: C.t('tutText3') }),
-        el('p', { class: 'ch-dim', text: C.t('rulesNote') }),
-        el('p', { class: 'ch-dim', text: C.t('freeNote') }),
+        el('p', { class: 'ch-dim', text: S.rules === 'huevo' ? C.t('rulesNotehuevo') : C.t('rulesNote') }),
+        S.rules === 'huevo' ? null : el('p', { class: 'ch-dim', text: C.t('freeNote') }),
+        S.rules === 'huevo' && S.board.length > 64 ? el('p', { class: 'ch-dim', text: C.t('queenNote') }) : null,
         el('h3', { style: { 'margin-top': 'var(--s-4)' }, text: C.t('keyboard') }),
         el('div', { class: 'ch-list' }, [
           kb('← ↑ → ↓', C.t('move')),
@@ -911,7 +1294,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
           kb('Esc', C.t('cancelPick')),
           kb('U / Ctrl+Z', C.t('undoMove'))
         ])
-      ],
+      ].filter(Boolean),
       actions: [
         { label: C.t('tutorial'), onClick: function () { ctx.showTutorial(TUT); } },
         { label: C.t('done'), kind: 'primary' }
