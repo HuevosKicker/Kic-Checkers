@@ -10265,6 +10265,38 @@ function testHop() {
   ok(Date.now() - t0 < 10000, 'the Hop tests finish in under 10 s (' + (Date.now() - t0) + ' ms)');
 }
 
+// #544: a player asked for Simon (named Echo in English: "Simon" is a trademark)
+function testSimon() {
+  head('Echo / Simon (#544)');
+  const E = loadEngine('simon', 'SimonEngineFactory');
+  const html = fs.readFileSync(path.join(ROOT, 'www/games/simon/index.html'), 'utf8');
+  const rng = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+  const a = E.sequence(rng(7)), b = E.sequence(rng(7)), c = E.sequence(rng(8));
+  ok(a.length >= 100 && a.join() === b.join() && a.join() !== c.join() && a.every((x) => x >= 0 && x < 4), 'a sequence is long, the same for the same seed (the daily), and uses the four pads');
+  const counts = [0, 1, 2, 3].map((k) => a.filter((x) => x === k).length);
+  ok(counts.every((n) => n > a.length / 8), 'every pad comes up (' + counts.join(', ') + ')');
+  // play a game right for five rounds: each round adds exactly one, keeping the start
+  const S = E.game(rng(3), 1);
+  const first = S.seq.slice(0, 5).join();
+  let okRounds = 0;
+  for (let r = 1; r <= 5; r++) {
+    const want = S.seq.slice(0, S.len);
+    let res = '';
+    for (const k of want) res = E.press(S, k);
+    if (res === 'round' && S.len === r + 1 && S.best === r && S.pos === 0) okRounds++;
+  }
+  ok(okRounds === 5 && S.seq.slice(0, 5).join() === first, 'each round repeated right adds one note to the same sequence');
+  const due = S.seq[0], wrong = (due + 1) % 4;
+  ok(E.press(S, wrong) === 'wrong' && S.over && S.best === 5 && E.press(S, due) === 'over', 'the first mistake ends the game and keeps the rounds completed');
+  const G = E.game(rng(9), 7);
+  ok(G.len === 7 && G.best === 6 && G.pos === 0, 'a saved game comes back at its round');
+  ok(E.noteMs(1) > E.noteMs(10) && E.noteMs(10) > E.noteMs(40) - 1 && E.noteMs(100) >= 260 && E.gapMs(1) > 0, 'playback quickens with the length but never below 260 ms a note');
+  ok(/C\.daily\('simon', dailyDate\)\.rng/.test(html) && ['smn-10', 'smn-20', 'smn-daily'].every((id) => html.indexOf("unlock('" + id + "')") > 0), 'the daily sequence is seeded by the day, and the three awards are unlocked');
+  const core = fs.readFileSync(path.join(ROOT, 'www/lib/chogan.js'), 'utf8');
+  ok([0, 1, 2, 3].every((i) => new RegExp('simon' + i + ': function').test(core)) && /simonWrong: function/.test(core), 'each pad has its own note in the core, and a mistake its own sound');
+  ok((html.match(/<svg viewBox="0 0 24 24" fill="#fff">' \+ SHAPES\[i\]/g) || []).length === 1 && /var SHAPES = \[/.test(html), 'each pad carries its own shape, so the four tell apart without colour');
+}
+
 // #524: the owner asked for air hockey like Neon Hockey; physics, goals and halves are
 // tested on the engine, and a test player that plays by touch shows the levels are ordered
 function testAirHockey() {
