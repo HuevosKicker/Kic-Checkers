@@ -2,7 +2,7 @@
 
 Kic-Checkers is a Checkers game for the web<!-- and Android-->. It is free, open source, has no ads, no in app purchases, no analytics or trackers, and works fully offline.
 
-Based on [Chogan](https://github.com/choganhq/chogan) by Margani, MIT licence.
+Based on [Chogan](https://github.com/choganhq/chogan) by [Margani](https://github.com/margani), MIT licence.
 
 ## English
 
@@ -25,7 +25,9 @@ python3 -m http.server -d www 8000
 ```
 
 Then open `http://localhost:8000` in your browser. After the first load the game works offline.
+### Changes
 
+See the full commit history: [commits/kic-only](https://github.com/HuevosKicker/Kic-Checkers/commits/kic-only).
 <!--Android: the Gradle project is in `android/`.
 
 ```
