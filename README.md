@@ -8,6 +8,8 @@ Based on [Chogan](https://github.com/choganhq/chogan) by [Margani](https://githu
 
 ### The game
 
+Play game on web now! [GAME](https://huevoskicker.github.io/Kic-Checkers/)
+
 Checkers on an 8×8 board with three rule sets:
 
 - **Classic:** compulsory jumps that run to the end, and kings that can step backwards.
