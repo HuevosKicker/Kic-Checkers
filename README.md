@@ -12,7 +12,7 @@ Checkers on an 8×8 board with three rule sets:
 
 - **Classic:** compulsory jumps that run to the end, and kings that can step backwards.
 - **Spanish:** flying kings, and the capture that takes the most pieces.
-- **Huevo Style:** optional capture only, a chain that can stop after any landing, queens and empresses with a 15-turn edge timer. Designed by [HuevosKicker](https://github.com/HuevosKicker).
+- **Huevo Style:** optional capture only, a chain that can stop after any landing, queens and empresses with a 15 turn edge timer. Designed by [HuevosKicker](https://github.com/HuevosKicker).
 
 Play against the AI on three levels, or with two players on one device. <!--There is also a daily classic game from a seeded opening against the hard AI.-->
 
@@ -28,7 +28,7 @@ Then open `http://localhost:8000` in your browser. After the first load the game
 ### Shortcuts
 Check out [discussions/1](https://github.com/HuevosKicker/Kic-Checkers/discussions/1) for chatting ideas
 
-See [RULES.md](RULES.md) for the full rules, and [the design notes](https://gist.github.com/HuevosKicker/f4a46a0a7ee8c1679cf7e7bdb2ed93e5) for measurements and history.
+See [RULES.md](RULES.md) for the full rules, and [the design notes](https://gist.github.com/HuevosKicker/78b176ca6410be831e1e0a91a40750f9) for measurements and history.
 
 See the full commit history: [commits/kic-only](https://github.com/HuevosKicker/Kic-Checkers/commits/kic-only).
 <!--Android: the Gradle project is in `android/`.
