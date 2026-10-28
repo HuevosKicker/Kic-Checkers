@@ -25,7 +25,10 @@ python3 -m http.server -d www 8000
 ```
 
 Then open `http://localhost:8000` in your browser. After the first load the game works offline.
-### Changes
+### Shortcuts
+Check out [discussions/1](https://github.com/HuevosKicker/Kic-Checkers/discussions/1) for chatting ideas
+
+See [RULES.md](RULES.md) for the full rules, and [the design notes](https://gist.github.com/HuevosKicker/f4a46a0a7ee8c1679cf7e7bdb2ed93e5) for measurements and history.
 
 See the full commit history: [commits/kic-only](https://github.com/HuevosKicker/Kic-Checkers/commits/kic-only).
 <!--Android: the Gradle project is in `android/`.
