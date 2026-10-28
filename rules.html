@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kic-Checkers rules</title>
+  <style>
+  body {
+    font-family: system-ui, sans-serif;
+    line-height: 1.5;
+    max-width: 42rem;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    color: #eee;
+    background: linear-gradient(to bottom, #0d0d0d, #5a5a5a) fixed;
+    min-height: 100vh;
+  }
+  a { color: #8ec5ff; }
+  h1 { border-bottom: 2px solid #555; padding-bottom: .3rem; }
+  h2 { margin-top: 2.2rem; }
+  h3 { margin-top: 1.6rem; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .95rem; }
+  th, td { border: 1px solid #666; padding: .4rem .5rem; text-align: left; vertical-align: top; }
+  th { background: #222; }
+  hr { border: 0; border-top: 1px solid #555; margin: 2rem 0; }
+  nav { margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+
+<nav><a href="games/checkers/index.html" onclick="if (history.length > 1) { history.back(); return false; }">&larr; Back to the game</a></nav>
+
+<h1>Kic-Checkers rules</h1>
+
+<p>Checkers is played on an 8×8 board. Each player starts with twelve pieces on the dark squares of the three rows nearest them. Pieces move diagonally forward, one square at a time. A piece that reaches the far row becomes a King.</p>
+
+<p>The game offers three rule sets. Choose one before you start.</p>
+
+<hr>
+
+<h2 id="classic">Classic</h2>
+<ul>
+  <li><strong>Capture is compulsory.</strong> If you can jump a piece, you must.</li>
+  <li><strong>A jump runs to the end.</strong> Once you start a capture, you keep jumping until you can't.</li>
+  <li><strong>Kings</strong> move one square diagonally in any direction, including backwards.</li>
+</ul>
+
+<hr>
+
+<h2 id="spanish">Spanish</h2>
+<ul>
+  <li><strong>Capture is compulsory.</strong> If you can jump a piece, you must.</li>
+  <li><strong>Kings fly.</strong> A King can move any distance along a diagonal, over empty squares.</li>
+  <li><strong>The most pieces wins the capture.</strong> If several captures are possible, you must take the sequence that captures the most pieces.</li>
+</ul>
+
+<hr>
+
+<h2 id="huevo">Huevo Style</h2>
+
+<p>Huevo Style keeps the basic game and changes the rules around capture, Queens, the clock, and two extra pieces. It was designed by HuevosKicker, with the original capture idea from Chogan issue #391.</p>
+
+<h3>Capture</h3>
+<ul>
+  <li><strong>Capture is optional,</strong> with one exception below.</li>
+  <li><strong>A King flies only on its first jump.</strong> Later jumps in the same chain are short.</li>
+  <li><strong>Every capture lands directly behind the piece taken.</strong> Never farther.</li>
+  <li><strong>A chain can stop after any landing.</strong> Each landing square is a legal end point, shown as a yellow dot.</li>
+</ul>
+
+<h3>Forced capture of a Jester or Joker</h3>
+<ul>
+  <li><strong>If a Jester or Joker can be captured, the side to move must capture it.</strong> Any piece may do so, including a Jester or Joker.</li>
+  <li><strong>Ordinary pieces never force a Jester or Joker to capture them.</strong></li>
+  <li><strong>If a piece can capture the enemy Queen instead, nothing is forced.</strong></li>
+</ul>
+
+<h3>Queens</h3>
+<ul>
+  <li><strong>Each side has one Queen</strong>, shown as a paler piece, starting on the second row. Red's Queen starts on row 2, column 3, counting from 1 (index 10). Black's Queen starts on row 7, column 6 (index 53).</li>
+  <li><strong>A Queen moves one square diagonally in any direction</strong>, including backwards. She does not fly.</li>
+  <li><strong>A Queen captures like a Man, in every direction.</strong></li>
+  <li><strong>Capturing the enemy Queen wins the game at once,</strong> even at timer 0.</li>
+  <li><strong>A Queen that reaches the far row becomes an empress.</strong> Promotion ends the move.</li>
+  <li><strong>An empress flies like a King on every jump.</strong> In a capture chain, she lands directly behind each piece she takes and may stop after any landing.</li>
+</ul>
+
+<h3>The edge timer</h3>
+<ul>
+  <li><strong>A Queen or empress on an edge square has 15 turns.</strong> The timer appears on screen.</li>
+  <li><strong>The timer resets to 15 when she leaves the edge.</strong> It continues unchanged after promotion.</li>
+  <li><strong>Arriving on an edge does not start the timer.</strong> Each later turn she stays on the edge counts down.</li>
+  <li><strong>When the timer reaches 0, she must leave the edge.</strong> If she can't, her side loses.</li>
+  <li><strong>A forced capture comes before the timer.</strong> If a forced capture is available, the side must make it, and the timer rule is checked after that.</li>
+  <li><strong>A Queen or empress at timer 0 that moves from one edge square to another has not left the edge,</strong> so her side loses. This also applies when another piece makes the forced capture and she stays on the edge.</li>
+</ul>
+
+<h3>Jesters and Jokers</h3>
+<ul>
+  <li><strong>Each side has a Jester,</strong> starting on the third row, red on square 21 and black on square 42.</li>
+  <li><strong>A Jester steps and captures one square in any diagonal direction.</strong></li>
+  <li><strong>On the far row, a Jester becomes a Joker,</strong> which moves like a King.</li>
+  <li><strong>Sleep:</strong> each Jester starts asleep for 15 of its own side's turns. The number on it counts down. A sleeping Jester cannot move or capture. Nobody is forced to capture it, but the other side may still capture it by choice.</li>
+</ul>
+
+<h3>Scouters and Adventurers</h3>
+<ul>
+  <li><strong>Each side has a Scouter,</strong> starting on the third row beside the Jester, red on square 19 and black on square 44.</li>
+  <li><strong>A Scouter steps one square in any diagonal direction.</strong></li>
+  <li><strong>A Scouter's move is a chain of jumps.</strong> Each jump passes over a piece next to it and lands right behind that piece.</li>
+  <li><strong>An ally is only hopped over. An enemy is captured.</strong> The chain can mix both, have any number of segments, and stop after any segment.</li>
+  <li><strong>Each piece can be jumped at most once in one move.</strong></li>
+  <li><strong>On the far row, a Scouter becomes an Adventurer,</strong> which can also fly to the first piece it jumps and still lands right behind it. A jump made on the far row counts too.</li>
+  <li><strong>The flight is only for the first jump of a move.</strong> Every later jump needs a piece right next to it, like a Scouter.</li>
+  <li><strong>Only the empress can chain flying captures.</strong></li>
+  <li><strong>A Scouter or Adventurer that can capture a Jester or Joker must do so,</strong> under the forced-capture rule above.</li>
+</ul>
+
+<h3>Stuck players</h3>
+<ul>
+  <li><strong>A player with no legal move loses on piece count.</strong> More pieces wins. Equal counts is a draw.</li>
+  <li><strong>A Queen, empress, Jester, Joker, Scouter, or Adventurer counts as one piece.</strong></li>
+  <li><strong>If your only legal moves are Queen or empress moves, you are stuck,</strong> and the count decides, except where the edge timer rule above applies.</li>
+</ul>
+
+<h3>Lone Queen</h3>
+<ul>
+  <li><strong>A side left with only its Queen or empress gets one last move.</strong></li>
+  <li><strong>If that move captures the enemy Queen, that side wins.</strong></li>
+  <li><strong>If that move captures the enemy's last other piece, it is a draw.</strong></li>
+  <li><strong>Otherwise, that side loses.</strong></li>
+  <li><strong>Two lone Queens is a draw.</strong></li>
+</ul>
+
+<h3>Draws</h3>
+<ul>
+  <li><strong>Sixty plies with no capture and no Man moving is a draw.</strong></li>
+  <li>Only captures and men's moves reset the count. Queen steps, Jester moves, Scouter moves that do not capture, and promotions do not.</li>
+</ul>
+
+<h3>Playing against the AI</h3>
+<p>The AI values Queens, Scouters, and Jesters highly, and keeps its Queen off the edge when it can. It plays by the same rules as you.</p>
+
+<hr>
+
+<h2>Piece summary</h2>
+<table>
+  <thead>
+    <tr><th>Piece</th><th>Moves</th><th>Captures</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Man</td><td>Diagonally forward, one square</td><td>Forward, jumping one piece</td><td>Becomes a King on the far row</td></tr>
+    <tr><td>King (Classic)</td><td>One square, any diagonal</td><td>Like a Man, any direction</td><td></td></tr>
+    <tr><td>King (Spanish)</td><td>Any distance along a diagonal</td><td>Flies over empty squares</td><td></td></tr>
+    <tr><td>King (Huevo)</td><td>Any distance</td><td>Flies on the first jump, later jumps short</td><td>Lands right behind the piece taken</td></tr>
+    <tr><td>Queen (Huevo)</td><td>One square, any diagonal</td><td>Like a Man, any direction</td><td>Capturing her wins the game</td></tr>
+    <tr><td>Empress (Huevo)</td><td>Flies like a King</td><td>Flies on every jump</td><td>Edge timer applies</td></tr>
+    <tr><td>Jester (Huevo)</td><td>One square, any diagonal</td><td>One square, any diagonal</td><td>Sleeps for 15 of its side's turns. Must be captured when possible</td></tr>
+    <tr><td>Joker (Huevo)</td><td>Flies like a King</td><td>Like a King</td><td>A promoted Jester. Must be captured when possible</td></tr>
+    <tr><td>Scouter (Huevo)</td><td>One square, any diagonal</td><td>Hops allies, captures enemies, chains</td><td>Any number of segments</td></tr>
+    <tr><td>Adventurer (Huevo)</td><td>One square, any diagonal</td><td>Flies on the first jump, then like a Scouter</td><td>A promoted Scouter</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2>Credits</h2>
+<p>Based on <a href="https://github.com/choganhq/chogan">Chogan</a> by Margani, MIT licence. Huevo Style, Jesters, Scouters, and Adventurers designed by <a href="https://github.com/HuevosKicker">HuevosKicker</a>.</p>
+
+</body>
+</html>
