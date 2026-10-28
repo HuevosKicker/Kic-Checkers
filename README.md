@@ -8,7 +8,10 @@ Based on [Chogan](https://github.com/choganhq/chogan) by [Margani](https://githu
 
 ### The game
 
-Play game on web now! [GAME](https://huevoskicker.github.io/Kic-Checkers/)
+Play game on web now! [GAME](https://huevoskicker.github.io/Kic-Checkers/games/checkers/index.html
+)
+
+I recommend playing on [Cromite](https://github.com/uazo/cromite). Bigger board and less lag if you have. Also, very privacy tuned.
 
 Checkers on an 8×8 board with three rule sets:
 
