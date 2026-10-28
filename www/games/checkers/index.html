@@ -17,7 +17,9 @@
     in the comments. Search for "[HUEVO]" to find every piece of it.
     The queens, the Empress and the edge timer (also designed by the owner):
     everything tagged [QUEEN]. To play Huevo without them, set HUEVO_QUEENS to
-    false in the engine.
+    false in the engine. The Jester and Joker: everything tagged [JESTER]; set
+    HUEVO_JESTERS to false to start without them (JESTER_SLEEP_TURNS and JESTER_VALUE tune the sleep). The Scouter and Adventurer:
+    everything tagged [SCOUTER]; set HUEVO_SCOUTERS to false to start without them.
     The AI knows its queen matters: evaluate() adds royalTrouble() for each queen
     (threats, the edge timer, boxed in, friendly cover). Weights are in QW.
 
@@ -43,6 +45,38 @@
        decides). A side left with only its queen gets one last move: capturing
        the last other enemy piece gives a draw, capturing the enemy queen wins,
        anything else loses.
+    JESTERS (Huevo only; designed by the owner)
+   11. Each side has a Jester, starting on the third row (red on square 21, black
+       on square 42). It steps and captures one square in any diagonal direction.
+       On the far row it becomes a Joker, which moves like a king.
+       [Sleep] Each Jester starts asleep for 15 of its own side's turns (the
+       number on it counts down). A sleeping Jester cannot move or capture, nobody
+       is forced to capture it, but it can still be captured by choice. Set
+       JESTER_SLEEP_TURNS to 0 for Jesters that are awake from the start.
+   12. If a Jester or Joker can be captured, the side to move MUST capture it
+       (any piece may, a Jester or Joker included). Ordinary pieces never force a
+       Jester or Joker to capture them. If a piece can capture the enemy queen
+       instead, nothing is forced.
+   13. A forced capture comes before the edge timer. A queen or Empress at timer 0
+       that moves from an edge square to another edge square has not left the
+       edge, so her side loses (this also covers a forced capture that lands on
+       an edge). If another piece has to make the forced capture instead, she is
+       still on the edge at timer 0 and her side loses just the same. Capturing the
+       enemy queen is always allowed, even at timer 0, and wins at once.
+    SCOUTERS (Huevo only; designed by the owner)
+   14. Each side has a Scouter, on the third row beside the Jester (red on square
+       19, black on square 44). It steps one square in any diagonal direction.
+   15. A Scouter's move is a chain of jumps over pieces next to it, landing right
+       behind each: an ally is only hopped, an enemy is captured. Any mix, any
+       number of segments, each piece at most once per move, and the chain may
+       stop after any segment. On the far row (a hop included) it becomes an
+       Adventurer, which also flies to the piece it jumps and still lands right
+       behind it. The flight is only for the FIRST jump of a move; every later
+       jump needs a piece right next to it, exactly like a Scouter. Only the
+       Empress can chain flying captures.
+   16. A Scouter or Adventurer that can take a Jester or Joker must (rule 12).
+   17. Only captures and men's moves reset the 60-ply draw clock. Every special
+       piece (queen, Jester, Scouter) and every promoted piece counts toward it.
     History note: this mode was first called "Thai". Thai lets kings chain
     several flying captures, which was not the vision, so it became Huevo.
 
@@ -57,7 +91,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#FBF6EF">
-<title>چکرز — چوگان</title>
+<title>Kic-Checkers</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../../lib/chogan.css">
 <style>
@@ -68,6 +102,10 @@
     --ck-p1: #2A2522; --ck-p1-rim: #4A423D; --ck-p2: #C23A3A; --ck-p2-rim: #E26A5E;
     /* [QUEEN] the queens are the paler piece of each colour */
     --ck-q1: #8D8782; --ck-q1-rim: #BDB6B0; --ck-q2: #E8928A; --ck-q2-rim: #F7C9C4;
+    /* [JESTER] the violet edge of a Jester and a Joker, the same on both colours */
+    --ck-jester: #B46AF2;
+    /* [SCOUTER] the blue edge of a Scouter and an Adventurer */
+    --ck-scout: #4FA8F0;
   }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ck-light: #CDB794; --ck-dark: #6E4630; } }
   :root[data-theme="dark"] { --ck-light: #CDB794; --ck-dark: #6E4630; }
@@ -132,6 +170,27 @@ function CheckersEngineFactory() {
   var HUEVO_QUEENS = true;
   // [QUEEN] Turns a queen may stand on an edge square before she must leave it
   var EDGE_TURNS = 15;
+  // [JESTER] Set to false to start without Jesters (queens and the timer stay).
+  var HUEVO_JESTERS = true;
+  // [JESTER] Each Jester starts ASLEEP for this many of its own side's turns (0 = awake from the start).
+  // A sleeping Jester cannot move or capture and nobody is forced to capture it, but it can still be
+  // captured if the other side chooses. The AI also values a living Jester a little more.
+  var JESTER_SLEEP_TURNS = 15;
+  var JESTER_VALUE = 40;
+  // [SCOUTER] The AI values a Scouter above a man (it hops allies, takes in all four directions and chains)
+  // and an Adventurer above a king. Estimated weights, to be tuned by the A/B matches in the test notes.
+  var SCOUTER_VALUE = 45;
+  var ADVENTURER_VALUE = 20;
+  // the sleep counters live in two extra board cells after the queens' cells: 68 (player 1), 69 (player 2)
+  function asleep(b, p) { return b.length > 68 && (b[67 + p] | 0) > 0; }
+  function jesterSleep(b, p) { return b.length > 68 ? Math.max(0, b[67 + p] | 0) : 0; }
+  // [JESTER] where the Jesters start (third row, or the far corners) and how they move
+  // (all four diagonals like a queen, or forward only like a man)
+  var JESTER_FRONT = true;
+  var JESTER_ANY_DIRECTION = true;
+  // [SCOUTER] Set to false to play without Scouters and Adventurers.
+  var HUEVO_SCOUTERS = true;
+  var MAX_CHAIN = 16;   // a safety limit on the segments of one Scouter chain
   var ALL = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
   var UP = [[-1, -1], [-1, 1]], DOWN = [[1, -1], [1, 1]];
   // Plies without a capture or a man moving before the game is drawn, so two
@@ -143,23 +202,31 @@ function CheckersEngineFactory() {
   // [HUEVO] Huevo kings fly like Spanish kings (rule 1)
   function flying(rules, v) { return (rules === 'spanish' || rules === 'huevo') && (isKing(v) || isEmpress(v)); }
 
-  function owner(v) { return v === 1 || v === 3 || v === 5 || v === 7 ? 1 : v === 2 || v === 4 || v === 6 || v === 8 ? 2 : 0; }
-  function isKing(v) { return v === 3 || v === 4; }
+  function owner(v) { return v === 1 || v === 3 || v === 5 || v === 7 || v === 9 || v === 11 || v === 13 || v === 15 ? 1 : v === 2 || v === 4 || v === 6 || v === 8 || v === 10 || v === 12 || v === 14 || v === 16 ? 2 : 0; }
+  // [JESTER] a Jester (9, 10) moves like a man; on the far row it becomes a Joker
+  // (11, 12), which moves like a king. Both MUST be captured when they can be.
+  function isKing(v) { return v === 3 || v === 4 || v === 11 || v === 12 || v === 15 || v === 16; }
+  function isJester(v) { return v === 9 || v === 10; }
+  function isJoker(v) { return v === 11 || v === 12; }
+  // [SCOUTER] a Scouter (13, 14) hops its own pieces and captures enemies; on the far row it becomes an
+  // Adventurer (15, 16), which also flies. Both count as ordinary pieces for every other rule.
+  function isScouter(v) { return v === 13 || v === 14; }
+  function isAdventurer(v) { return v === 15 || v === 16; }
   // [QUEEN] royal pieces: the queen (5, 6) and the Empress she becomes (7, 8)
   function isQueen(v) { return v === 5 || v === 6; }
   function isEmpress(v) { return v === 7 || v === 8; }
-  function isRoyal(v) { return v >= 5; }
+  function isRoyal(v) { return v >= 5 && v <= 8; }
   function isEdge(i) { var r = (i / N) | 0, c = i % N; return r === 0 || r === N - 1 || c === 0 || c === N - 1; }
   // pieces of p that are not queens or Empresses
   function nonRoyal(b, p) {
     var n = 0;
-    for (var i = 0; i < 64; i++) { var v = b[i]; if (v && v < 5 && owner(v) === p) n++; }
+    for (var i = 0; i < 64; i++) { var v = b[i]; if (v && !(v >= 5 && v <= 8) && owner(v) === p) n++; }
     return n;
   }
   function dark(i) { return (((i / N) | 0) + i % N) % 2 === 1; }
-  function dirs(v) { return isKing(v) || isRoyal(v) ? ALL : owner(v) === 1 ? UP : DOWN; }
+  function dirs(v) { return isKing(v) || isRoyal(v) || isScouter(v) || (JESTER_ANY_DIRECTION && isJester(v)) ? ALL : owner(v) === 1 ? UP : DOWN; }
   // [QUEEN] a queen that reaches the far row is crowned an Empress, like a man a king
-  function lastRow(v, r) { return (v <= 2 || isQueen(v)) && (owner(v) === 1 ? r === 0 : r === N - 1); }
+  function lastRow(v, r) { return (v <= 2 || isQueen(v) || isJester(v) || isScouter(v)) && (owner(v) === 1 ? r === 0 : r === N - 1); }
   // [HUEVO] rule 2: after a capture the king lands right behind the piece
   function shortLand(rules) { return rules === 'huevo'; }
   // [HUEVO] rule 3: a chain may stop after any landing
@@ -171,7 +238,15 @@ function CheckersEngineFactory() {
       b.push(!dark(i) ? 0 : r <= 2 ? 2 : r >= 5 ? 1 : 0);
     }
     // [QUEEN] one queen each, on the second row: red on square 10, black on 53
-    if (rules === 'huevo' && HUEVO_QUEENS) { b[10] = 6; b[53] = 5; b.push(EDGE_TURNS, EDGE_TURNS, 53, 10); }
+    if (rules === 'huevo' && HUEVO_QUEENS) {
+      b[10] = 6; b[53] = 5;
+      // [JESTER] one each: on the third row (red on square 21, black on square 42), or in the far corners
+      if (HUEVO_JESTERS) { if (JESTER_FRONT) { b[21] = 10; b[42] = 9; } else { b[7] = 10; b[56] = 9; } }
+      // [SCOUTER] one each, on the third row beside the Jester: red on square 19, black on square 44
+      if (HUEVO_SCOUTERS) { b[19] = 14; b[44] = 13; }
+      b.push(EDGE_TURNS, EDGE_TURNS, 53, 10);
+      if (HUEVO_JESTERS && JESTER_SLEEP_TURNS > 0) b.push(JESTER_SLEEP_TURNS, JESTER_SLEEP_TURNS);
+    }
     return b;
   }
 
@@ -209,13 +284,45 @@ function CheckersEngineFactory() {
   // With free set, every jump and every step is legal, and so is any jump of
   // the Spanish ones: a capture still runs to its end once started. Jumps come
   // first, so moves(...)[0].caps says whether one is open.
+  // [SCOUTER] A Scouter or Adventurer moves as a CHAIN of segments. Each segment jumps ONE piece that is
+  // next to it (the Adventurer flies in to it from any distance, but only on the FIRST segment) and lands right behind it. An ally is
+  // only hopped over; an enemy is captured. Any mix, in any order, any number of segments, each piece
+  // at most once per move, and the move may stop after any segment. A segment onto the far row
+  // crowns the Scouter and ends the move. Moves without a capture go in `steps` (a hop is not a capture).
+  function scoutChains(b, i, v, caps, steps) {
+    var p = owner(v), fly = isAdventurer(v);
+    (function rec(sq, path, took, hopped) {
+      if (path.length >= MAX_CHAIN) return;
+      var r = (sq / N) | 0, c = sq % N;
+      for (var k = 0; k < 4; k++) {
+        var dr = ALL[k][0], dc = ALL[k][1], r1 = r + dr, c1 = c + dc;
+        // [SCOUTER] the Adventurer flies only on the FIRST segment of a chain; every later segment needs a piece
+        // right next to it, like a Scouter. Only the Empress may fly on every hop (see jumps()).
+        if (fly && !path.length) while (r1 >= 0 && r1 < N && c1 >= 0 && c1 < N && b[r1 * N + c1] === 0) { r1 += dr; c1 += dc; }
+        if (r1 < 0 || r1 >= N || c1 < 0 || c1 >= N) continue;
+        var over = r1 * N + c1, t = b[over];
+        if (!t) continue;
+        var ally = owner(t) === p;
+        if (ally ? hopped.indexOf(over) >= 0 : took.indexOf(over) >= 0) continue;
+        var r2 = r1 + dr, c2 = c1 + dc;
+        if (r2 < 0 || r2 >= N || c2 < 0 || c2 >= N || b[r2 * N + c2] !== 0) continue;
+        var land = r2 * N + c2, np = path.concat(land), nt = ally ? took : took.concat(over);
+        var nh = ally ? hopped.concat(over) : hopped, cr = lastRow(v, r2);
+        var mv = { from: i, path: np, caps: nt.slice(), crown: cr };
+        if (nt.length) caps.push(mv); else steps.push(mv);
+        if (!cr) rec(land, np, nt, nh);
+      }
+    })(i, [], [], []);
+  }
+
   function movesRaw(b, p, rules, free) {
     var caps = [], steps = [];
     for (var i = 0; i < 64; i++) {
       var v = b[i];
       if (owner(v) !== p) continue;
+      if ((v === 9 || v === 10) && asleep(b, p)) continue;     // [JESTER] a sleeping Jester neither moves nor captures
       b[i] = 0;
-      jumps(b, i, v, i, [], [], caps, rules);
+      if (v >= 13 && v <= 16) scoutChains(b, i, v, caps, steps); else jumps(b, i, v, i, [], [], caps, rules);
       b[i] = v;
       if (caps.length && !free) continue;
       var r = (i / N) | 0, c = i % N, ds = dirs(v), fly = flying(rules, v);
@@ -253,13 +360,37 @@ function CheckersEngineFactory() {
   //  - if the only legal moves are the queen's (or the Empress's) and there are
   //    other pieces, the player counts as stuck
   //  - a lone queen keeps her moves: it is her one last turn
+  // [JESTER] The captures that must be played: any capture that takes a Jester or
+  // Joker. If any piece can take the enemy QUEEN (or Empress) instead, nothing is
+  // forced at all, so the Jester can be offered as a decoy without shielding her.
+  function jesterCaptures(b, ms) {
+    var f = [], k, j;
+    for (k = 0; k < ms.length; k++) {
+      var m = ms[k];
+      for (j = 0; j < m.caps.length; j++) { var t = b[m.caps[j]]; if (t >= 5 && t <= 8) return []; }
+    }
+    for (k = 0; k < ms.length; k++) {
+      for (j = 0; j < ms[k].caps.length; j++) { var tt = b[ms[k].caps[j]]; if (tt >= 9 && tt <= 12 && !((tt === 9 || tt === 10) && asleep(b, owner(tt)))) { f.push(ms[k]); break; } }   // a sleeping Jester is not a forced target
+    }
+    return f;
+  }
+  function jesterForced(b, p, rules, free) {
+    return b.length > 64 && jesterCaptures(b, movesRaw(b, p, rules, free)).length > 0;
+  }
   function timerDead(b, p) { var q = b[65 + p]; return q >= 0 && b[63 + p] <= 0 && isEdge(q); }
   function moves(b, p, rules, free) {
     var ms = movesRaw(b, p, rules, free);
     if (b.length <= 64 || !ms.length) return ms;
+    var jf = jesterCaptures(b, ms);          // [JESTER] takes priority over the edge timer
+    if (jf.length) return jf;
     var q = b[65 + p];
     if (q >= 0 && b[63 + p] <= 0 && isEdge(q)) {
-      var off = ms.filter(function (m) { return m.from === q && !isEdge(m.path[m.path.length - 1]); });
+      // [JESTER] capturing the enemy queen wins at once, so it is always allowed, even at timer 0
+      var off = ms.filter(function (m) {
+        if (m.from === q && !isEdge(m.path[m.path.length - 1])) return true;
+        for (var k = 0; k < m.caps.length; k++) { var t = b[m.caps[k]]; if (t >= 5 && t <= 8) return true; }
+        return false;
+      });
       return off;
     }
     if (nonRoyal(b, p) > 0 && ms.every(function (m) { return isRoyal(b[m.from]); })) return [];
@@ -276,6 +407,7 @@ function CheckersEngineFactory() {
   function play(b, m) {
     var v = b[m.from], took = [], last = m.path[m.path.length - 1];
     var saved = b.length > 64 ? [b[64], b[65], b[66], b[67]] : null;
+    if (saved && b.length > 68) saved.push(b[68], b[69]);
     b[m.from] = 0;
     for (var k = 0; k < m.caps.length; k++) { took.push(b[m.caps[k]]); b[m.caps[k]] = 0; }
     b[last] = m.crown ? v + 2 : v;
@@ -287,17 +419,22 @@ function CheckersEngineFactory() {
       if (b[65 + o] >= 0 && m.caps.indexOf(b[65 + o]) >= 0) b[65 + o] = -1;
       var q1 = b[65 + p];
       if (q1 >= 0) {
-        if (isEdge(q1)) { if (q0 >= 0 && isEdge(q0)) b[63 + p]--; }
+        // [JESTER] a royal at timer 0 that is still on an edge after her side's move has not left the edge:
+        // -99 marks her side as lost. A forced capture of a Jester can cause it two ways: she is the one who
+        // captures and lands on an edge, or ANOTHER piece has to capture and she never moves.
+        if (isEdge(q1)) { if (q0 >= 0 && isEdge(q0)) { if (b[63 + p] <= 0) b[63 + p] = -99; else b[63 + p]--; } }
         else b[63 + p] = EDGE_TURNS;
       }
     }
+    // [JESTER] a Jester's sleep counts down on each of its own side's turns
+    if (saved && b.length > 68) { var sp = owner(v); if (b[67 + sp] > 0) b[67 + sp]--; }
     return { v: v, took: took, saved: saved };
   }
   function unplay(b, m, u) {
     b[m.path[m.path.length - 1]] = 0;
     for (var k = 0; k < m.caps.length; k++) b[m.caps[k]] = u.took[k];
     b[m.from] = u.v;
-    if (u.saved) { b[64] = u.saved[0]; b[65] = u.saved[1]; b[66] = u.saved[2]; b[67] = u.saved[3]; }
+    if (u.saved) { b[64] = u.saved[0]; b[65] = u.saved[1]; b[66] = u.saved[2]; b[67] = u.saved[3]; if (u.saved.length > 4) { b[68] = u.saved[4]; b[69] = u.saved[5]; } }
   }
 
   function count(b) {
@@ -341,6 +478,10 @@ function CheckersEngineFactory() {
     if (b.length > 64) {
       // [QUEEN] capturing the queen (or the Empress) wins at once
       if (tookRoyal || b[65 + n] < 0) { S.winner = p; S.cause = 'queen'; return; }
+      if (b[63 + p] <= -99) {
+        var hh = S.history[S.history.length - 1], moved = !hh || !hh.saved || hh.m.from === hh.saved[1 + p];
+        S.winner = n; S.cause = moved ? 'edge' : 'stay'; return;
+      }
       // [QUEEN] the last move of a side left with only its queen: it must leave
       // the other side with only a queen too (a draw), else it has lost
       var a = nonRoyal(b, n), c = nonRoyal(b, p);
@@ -363,7 +504,7 @@ function CheckersEngineFactory() {
     var u = play(S.board, mv);
     S.history.push({ m: mv, v: u.v, took: u.took, saved: u.saved, t: S.turn, quiet: S.quiet });
     // only a man or a capture counts as progress ([QUEEN] a queen's step does not)
-    S.quiet = mv.caps.length || u.v <= 2 ? 0 : S.quiet + 1;
+    S.quiet = mv.caps.length || u.v <= 2 ? 0 : S.quiet + 1;     // only a capture or a man's move is progress; every special and promoted piece's move counts toward the draw
     var p = S.turn;
     S.turn = 3 - p;
     // a player who cannot move, with no pieces or all of them blocked
@@ -466,6 +607,9 @@ function CheckersEngineFactory() {
         x = 100 + adv * 4 + (adv === 0 ? 8 : 0);
       }
       if (c >= 2 && c <= 5 && r >= 2 && r <= 5) x += 5;
+      if (JESTER_VALUE && (v === 9 || v === 10)) x += JESTER_VALUE;      // [JESTER] the AI protects a living Jester
+      if (v === 13 || v === 14) x += SCOUTER_VALUE;                       // [SCOUTER] the AI protects its Scouter
+      else if (v === 15 || v === 16) x += ADVENTURER_VALUE;               // [SCOUTER] and values the Adventurer above a king
       s += o === p ? x : -x;
     }
     // [QUEEN] each side's queen: her trouble is her owner's loss
@@ -478,6 +622,8 @@ function CheckersEngineFactory() {
     if (b.length > 64) {
       // [QUEEN] the same endings as settle, seen from the search
       if (b[65 + p] < 0) return -WIN + ply;
+      if (b[63 + p] <= -99) return -WIN + ply;
+      if (b[63 + 3 - p] <= -99) return WIN - ply;
       var qa = nonRoyal(b, p), qb = nonRoyal(b, 3 - p);
       if (qa === 0 && qb === 0) return 0;
       if (qb === 0 && qa > 0) return WIN - ply;
@@ -549,7 +695,12 @@ function CheckersEngineFactory() {
     owner: owner, isKing: isKing, dark: dark, initial: initial, moves: moves, same: same, midStop: midStop, count: count, newState: newState, applyMove: applyMove, takeBack: takeBack,
     evaluate: evaluate, aiMove: aiMove, dailyOpening: dailyOpening,
     // [QUEEN]
-    isQueen: isQueen, isEmpress: isEmpress, isRoyal: isRoyal, isEdge: isEdge, settle: settle, EDGE_TURNS: EDGE_TURNS
+    isQueen: isQueen, isEmpress: isEmpress, isRoyal: isRoyal, isEdge: isEdge, settle: settle, EDGE_TURNS: EDGE_TURNS,
+    // [JESTER]
+    isJester: isJester, isJoker: isJoker, jesterForced: jesterForced, HUEVO_JESTERS: HUEVO_JESTERS,
+    // [SCOUTER]
+    isScouter: isScouter, isAdventurer: isAdventurer, HUEVO_SCOUTERS: HUEVO_SCOUTERS,
+    jesterSleep: jesterSleep, JESTER_SLEEP_TURNS: JESTER_SLEEP_TURNS
   };
   if (typeof self !== 'undefined') self.CheckersEngine = api;
   return api;
@@ -583,6 +734,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         rulesNote: 'در قانون اسپانیایی شاه در کل قطر می‌رود و از دور می‌زند، و باید بیشترین مهره را بزنی، بعد بیشترین شاه را.',
         rulesNotehuevo: 'در سبک هوئوو، شاه می‌تواند از دور بزند اما بعد از هر زدن باید بلافاصله متوقف شود و می‌توانی زدن‌های بیشتر را انتخاب کنی. اگر بازیکنی نتواند حرکت کند، کسی که مهره‌ی بیشتری دارد برنده است و تعداد مساوی مساوی است.',
         queenWord: "ملکه", empressWord: "شهبانو", mustLeaveEdge: "ملکه‌ی تو باید همین حالا از لبه‌ی تخته برود", queenNote: "هر طرف یک ملکه دارد: مهره‌ی کم‌رنگ‌تر در ردیف دوم. اگر ملکه را بزنی همان لحظه برنده‌ای. ملکه در هر جهت قطری یک خانه می‌رود، مثل مهره‌ی عادی در همه‌ی جهت‌ها می‌زند و در ردیف آخر شهبانو می‌شود. شهبانو مثل شاه از دور می‌رود، زنجیره‌ی زدنش هم از دور است و بعد از هر مهره‌ی زده‌شده درست پشت آن می‌نشیند؛ می‌تواند بعد از هر فرود بایستد. ملکه‌ای که روی لبه‌ی تخته است شمارش ۱۵ نوبتی را شروع می‌کند که با رفتن از لبه دوباره ۱۵ می‌شود. وقتی به صفر برسد باید از لبه برود و اگر نتواند، بازیکنش می‌بازد. اگر تنها حرکت‌های ممکنت حرکت ملکه باشد، گیر کرده حساب می‌شوی. اگر فقط ملکه‌ات مانده باشد، یک حرکت آخر داری: آخرین مهره‌ی حریف جز ملکه را بزن تا مساوی شود، یا ملکه‌اش را بزن تا ببری. هر کار دیگری باخت است.", causeQueen: "ملکه زده شد", causeTimer: "زمان ملکه روی لبه تمام شد", causeGrace: "فقط ملکه مانده بود و نتوانست بازی را برگرداند", causeLone: "فقط دو ملکه مانده‌اند: مساوی",
+        mustTakeJester: "باید دلقک (یا جوکر) را بزنی", causeEdge: "از خانه‌ی لبه رفت اما روی خانه‌ی لبه‌ی دیگری نشست", jesterNote: "هر طرف یک دلقک هم دارد: مهره‌ای با لبه‌ی بنفش و حلقه‌ای از زنگوله‌ها که در ردیف سوم شروع می‌کند. در هر جهت قطری یک خانه می‌رود و می‌زند. اگر بشود آن را زد، طرف مقابل باید بزندش، مگر اینکه بتواند ملکه را بزند که در این صورت چیزی اجباری نیست. مهره‌های دیگر هرگز دلقک را مجبور به زدن خودشان نمی‌کنند. در ردیف آخر جوکر می‌شود: شاهی با همان قانون زدن اجباری. دلقک یا جوکری که بتواند دلقک یا جوکر دیگری را بزند باید بزند. ملکه یا شهبانویی که زمانش به صفر رسیده باید همان حرکت از لبه برود؛ اگر زدن اجباری دلقک باعث شود مهره‌ی دیگری حرکت کند یا او روی خانه‌ی لبه بنشیند، می‌بازد. هر دلقک در ابتدا ۱۵ نوبت از نوبت‌های طرف خودش خواب است (عددِ روی آن کم می‌شود): دلقکِ خواب نمی‌تواند حرکت کند یا بزند و کسی مجبور به زدن آن نیست، اما اگر بخواهند هنوز می‌شود آن را زد.", scouterNote: "هر طرف یک پیشاهنگ هم دارد: مهره‌ای با لبه‌ی آبی و نشان پرش که در ردیف سوم، کنار دلقک شروع می‌کند. در هر جهت قطری یک خانه می‌رود. می‌تواند از روی مهره‌های خودش بپرد (درست پشت آن‌ها می‌نشیند و چیزی زده نمی‌شود) و از روی مهره‌های حریف بپرد (و آن‌ها را بزند)، با هر ترتیب و هر تعداد در یک حرکت، هر مهره حداکثر یک بار، و بعد از هر پرش می‌تواند بایستد. در ردیف آخر ماجراجو می‌شود که از دور به مهره‌ای که می‌پرد می‌رسد و باز هم درست پشت آن می‌نشیند. این پرواز فقط برای پرش اول است؛ پرش‌های بعدی به مهره‌ای درست کنار او نیاز دارند. فقط شهبانو می‌تواند زنجیره‌ی پرواز کند. اگر پیشاهنگ یا ماجراجو بتواند دلقک یا جوکر را بزند، باید بزند.", causeStay: "زمانش صفر بود و هنوز روی لبه بود",
         mustJump: 'باید بزنی', drawNote: 'حرکت‌های زیادی بی‌زدن: مساوی',
         chooseMove: 'کدام را می‌خواهی؟', takeChain: 'زدن ({n})', justLand: 'فقط برو آنجا',
         boardLabel: 'تخته‌ی چکرز',
@@ -602,6 +754,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         rulesNote: 'In Spanish rules a king flies along the whole diagonal and captures from a distance, and you must take the most pieces, then the most kings.',
         rulesNotehuevo: 'In Huevo Style, a king flies to capture but may stop after any landing. Tap any yellow dot to complete the chain at that point. If a player cannot move, whoever has more pieces wins; equal pieces is a draw.',
         queenWord: "Queen", empressWord: "Empress", mustLeaveEdge: "Your queen must leave the edge now", queenNote: "Each side has a queen, the paler piece on the second row. Capture it and you win at once. She steps one square in any diagonal direction, captures like a man in every direction, and becomes an Empress on the far row. The Empress flies like a king, and her chains fly too, landing right behind each captured piece; she may stop after any landing. A queen standing on an edge square starts a 15-turn timer, which resets when she steps off the edge. At 0 she must leave the edge, and if she cannot, her player loses. If your only legal moves are queen moves, you count as stuck. If only your queen is left, you get one last move: capture their last piece other than the queen for a draw, or capture their queen to win. Anything else loses.", causeQueen: "The queen was captured", causeTimer: "The queen ran out of time on the edge", causeGrace: "Only the queen was left and she could not turn it around", causeLone: "Only the two queens are left: a draw",
+        mustTakeJester: "You must capture the Jester (or Joker)", causeEdge: "She left her edge square but landed on another edge square", jesterNote: "Each side also has a Jester: the piece with a violet edge and a collar of bells, starting on the third row. It steps and captures one square in any diagonal direction. If it can be captured, the other side must capture it, unless it can capture the queen instead, in which case nothing is forced. Ordinary pieces never force the Jester to capture them. On the far row it becomes a Joker: a king with the same forced-capture rule. A Jester or Joker that can capture another Jester or Joker must do so. A queen or Empress whose timer has run out must leave the edge on that very move; if the forced capture of a Jester makes her side move another piece, or lands her on an edge square, she loses. Each Jester starts asleep for 15 of its own side's turns (the number on it counts down): a sleeping Jester cannot move or capture, nobody is forced to capture it, but it can still be captured if they choose.", scouterNote: "Each side also has a Scouter: the piece with a blue edge and a hop mark, starting on the third row beside the Jester. It steps one square in any diagonal direction. It can hop over its own pieces (landing right behind them; nothing is captured) and over enemy pieces (capturing them), in any order and any number of times in one move, each piece at most once, and it may stop after any hop. On the far row it becomes an Adventurer, which flies to the piece it jumps and still lands right behind it. It flies only on the first jump of a move; every later jump needs a piece right next to it, like a Scouter. Only the Empress can chain flying captures. If a Scouter or Adventurer can take a Jester or Joker, it must.", causeStay: "Her timer was at 0 and she was still on the edge",
         mustJump: 'You must jump', drawNote: 'Too many moves without a capture: a draw',
         chooseMove: 'What do you want to do?', takeChain: 'Capture ({n})', justLand: 'Just land here',
         boardLabel: 'Checkers board',
@@ -621,6 +774,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         rulesNote: '西班牙规则下，王棋可沿整条斜线飞行并隔空吃子；必须吃最多的子，数量相同时吃最多的王。',
         rulesNotehuevo: '在蛋式风格中，王棋可以远距离吃子，但可以在任何落脚点停止。点击任意黄点完成链跳。如果一方无法走棋，棋子多的一方获胜；数量相同则为平局。',
         queenWord: "王后", empressWord: "女皇", mustLeaveEdge: "你的王后必须立刻离开边缘", queenNote: "每方有一个王后，是第二排颜色较浅的棋子。吃掉她就立即获胜。她可向任意斜向走一格，像普通棋子一样可向各个方向吃子，走到对方底线后升为女皇。女皇像王棋一样飞行，连跳也可以飞行，每次落在被吃棋子的正后方，并可在任意落点停下。王后站在边线格上时开始15回合倒计时，离开边线后重置。倒计时归零时她必须离开边线，若无法离开，该方判负。如果你唯一能走的棋是王后，则视为无子可走。如果只剩王后，你还有最后一步：吃掉对方除王后外的最后一子则平局，吃掉对方王后则获胜，其他情况判负。", causeQueen: "王后被吃", causeTimer: "王后在边线上超时", causeGrace: "只剩王后，未能扭转局面", causeLone: "只剩两个王后：平局",
+        mustTakeJester: "你必须吃掉小丑（或鬼牌）", causeEdge: "她离开了边线格，却落在另一个边线格上", jesterNote: "每方还有一个小丑：带紫色边缘和一圈铃铛的棋子，从第三排出发。它可向任意斜向走一格并吃子。如果它能被吃，对方必须吃掉它；但如果对方可以改吃王后，则没有任何强制。普通棋子永远不能强迫小丑吃它们。到达底线后小丑升为鬼牌：拥有王棋的走法，并保留同样的被迫吃规则。小丑或鬼牌若能吃掉对方的小丑或鬼牌，则必须吃。倒计时已归零的王后或女皇必须在这一步离开边线；如果因为被迫吃小丑而改由别的棋子走，或她落在边线格上，则判负。每个小丑开局时沉睡，持续其所属一方的15个回合（棋子上的数字会递减）：沉睡的小丑不能移动或吃子，也没有人被迫去吃它，但对方仍可选择吃掉它。", scouterNote: "每方还有一个斥候：带蓝色边缘和跳跃标记的棋子，从第三排出发，位于小丑旁边。它可向任意斜向走一格。它可以跳过己方棋子（落在其正后方，不吃子）和敌方棋子（吃掉它），顺序和次数不限，一步之内每个棋子最多跳一次，并可在任何一跳之后停下。到达底线后升为冒险家：它从远处飞到所跳的棋子旁，仍落在其正后方。但只有一步中的第一跳可以飞行；之后每一跳都需要紧邻的棋子，与斥候相同。只有女皇能连续飞行吃子。如果斥候或冒险家能吃掉小丑或鬼牌，则必须吃。", causeStay: "倒计时为0时她仍在边线上",
         mustJump: '必须吃子', drawNote: '太多步没有吃子：平局',
         chooseMove: '你想怎么走？', takeChain: '吃子（{n}）', justLand: '只走到这里',
         boardLabel: '西洋跳棋棋盘',
@@ -640,6 +794,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         rulesNote: 'Nach spanischen Regeln fliegt eine Dame über die ganze Diagonale und schlägt aus der Ferne, und du musst die meisten Steine schlagen, dann die meisten Damen.',
         rulesNotehuevo: 'Im Huevo-Stil fliegt eine Dame zum Schlagen, kann aber nach jedem Landen stoppen. Tippe auf einen gelben Punkt, um die Kette dort zu beenden. Kann ein Spieler nicht ziehen, gewinnt, wer mehr Steine hat; bei Gleichstand ist es ein Remis.',
         queenWord: "Königin", empressWord: "Kaiserin", mustLeaveEdge: "Deine Königin muss jetzt den Rand verlassen", queenNote: "Jede Seite hat eine Königin, den helleren Stein in der zweiten Reihe. Wer sie schlägt, gewinnt sofort. Sie zieht ein Feld in jede diagonale Richtung, schlägt wie ein Stein in alle Richtungen und wird auf der letzten Reihe zur Kaiserin. Die Kaiserin fliegt wie eine Dame, ihre Ketten fliegen ebenfalls, und sie landet direkt hinter jedem geschlagenen Stein; nach jeder Landung darf sie anhalten. Steht eine Königin auf einem Randfeld, läuft ein Timer von 15 Zügen, der zurückgesetzt wird, sobald sie den Rand verlässt. Bei 0 muss sie den Rand verlassen; kann sie es nicht, verliert ihre Seite. Wenn nur noch die Königin ziehen kann, giltst du als blockiert. Bleibt dir nur noch die Königin, hast du einen letzten Zug: Schlägst du den letzten anderen Stein des Gegners, ist es Remis, schlägst du seine Königin, gewinnst du. Alles andere verliert.", causeQueen: "Die Königin wurde geschlagen", causeTimer: "Die Königin hat am Rand die Zeit überschritten", causeGrace: "Nur die Königin war übrig und konnte es nicht mehr wenden", causeLone: "Nur die beiden Königinnen sind übrig: Remis",
+        mustTakeJester: "Du musst den Narren (oder Joker) schlagen", causeEdge: "Sie verließ ihr Randfeld, landete aber auf einem anderen Randfeld", jesterNote: "Jede Seite hat außerdem einen Narren: den Stein mit violettem Rand und einem Kranz aus Glöckchen, der in der dritten Reihe startet. Er zieht und schlägt ein Feld in jede diagonale Richtung. Kann er geschlagen werden, muss die Gegenseite ihn schlagen, es sei denn, sie kann stattdessen die Königin schlagen; dann ist nichts erzwungen. Gewöhnliche Steine zwingen den Narren nie, sie zu schlagen. Auf der letzten Reihe wird er zum Joker: eine Dame mit derselben Schlagpflicht. Ein Narr oder Joker, der einen anderen Narren oder Joker schlagen kann, muss es tun. Eine Königin oder Kaiserin mit abgelaufenem Timer muss in genau diesem Zug den Rand verlassen; zieht wegen der Schlagpflicht gegen einen Narren ein anderer Stein oder landet sie auf einem Randfeld, verliert sie. Jeder Narr schläft zu Beginn 15 Züge seiner Seite (die Zahl auf ihm zählt herunter): Ein schlafender Narr kann weder ziehen noch schlagen, niemand muss ihn schlagen, aber er kann weiterhin geschlagen werden, wenn man will.", scouterNote: "Jede Seite hat außerdem einen Späher: den Stein mit blauem Rand und Sprungzeichen, der in der dritten Reihe neben dem Narren startet. Er zieht ein Feld in jede diagonale Richtung. Er kann über eigene Steine springen (landet direkt dahinter, nichts wird geschlagen) und über gegnerische Steine (schlägt sie), in beliebiger Reihenfolge und beliebig oft in einem Zug, jeden Stein höchstens einmal, und nach jedem Sprung anhalten. Auf der letzten Reihe wird er zum Abenteurer, der aus der Ferne zum übersprungenen Stein fliegt und trotzdem direkt dahinter landet. Er fliegt nur beim ersten Sprung eines Zuges; jeder weitere Sprung braucht einen direkt benachbarten Stein, wie beim Späher. Nur die Kaiserin kann fliegend Ketten schlagen. Kann ein Späher oder Abenteurer einen Narren oder Joker schlagen, muss er es tun.", causeStay: "Ihr Timer stand auf 0 und sie stand noch am Rand",
         mustJump: 'Schlagen ist Pflicht', drawNote: 'Zu viele Züge ohne Schlagen: unentschieden',
         chooseMove: 'Was möchtest du tun?', takeChain: 'Schlagen ({n})', justLand: 'Nur hinziehen',
         boardLabel: 'Dame-Brett',
@@ -659,6 +814,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         rulesNote: 'Con reglas españolas la dama vuela por toda la diagonal y captura a distancia, y debes capturar el mayor número de piezas y, a igualdad, de damas.',
         rulesNotehuevo: 'En Estilo Huevo, la dama vuela para capturar pero puede detenerse tras cualquier aterrizaje. Toca cualquier punto amarillo para terminar la cadena allí. Si un jugador no puede mover, gana quien tenga más fichas; con igual número es empate.',
         queenWord: "Reina", empressWord: "Emperatriz", mustLeaveEdge: "Tu reina debe salir del borde ahora", queenNote: "Cada bando tiene una reina, la ficha más clara de la segunda fila. Si la capturas, ganas al instante. Avanza una casilla en cualquier diagonal, captura como una ficha en todas las direcciones y se convierte en emperatriz en la última fila. La emperatriz vuela como la dama, sus cadenas también vuelan y aterriza justo detrás de cada pieza capturada; puede detenerse tras cualquier aterrizaje. Una reina en una casilla del borde inicia un temporizador de 15 turnos que se reinicia cuando sale del borde. Al llegar a 0 debe salir del borde y, si no puede, su jugador pierde. Si tus únicos movimientos posibles son los de la reina, cuentas como bloqueado. Si solo te queda la reina, tienes un último movimiento: captura la última ficha del rival que no sea la reina para empatar, o captura su reina para ganar. Cualquier otra cosa pierde.", causeQueen: "Capturaron a la reina", causeTimer: "La reina agotó el tiempo en el borde", causeGrace: "Solo quedaba la reina y no pudo darle la vuelta", causeLone: "Solo quedan las dos reinas: empate",
+        mustTakeJester: "Debes capturar al bufón (o al comodín)", causeEdge: "Salió de su casilla del borde pero cayó en otra casilla del borde", jesterNote: "Cada bando también tiene un bufón: la ficha con borde violeta y un collar de cascabeles, que empieza en la tercera fila. Se mueve y captura una casilla en cualquier diagonal. Si puede ser capturado, el otro bando debe capturarlo, salvo que pueda capturar la reina, en cuyo caso nada es obligatorio. Las fichas normales nunca obligan al bufón a capturarlas. En la última fila se convierte en comodín: una dama con la misma captura obligatoria. Un bufón o comodín que pueda capturar a otro bufón o comodín debe hacerlo. Una reina o emperatriz con el temporizador agotado debe salir del borde en ese mismo movimiento; si la captura obligatoria de un bufón obliga a mover otra ficha, o ella cae en una casilla del borde, pierde. Cada bufón empieza dormido durante 15 turnos de su propio bando (el número sobre él va bajando): un bufón dormido no puede moverse ni capturar, nadie está obligado a capturarlo, pero puede ser capturado si se desea.", scouterNote: "Cada bando también tiene un explorador: la ficha con borde azul y una marca de salto, que empieza en la tercera fila junto al bufón. Avanza una casilla en cualquier diagonal. Puede saltar sobre sus propias fichas (cae justo detrás y no captura nada) y sobre fichas enemigas (las captura), en cualquier orden y cualquier número de veces en un movimiento, cada ficha como máximo una vez, y puede detenerse tras cualquier salto. En la última fila se convierte en aventurero, que vuela hasta la ficha que salta y aun así cae justo detrás. Solo vuela en el primer salto de un movimiento; cada salto posterior necesita una ficha justo al lado, como el explorador. Solo la emperatriz puede encadenar capturas volando. Si un explorador o aventurero puede capturar a un bufón o comodín, debe hacerlo.", causeStay: "Su temporizador estaba en 0 y seguía en el borde",
         mustJump: 'Tienes que capturar', drawNote: 'Demasiadas jugadas sin captura: empate',
         chooseMove: '¿Qué quieres hacer?', takeChain: 'Capturar ({n})', justLand: 'Solo mover aquí',
         boardLabel: 'Tablero de damas',
@@ -710,7 +866,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
   var timersRow = el('div', { class: 'ck-timers' });
   var wrap = el('div', { class: 'ck-wrap ch-split' }, [el('div', { class: 'ch-fit' }, [boardBox]), el('div', { class: 'ch-side' }, [top, playersRow, note])]);
 
-  ctx.button({ icon: 'help', label: C.t('help'), onClick: showHelp });
+ctx.button({ icon: 'help', label: C.t('help'), onClick: function () {
+  var anchors = { classic: 'classic', spanish: 'spanish', huevo: 'huevo' };
+  location.href = '../../rules.html#' + (anchors[S.rules] || 'classic');
+} });
   ctx.button({ icon: 'undo', label: C.t('undoMove'), onClick: undo });
   ctx.button({ icon: 'refresh', label: C.t('newMatch'), onClick: askNew });
   ctx.main.appendChild(wrap);
@@ -752,24 +911,90 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
       p1: v('--ck-p1', '#2A2522'), p1rim: v('--ck-p1-rim', '#4A423D'),
       p2: v('--ck-p2', '#C23A3A'), p2rim: v('--ck-p2-rim', '#E26A5E'),
       q1: v('--ck-q1', '#8D8782'), q1rim: v('--ck-q1-rim', '#BDB6B0'), q2: v('--ck-q2', '#E8928A'), q2rim: v('--ck-q2-rim', '#F7C9C4'),
-      mark: v('--c-gold', '#D9A441'), hint: 'rgba(255, 255, 255, .55)'
+      jester: v('--ck-jester', '#B46AF2'), scout: v('--ck-scout', '#4FA8F0'), sleep: '#716B65', sleepRim: '#97918A', sleepEdge: '#8B857F', sleepBell: '#A79F90', mark: v('--c-gold', '#D9A441'), hint: 'rgba(255, 255, 255, .55)'
     };
   }
 
   // crownK: how far the crown has dropped, 0..1 (#407); undefined draws it in place
-  function piece(g, cx, cy, R, v, col, alpha, crownK) {
-    var p1 = E.owner(v) === 1, royal = E.isRoyal(v);
+  // [SCOUTER] the hop mark: an arc leaping over a small piece, with an arrow head
+  function hopMark(g, cx, cy, R, s, dy, col) {
+    var u = R * s, X = function (x) { return cx + x * u; }, Y = function (y) { return cy + dy * R + y * u; };
+    g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(X(-0.42), Y(0.2)); g.quadraticCurveTo(X(0), Y(-0.78), X(0.36), Y(0.1));
+    g.lineWidth = Math.max(1.6, u * 0.17); g.strokeStyle = col.mark; g.stroke();
+    g.beginPath(); g.moveTo(X(0.5), Y(0.3)); g.lineTo(X(0.24), Y(0.12)); g.lineTo(X(0.5), Y(-0.06)); g.closePath();
+    g.fillStyle = col.mark; g.fill();
+    g.beginPath(); g.arc(X(0), Y(0.28), Math.max(1.4, u * 0.13), 0, Math.PI * 2);
+    g.fillStyle = col.mark; g.fill(); g.lineWidth = Math.max(0.8, u * 0.05); g.strokeStyle = 'rgba(0,0,0,.5)'; g.stroke();
+    g.beginPath(); g.arc(X(-0.46), Y(0.28), Math.max(1.2, u * 0.1), 0, Math.PI * 2);
+    g.fillStyle = col.mark; g.fill();
+    g.restore();
+  }
+  function crownShape(g, cx, cy, R, s, dy, col, crownK) {
+    var w = R * 0.95 * s, h = R * 0.6 * s, y = cy + dy * R + h * 0.45;
+    if (crownK !== undefined) { y -= (1 - bounce(crownK)) * R * 1.6; g.globalAlpha = Math.min(1, crownK * 4); }
+    g.beginPath();
+    g.moveTo(cx - w / 2, y); g.lineTo(cx - w / 2, y - h * 0.75); g.lineTo(cx - w / 4, y - h * 0.35); g.lineTo(cx, y - h);
+    g.lineTo(cx + w / 4, y - h * 0.35); g.lineTo(cx + w / 2, y - h * 0.75); g.lineTo(cx + w / 2, y); g.closePath();
+    g.fillStyle = col.mark; g.fill();
+    g.lineWidth = Math.max(1, R * 0.05); g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineJoin = 'round'; g.stroke();
+  }
+
+  function piece(g, cx, cy, R, v, col, alpha, crownK, sleepLeft) {
+    var p1 = E.owner(v) === 1, royal = E.isRoyal(v), jk = E.isJester(v) || E.isJoker(v), sk = E.isScouter(v) || E.isAdventurer(v), zz = sleepLeft > 0;
     g.save();
     g.globalAlpha = alpha === undefined ? 1 : alpha;
     g.beginPath(); g.arc(cx, cy + R * 0.12, R, 0, Math.PI * 2);
     g.fillStyle = 'rgba(0,0,0,.35)'; g.fill();
     g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2);
-    g.fillStyle = royal ? (p1 ? col.q1 : col.q2) : (p1 ? col.p1 : col.p2); g.fill();
+    g.fillStyle = zz ? col.sleep : royal ? (p1 ? col.q1 : col.q2) : (p1 ? col.p1 : col.p2); g.fill();
     // the raised rim of a real draughtsman
     g.lineWidth = Math.max(1.5, R * 0.14);
-    g.strokeStyle = royal ? (p1 ? col.q1rim : col.q2rim) : (p1 ? col.p1rim : col.p2rim);
+    g.strokeStyle = zz ? col.sleepRim : royal ? (p1 ? col.q1rim : col.q2rim) : (p1 ? col.p1rim : col.p2rim);
     g.beginPath(); g.arc(cx, cy, R * 0.66, 0, Math.PI * 2); g.stroke();
-    if (E.isKing(v) || E.isEmpress(v)) {
+    if (jk) {
+      // [JESTER] a violet edge, and a collar of gold bells in place of the plain rim
+      g.lineWidth = Math.max(2, R * 0.13); g.strokeStyle = zz ? col.sleepEdge : col.jester;
+      g.beginPath(); g.arc(cx, cy, R * 0.9, 0, Math.PI * 2); g.stroke();
+      for (var bi = 0; bi < 10; bi++) {
+        var an = bi / 10 * Math.PI * 2 - Math.PI / 2, bx = cx + Math.cos(an) * R * 0.62, by = cy + Math.sin(an) * R * 0.62;
+        g.beginPath(); g.arc(bx, by, Math.max(1.4, R * 0.085), 0, Math.PI * 2);
+        g.fillStyle = zz ? col.sleepBell : col.mark; g.fill();
+        g.lineWidth = Math.max(0.8, R * 0.025); g.strokeStyle = 'rgba(0,0,0,.45)'; g.stroke();
+      }
+    }
+    if (sk) {
+      // [SCOUTER] a blue edge and the hop mark; the Adventurer adds the crown of a promoted piece
+      g.lineWidth = Math.max(2, R * 0.12); g.strokeStyle = col.scout;
+      g.beginPath(); g.arc(cx, cy, R * 0.9, 0, Math.PI * 2); g.stroke();
+      if (E.isAdventurer(v)) { hopMark(g, cx, cy, R, 0.62, 0.34, col); crownShape(g, cx, cy, R, 0.72, -0.26, col, crownK); }
+      else hopMark(g, cx, cy, R, 0.95, 0, col);
+    }
+    if (E.isJoker(v)) {
+      // [JESTER] the Joker wears a fool's cap: a band, a tall centre horn and two horns that arch out,
+      // with a bell on every tip
+      var u = R / 100, jy = cy;
+      if (crownK !== undefined) { jy -= (1 - bounce(crownK)) * R * 1.6; g.globalAlpha = Math.min(1, crownK * 4); }
+      var JX = function (x) { return cx + x * u; }, JY = function (y) { return jy + y * u; };
+      g.beginPath();
+      g.moveTo(JX(-40), JY(28)); g.lineTo(JX(-40), JY(8));
+      g.bezierCurveTo(JX(-62), JY(8), JX(-74), JY(-14), JX(-62), JY(-30));
+      g.bezierCurveTo(JX(-60), JY(-14), JX(-48), JY(-12), JX(-24), JY(-6));
+      g.bezierCurveTo(JX(-22), JY(-30), JX(-10), JY(-44), JX(0), JY(-52));
+      g.bezierCurveTo(JX(10), JY(-44), JX(22), JY(-30), JX(24), JY(-6));
+      g.bezierCurveTo(JX(48), JY(-12), JX(60), JY(-14), JX(62), JY(-30));
+      g.bezierCurveTo(JX(74), JY(-14), JX(62), JY(8), JX(40), JY(8));
+      g.lineTo(JX(40), JY(28)); g.closePath();
+      g.fillStyle = col.mark; g.fill();
+      g.lineWidth = Math.max(1, R * 0.06); g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineJoin = 'round'; g.stroke();
+      g.beginPath(); g.moveTo(JX(-40), JY(14)); g.lineTo(JX(40), JY(14));
+      g.lineWidth = Math.max(1, R * 0.05); g.strokeStyle = 'rgba(0,0,0,.45)'; g.stroke();
+      [[-62, -34], [0, -56], [62, -34]].forEach(function (t) {
+        g.beginPath(); g.arc(JX(t[0]), JY(t[1]), Math.max(1.6, R * 0.105), 0, Math.PI * 2);
+        g.fillStyle = col.jester; g.fill();
+        g.lineWidth = Math.max(0.8, R * 0.04); g.strokeStyle = 'rgba(0,0,0,.6)'; g.stroke();
+      });
+    } else if ((E.isKing(v) && !E.isAdventurer(v)) || E.isEmpress(v)) {
       // a small crown, drawn the same in both colours so it reads on either
       var w = R * 0.95, h = R * 0.6, y = cy + h * 0.45;
       if (crownK !== undefined) { y -= (1 - bounce(crownK)) * R * 1.6; g.globalAlpha = Math.min(1, crownK * 4); }
@@ -790,6 +1015,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
       g.beginPath(); g.arc(cx, cy, R * 0.26, 0, Math.PI * 2);
       g.fillStyle = col.mark; g.fill();
       g.lineWidth = Math.max(1, R * 0.06); g.strokeStyle = 'rgba(0,0,0,.45)'; g.stroke();
+    }
+    if (zz) {
+      // [JESTER] a sleeping Jester is greyed out and wears its remaining turns as a number
+      var br = Math.max(7, R * 0.4), bx = cx + R * 0.72, by = cy - R * 0.72;
+      g.beginPath(); g.arc(bx, by, br, 0, Math.PI * 2);
+      g.fillStyle = '#1E1A18'; g.fill();
+      g.lineWidth = Math.max(1.2, R * 0.07); g.strokeStyle = col.jester; g.stroke();
+      g.fillStyle = '#F1E9DC'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = '700 ' + Math.round(br * 1.15) + 'px sans-serif';
+      g.fillText(String(sleepLeft), bx, by + br * 0.06);
     }
     g.restore();
   }
@@ -812,6 +1047,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
       [o.last.from].concat(o.last.path).forEach(function (j) { g.fillRect(pad + (j % 8) * cell, pad + ((j / 8) | 0) * cell, cell, cell); });
     }
     var R = cell * 0.38;
+    // [JESTER] turns of sleep left for the Jester piece v (0: awake, or not a Jester)
+    var sl = function (v) { return (v === 9 || v === 10) && o.board.length > 68 ? Math.max(0, o.board[67 + E.owner(v)] | 0) : 0; };
     var a = o.anim, tr = o.trail, hidden = {}, gone = {}, crownAt = -1, crownK;
     if (a) hidden[a.m.path[a.m.path.length - 1]] = 1;
     if (tr) {
@@ -825,12 +1062,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
     for (var q = 0; q < 64; q++) {
       if (gone[q]) {
         var p0 = at(q), gk = gone[q].k;
-        piece(g, p0[0], p0[1], R * (1 - 0.45 * gk), gone[q].v, col, 0.85 * (1 - gk));
+        piece(g, p0[0], p0[1], R * (1 - 0.45 * gk), gone[q].v, col, 0.85 * (1 - gk), undefined, sl(gone[q].v));
         continue;
       }
       if (!o.board[q] || hidden[q]) continue;
       var p = at(q);
-      piece(g, p[0], p[1], R, o.board[q], col, 1, q === crownAt && crownK < 1 ? crownK : undefined);
+      piece(g, p[0], p[1], R, o.board[q], col, 1, q === crownAt && crownK < 1 ? crownK : undefined, sl(o.board[q]));
     }
     if (a) {
       // the moving piece slides hop by hop along its path
@@ -1017,7 +1254,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
     }
     var jump = !S.done && !busy() && !S.free && E.moves(S.board, S.turn, S.rules, S.free).some(function (m) { return m.caps.length; });
     var leave = !S.done && !busy() && forcedOffEdge(S.turn);
-    note.textContent = jump ? C.t('mustJump') : leave ? C.t('mustLeaveEdge') : '';
+    // [JESTER] shown only while a Jester or Joker really must be taken (never when the queen can be taken instead)
+    var jf = !S.done && !busy() && E.jesterForced(S.board, S.turn, S.rules, S.free);
+    note.textContent = jump ? C.t('mustJump') : jf ? C.t('mustTakeJester') : leave ? C.t('mustLeaveEdge') : '';
     paintTimers();
   }
 
@@ -1043,7 +1282,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
   }
   // [QUEEN] why the game ended, for the result card
   function causeNote() {
-    var k = { queen: 'causeQueen', timer: 'causeTimer', graceFail: 'causeGrace', twoLone: 'causeLone' }[S.cause];
+    var k = { queen: 'causeQueen', timer: 'causeTimer', edge: 'causeEdge', stay: 'causeStay', graceFail: 'causeGrace', twoLone: 'causeLone' }[S.cause];
     return k ? C.t(k) : null;
   }
 
@@ -1246,7 +1485,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
     if (S.winner >= 0) finish(); else maybeAi();
   }
   function validSave(sv) {
-    return !!(sv && sv.s && Array.isArray(sv.s.board) && (sv.s.board.length === 64 || sv.s.board.length === 68) &&
+    return !!(sv && sv.s && Array.isArray(sv.s.board) && (sv.s.board.length === 64 || sv.s.board.length === 68 || sv.s.board.length === 70) &&
       Array.isArray(sv.s.history) && sv.s.history.length && (sv.s.turn === 1 || sv.s.turn === 2));
   }
 
@@ -1287,6 +1526,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = CheckersEn
         el('p', { class: 'ch-dim', text: S.rules === 'huevo' ? C.t('rulesNotehuevo') : C.t('rulesNote') }),
         S.rules === 'huevo' ? null : el('p', { class: 'ch-dim', text: C.t('freeNote') }),
         S.rules === 'huevo' && S.board.length > 64 ? el('p', { class: 'ch-dim', text: C.t('queenNote') }) : null,
+        S.rules === 'huevo' && S.board.length > 64 && E.HUEVO_JESTERS ? el('p', { class: 'ch-dim', text: C.t('jesterNote') }) : null,
+        S.rules === 'huevo' && S.board.length > 64 && E.HUEVO_SCOUTERS ? el('p', { class: 'ch-dim', text: C.t('scouterNote') }) : null,
         el('h3', { style: { 'margin-top': 'var(--s-4)' }, text: C.t('keyboard') }),
         el('div', { class: 'ch-list' }, [
           kb('← ↑ → ↓', C.t('move')),
