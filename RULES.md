@@ -9,6 +9,7 @@ The game offers three rule sets. Choose one before you start.
 ## Classic
 
 - **Capture is compulsory.** If you can jump a piece, you must.
+- **Toggle** optional capture or stay as forced.
 - **A jump runs to the end.** Once you start a capture, you keep jumping until you can't.
 - **Kings** move one square diagonally in any direction, including backwards.
 
@@ -17,18 +18,19 @@ The game offers three rule sets. Choose one before you start.
 ## Spanish
 
 - **Capture is compulsory.** If you can jump a piece, you must.
+- **Toggle** optional capture or stay as forced.
 - **Kings fly.** A King can move any distance along a diagonal, over empty squares.
 - **The most pieces wins the capture.** If several captures are possible, you must take the sequence that captures the most pieces.
 
 ---
 
-## Huevo Style
+## Huevo Style (main focus)
 
 Huevo Style keeps the basic game and changes the rules around capture, Queens, the clock, and two extra pieces. It was designed by HuevosKicker, with the original capture idea from Chogan issue [#391](https://github.com/choganhq/chogan/issues/391#issuecomment-6451636233).
 
 ### Capture
 
-- **Capture is optional,** with one exception below.
+- **Capture is optional only,** with one exception below.
 - **A King flies only on its first jump.** Later jumps in the same chain are short.
 - **Every capture lands directly behind the piece taken.** Never farther.
 - **A chain can stop after any landing.** Each landing square is a legal end point, shown as a yellow dot.

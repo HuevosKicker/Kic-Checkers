@@ -1,6 +1,5 @@
 # Kic-Checkers
-
-Kic-Checkers is a Checkers game for the web<!-- and Android-->. It is free, open source, has no ads, no in app purchases, no analytics or trackers, and works fully offline.
+Kic-Checkers is a Checkers game for the web and [demi-APK](demi-APK.md)<!-- and Android-->. It is free, open source, has no ads, no in app purchases, no analytics or trackers, and works fully offline.
 
 Based on [Chogan](https://github.com/choganhq/chogan) by [Margani](https://github.com/margani), MIT licence.
 
@@ -9,8 +8,7 @@ Based on [Chogan](https://github.com/choganhq/chogan) by [Margani](https://githu
 This forked repo is entirely built with the help of AI currently. The modified code of HTML is from AI. The ideas, style choices, review, writing (writing can be drafted first by AI but will always be looked upon and edited by hand), come from me (HuevosKicker). I lack the skills for coding currently but am learning as things are getting built. If you do not approve of this, I understand. If you are okay with it, please continue below 👇
 
 ### The game
-Play game on web now! [GAME](https://huevoskicker.github.io/Kic-Checkers/games/checkers/index.html
-)
+Play game on web now! [GAME](https://huevoskicker.github.io/Kic-Checkers)
 
 > I recommend playing on [Cromite](https://github.com/uazo/cromite). Bigger board and less lag if you have. Also, very privacy tuned.
 
@@ -25,19 +23,26 @@ Play against the AI on three levels, or with two players on one device. <!--Ther
 ### Playing
 Web version, with no build step:
 
-```
+```bash
+# Copies the most recent repo
+git clone --depth 1 https://github.com/HuevosKicker/Kic-Checkers
+# Heads to the folder
+cd ~/Kic-Checkers
+# Runs the server
 python3 -m http.server -d www 8000
 ```
 
 Then open
 
-`http://localhost:8000`
+`http://[::]:8000` ← works best
+
+`http://localhost:8000` ← fallback
 
 After the first load the game works offline.
 ### Shortcuts
 Check out [discussions/1](https://github.com/HuevosKicker/Kic-Checkers/discussions/1) for chatting ideas
 
-See [RULES.md](RULES.md) for the full rules, and [the design notes](https://gist.github.com/HuevosKicker/78b176ca6410be831e1e0a91a40750f9) for measurements and history.
+See [RULES](RULES.md) for the full rules, and [the in depth origin](https://gist.github.com/HuevosKicker/78b176ca6410be831e1e0a91a40750f9) that shows design notes.
 
 See the full commit history: [commits/kic-only](https://github.com/HuevosKicker/Kic-Checkers/commits/kic-only).
 <!--Android: the Gradle project is in `android/`.

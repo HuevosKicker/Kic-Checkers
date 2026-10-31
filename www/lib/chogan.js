@@ -3038,7 +3038,7 @@
         });
       };
       global.addEventListener('load', function () {
-        sw.register('sw.js', { scope: './', updateViaCache: 'none' }).then(function (reg) {
+        sw.register(new URL('../', document.querySelector('script[src*="lib/chogan.js"]').src).href + 'sw.js', { scope: new URL('../', document.querySelector('script[src*="lib/chogan.js"]').src).href, updateViaCache: 'none' }).then(function (reg) {
           if (reg.waiting && sw.controller) offer(reg.waiting);
           reg.addEventListener('updatefound', function () {
             var w = reg.installing;
