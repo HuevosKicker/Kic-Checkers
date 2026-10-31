@@ -52,5 +52,6 @@ git clone --depth 1 https://github.com/HuevosKicker/Kic-Checkers
 - Click both Runs button
 - Enjoy
 
-**Showcase of final results**
+**Showcase of final results**:
 <video controls><source src="vids/AutoPie-showcase.mp4" type="video/mp4"></video>
+https://github.com/user-attachments/assets/6615c778-3a93-45e9-bed0-7844998a7f4b
